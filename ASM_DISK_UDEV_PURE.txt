@@ -1,0 +1,712 @@
+ASM Disk Creation.
+------------------------
+--------------------------------------------MULTIPATH CONFIG ----------------------------------------------
+check multipath is enalbled or not
+
+multipath -ll
+
+Note:
+for pure storage multipath is mandatory. if we gave powerpath already installed you need to deinstall as both can't stay together and will cause server panic.
+
+[root@serrheorap032 ~]# multipath -ll
+mpathb (3624a93707c4b037595650bd70001105c) dm-7 PURE,FlashArray
+size=200G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 2:0:2:1 sdb 8:16  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:1 sdc 8:32  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:1 sdd 8:48  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:1 sde 8:64  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:1 sdf 8:80  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:3:1 sdg 8:96  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:1 sdh 8:112 active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 0:0:0:1 sdi 8:128 active ready running
+
+to check the existing devices mapped to which disk for fileUser
+ 
+  [root@serrheorap032 ~]# lvs -o+devices
+  LV       VG     Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert Devices
+  data.vol datavg -wi-ao---- 199.00g                                                     /dev/mapper/mpathbp1(0)
+  home.vol sysvg  -wi-ao----   4.00g                                                     /dev/sda2(1633)
+  opt.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(2177)
+  root.fs  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(0)
+  swap.vol sysvg  -wi-ao----  47.03g                                                     /dev/sda2(128)
+  tmp.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(1889)
+  usr.vol  sysvg  -wi-ao----   5.00g                                                     /dev/sda2(2017)
+  var.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(1761)
+
+to scan the disk assgned to the server 
+
+SCSI
+for i in `ls /sys/class/scsi_host/`; do echo "- - -" > /sys/class/scsi_host/$i/scan; done
+multipath -ll
+
+if not detected then use 
+for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do echo "1" > /sys/class/fc_host/host$i/issue_lip; done
+
+check for multipath -ll again and verify 
+
+
+
+recommedation for multipath configuration
+----------------------------------------------
+take a copy of the file below and edit.
+/etc/multipath.conf
+
+Check the multipath -ll output before making changes
+
+[root@serrheorap032 ~]# multipath -ll
+mpathe (3624a93707c4b037595650bd700011086) dm-12 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 0:0:0:4 sdl  8:176  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:4 sdr  65:16  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:4 sdx  65:112 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:4 sdad 65:208 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:4 sdaj 66:48  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:4 sdap 66:144 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:2:4 sdav 66:240 active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 2:0:3:4 sdbb 67:80  active ready running
+mpathd (3624a93707c4b037595650bd700011085) dm-11 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 0:0:0:3 sdk  8:160  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:3 sdq  65:0   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:3 sdw  65:96  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:3 sdac 65:192 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:3 sdai 66:32  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:3 sdao 66:128 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:2:3 sdau 66:224 active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 2:0:3:3 sdba 67:64  active ready running
+mpathc (3624a93707c4b037595650bd700011084) dm-10 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 0:0:0:2 sdj  8:144  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:2 sdp  8:240  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:2 sdv  65:80  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:2 sdab 65:176 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:2 sdah 66:16  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:2 sdan 66:112 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:2:2 sdat 66:208 active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 2:0:3:2 sdaz 67:48  active ready running
+mpathb (3624a93707c4b037595650bd70001105c) dm-7 PURE,FlashArray
+size=200G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 2:0:2:1 sdb  8:16   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:1 sdc  8:32   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:1 sdd  8:48   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:1 sde  8:64   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:1 sdf  8:80   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:3:1 sdg  8:96   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:1 sdh  8:112  active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 0:0:0:1 sdi  8:128  active ready running
+mpathh (3624a93707c4b037595650bd700011089) dm-15 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 0:0:0:7 sdo  8:224  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:7 sdu  65:64  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:7 sdaa 65:160 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:7 sdag 66:0   active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:7 sdam 66:96  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:7 sdas 66:192 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:2:7 sser 67:32  active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 2:0:3:7 sdbe 67:128 active ready running
+mpathg (3624a93707c4b037595650bd700011088) dm-14 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 0:0:0:6 sdn  8:208  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:6 sdt  65:48  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:6 sdz  65:144 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:6 sdaf 65:240 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:6 sdal 66:80  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:6 sdar 66:176 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:2:6 sdax 67:16  active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 2:0:3:6 sdbd 67:112 active ready running
+mpathf (3624a93707c4b037595650bd700011087) dm-13 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+|-+- policy='round-robin 0' prio=1 status=active
+| `- 0:0:0:5 sdm  8:192  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:1:5 sds  65:32  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:2:5 sdy  65:128 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 0:0:3:5 sdae 65:224 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:0:5 sdak 66:64  active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:1:5 sdaq 66:160 active ready running
+|-+- policy='round-robin 0' prio=1 status=enabled
+| `- 2:0:2:5 sdaw 67:0   active ready running
+`-+- policy='round-robin 0' prio=1 status=enabled
+  `- 2:0:3:5 sdbc 67:96  active ready running
+
+
+need to add the root disk to blacklist 
+
+pvs
+[root@serrheorap032 ~]# pvs
+  PV                   VG     Fmt  Attr PSize   PFree
+  /dev/mapper/mpathbp1 datavg lvm2 a--  199.99g 1016.00m
+  /dev/sda2            sysvg  lvm2 a--  277.44g  205.41g
+
+
+UUID for the root disk and add it to the black list /etc/multipath.conf
+--------------------------------------------------------------------------
+scsi_id --page=0x83 --whitelisted --device=/dev/sda
+
+[root@serrheorap032 ~]# scsi_id --page=0x83 --whitelisted --device=/dev/sda
+3678da6e715c2b6801e27649607bd3a7f
+
+
+add the below details :
+--------------------------------
+
+defaults {
+         user_friendly_names yes
+        polling_interval      10
+}
+blacklist {
+                wwid "3678da6e715c2b6801e27649607bd3a7f"
+}
+devices {
+    device {
+        vendor                "PURE"
+        path_selector         "round-robin 0"
+        path_grouping_policy  multibus
+        rr_min_io_rq          1
+        path_checker          tur
+        fast_io_fail_tmo      10
+        dev_loss_tmo          60
+        no_path_retry         0
+    }
+}
+
+
+
+Then reload the multipath 
+------------------------------------
+
+[root@serrheorap032 ~]# /etc/init.d/multipathd reload
+Reloading multipathd:                                      [  OK  ]
+
+
+[root@serrheorap032 ~]# multipath -ll
+mpathe (3624a93707c4b037595650bd700011086) dm-12 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:4 sdl  8:176  active ready running
+  |- 2:0:0:4 sdaj 66:48  active ready running
+  |- 0:0:1:4 sdr  65:16  active ready running
+  |- 2:0:1:4 sdap 66:144 active ready running
+  |- 0:0:2:4 sdx  65:112 active ready running
+  |- 2:0:2:4 sdav 66:240 active ready running
+  |- 0:0:3:4 sdad 65:208 active ready running
+  `- 2:0:3:4 sdbb 67:80  active ready running
+mpathd (3624a93707c4b037595650bd700011085) dm-11 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:3 sdk  8:160  active ready running
+  |- 2:0:0:3 sdai 66:32  active ready running
+  |- 0:0:1:3 sdq  65:0   active ready running
+  |- 2:0:1:3 sdao 66:128 active ready running
+  |- 0:0:2:3 sdw  65:96  active ready running
+  |- 2:0:2:3 sdau 66:224 active ready running
+  |- 0:0:3:3 sdac 65:192 active ready running
+  `- 2:0:3:3 sdba 67:64  active ready running
+mpathc (3624a93707c4b037595650bd700011084) dm-10 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:2 sdj  8:144  active ready running
+  |- 2:0:0:2 sdah 66:16  active ready running
+  |- 0:0:1:2 sdp  8:240  active ready running
+  |- 2:0:1:2 sdan 66:112 active ready running
+  |- 0:0:2:2 sdv  65:80  active ready running
+  |- 2:0:2:2 sdat 66:208 active ready running
+  |- 0:0:3:2 sdab 65:176 active ready running
+  `- 2:0:3:2 sdaz 67:48  active ready running
+mpathb (3624a93707c4b037595650bd70001105c) dm-7 PURE,FlashArray
+size=200G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 2:0:2:1 sdb  8:16   active ready running
+  |- 0:0:1:1 sde  8:64   active ready running
+  |- 2:0:1:1 sdc  8:32   active ready running
+  |- 0:0:3:1 sdf  8:80   active ready running
+  |- 2:0:0:1 sdd  8:48   active ready running
+  |- 0:0:2:1 sdh  8:112  active ready running
+  |- 2:0:3:1 sdg  8:96   active ready running
+  `- 0:0:0:1 sdi  8:128  active ready running
+mpathh (3624a93707c4b037595650bd700011089) dm-15 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:7 sdo  8:224  active ready running
+  |- 2:0:0:7 sdam 66:96  active ready running
+  |- 0:0:1:7 sdu  65:64  active ready running
+  |- 2:0:1:7 sdas 66:192 active ready running
+  |- 0:0:2:7 sdaa 65:160 active ready running
+  |- 2:0:2:7 sser 67:32  active ready running
+  |- 0:0:3:7 sdag 66:0   active ready running
+  `- 2:0:3:7 sdbe 67:128 active ready running
+mpathg (3624a93707c4b037595650bd700011088) dm-14 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:6 sdn  8:208  active ready running
+  |- 2:0:0:6 sdal 66:80  active ready running
+  |- 0:0:1:6 sdt  65:48  active ready running
+  |- 2:0:1:6 sdar 66:176 active ready running
+  |- 0:0:2:6 sdz  65:144 active ready running
+  |- 2:0:2:6 sdax 67:16  active ready running
+  |- 0:0:3:6 sdaf 65:240 active ready running
+  `- 2:0:3:6 sdbd 67:112 active ready running
+mpathf (3624a93707c4b037595650bd700011087) dm-13 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:5 sdm  8:192  active ready running
+  |- 2:0:0:5 sdak 66:64  active ready running
+  |- 0:0:1:5 sds  65:32  active ready running
+  |- 2:0:1:5 sdaq 66:160 active ready running
+  |- 0:0:2:5 sdy  65:128 active ready running
+  |- 2:0:2:5 sdaw 67:0   active ready running
+  |- 0:0:3:5 sdae 65:224 active ready running
+  `- 2:0:3:5 sdbc 67:96  active ready running
+
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------UDEV CONFIGURATION-----------------------------------------------
+Get the UUID for configuration of UDEV
+
+check for new devices
+--------------------------------
+storage team will give LUNID for the newly allocated luns
+
+example :
+
+Name
+Provisioned
+LUN ID
+Serial
+serrheorap032_033_500GB_01
+500 GB
+2
+7C4B037595650BD700011084
+serrheorap032_033_500GB_02
+500 GB
+
+get the UUID with for the allocated disks
+------------------------------------------
+
+[root@serrheorap032 ~]# multipath -ll |grep -i 7C4B037595650BD700011084
+mpathc (3624a93707c4b037595650bd700011084) dm-10 PURE,FlashArray                       --- this is the UUID 3624a93707c4b037595650bd700011084
+[root@serrheorap032 ~]#  multipath -ll |grep -i 7C4B037595650BD700011085
+mpathd (3624a93707c4b037595650bd700011085) dm-11 PURE,FlashArray
+[root@serrheorap032 ~]# multipath -ll |grep -i 7C4B037595650BD700011086
+mpathe (3624a93707c4b037595650bd700011086) dm-12 PURE,FlashArray
+[root@serrheorap032 ~]# multipath -ll |grep -i 7C4B037595650BD700011087
+mpathf (3624a93707c4b037595650bd700011087) dm-13 PURE,FlashArray
+[root@serrheorap032 ~]# multipath -ll |grep -i 7C4B037595650BD700011088
+mpathg (3624a93707c4b037595650bd700011088) dm-14 PURE,FlashArray
+[root@serrheorap032 ~]# multipath -ll |grep -i 7C4B037595650BD700011089
+mpathh (3624a93707c4b037595650bd700011089) dm-15 PURE,FlashArray
+
+
+Format the newly allocated disks
+-------------------------------------
+
+put the disk in the variable a
+
+[root@serrheorap032 ~]# multipath -ll |grep -i PUre
+mpathe (3624a93707c4b037595650bd700011086) dm-12 PURE,FlashArray
+mpathd (3624a93707c4b037595650bd700011085) dm-11 PURE,FlashArray
+mpathc (3624a93707c4b037595650bd700011084) dm-10 PURE,FlashArray
+mpathb (3624a93707c4b037595650bd70001105c) dm-7 PURE,FlashArray
+mpathh (3624a93707c4b037595650bd700011089) dm-15 PURE,FlashArray
+mpathg (3624a93707c4b037595650bd700011088) dm-14 PURE,FlashArray
+mpathf (3624a93707c4b037595650bd700011087) dm-13 PURE,FlashArray
+
+
+[root@serrheorap032 ~]# a='
+> mpathe
+> mpathd
+> mpathc
+> mpathh
+> mpathg
+> mpathf
+> '
+
+Format the disks using the loop
+------------------------------------
+[root@serrheorap032 ~]# for i in $a;do echo -e "u\n n\n p\n 1\n 2048\n \n w\n" | fdisk /dev/mapper/$i; done
+
+  
+check the parttion
+----------------------------------
+[root@serrheorap032 ~]# for i in $a;do fdisk -l /dev/mapper/$i; done
+example :
+
+Disk /dev/mapper/mpathe: 536.9 GB, 536870912000 bytes
+255 heads, 63 sectors/track, 65270 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 4194304 bytes
+Disk identifier: 0xd47f7a85
+
+             Device Boot      Start         End      Blocks   Id  User
+/dev/mapper/mpathep1               1       65271   524286976   83  Linux
+
+
+create  vi /etc/udev/rules.d/99-oracle-asmdevices.rules file
+--------------------------------------------------------------------
+
+ACTION=="add|change",ENV{DM_UUID}=="part1-mpath-3624a93707c4b037595650bd700011086",SYMLINK+="oracleasm/disks/DVOL001", GROUP:="dba", OWNER:="oracle",MODE="0660"
+ACTION=="add|change",ENV{DM_UUID}=="part1-mpath-3624a93707c4b037595650bd700011085",SYMLINK+="oracleasm/disks/DVOL002", GROUP:="dba", OWNER:="oracle",MODE="0660"
+ACTION=="add|change",ENV{DM_UUID}=="part1-mpath-3624a93707c4b037595650bd700011084",SYMLINK+="oracleasm/disks/DVOL003", GROUP:="dba", OWNER:="oracle",MODE="0660"
+ACTION=="add|change",ENV{DM_UUID}=="part1-mpath-3624a93707c4b037595650bd700011089",SYMLINK+="oracleasm/disks/DVOL004", GROUP:="dba", OWNER:="oracle",MODE="0660"
+ACTION=="add|change",ENV{DM_UUID}=="part1-mpath-3624a93707c4b037595650bd700011088",SYMLINK+="oracleasm/disks/DVOL005", GROUP:="dba", OWNER:="oracle",MODE="0660"
+ACTION=="add|change",ENV{DM_UUID}=="part1-mpath-3624a93707c4b037595650bd700011087",SYMLINK+="oracleasm/disks/DVOL006", GROUP:="dba", OWNER:="oracle",MODE="0660"
+
+
+
+create /etc/udev/rules.d/99-pure-storage.rules for pure storage [not mandatory but best practice for PURE storage]
+-------------------------------------------------------------------------------------------------------------------------
+
+# Use noop scheduler for high-performance solid-state storage
+ACTION=="add|change", KERNEL=="sd*[!0-9]", SUBUser=="block", ENV{ID_VENDOR}=="PURE", ATTR{queue/scheduler}="noop"
+
+# Reduce CPU overhead due to entropy collection
+ACTION=="add|change", KERNEL=="sd*[!0-9]", SUBUser=="block", ENV{ID_VENDOR}=="PURE", ATTR{queue/add_random}="0"
+
+# Spread CPU load by redirecting completions to originating CPU
+ACTION=="add|change", KERNEL=="sd*[!0-9]", SUBUser=="block", ENV{ID_VENDOR}=="PURE", ATTR{queue/rq_affinity}="2"
+
+
+
+# Set the HBA timeout to 60 seconds
+
+ACTION=="add", SUBUserS=="scsi", ATTRS{model}=="FlashArray      ", RUN+="/bin/sh -c 'echo 60 > /sys$DEVPATH/device/timeout'"
+
+
+
+
+modify the udev rules and add the alias for the diskgroups to multipath
+-------------------------------------------------------------------------------
+
+multipaths {
+multipath {
+         wwid "3624a93707c4b037595650bd700011086"
+          alias DVOL001
+          }
+
+
+multipath {
+         wwid "3624a93707c4b037595650bd700011085"
+          alias DVOL002
+          }
+
+
+
+multipath {
+         wwid "3624a93707c4b037595650bd700011084"
+          alias DVOL003
+          }
+
+
+multipath {
+         wwid "3624a93707c4b037595650bd700011089"
+          alias DVOL004
+          }
+
+
+multipath {
+         wwid "3624a93707c4b037595650bd700011088"
+          alias DVOL005
+          }
+
+
+multipath {
+         wwid "3624a93707c4b037595650bd700011087"
+          alias DVOL006
+          }
+
+
+
+}
+
+
+Then reload the multipath and check the output.
+---------------------------------------------------------
+/etc/init.d/multipathd reload
+Reloading multipathd:                                      [  OK  ]
+[root@serrheorap032 ~]# multipath -ll
+DVOL003 (3624a93707c4b037595650bd700011084) dm-10 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:2 sdj  8:144  active ready running
+  |- 2:0:0:2 sdah 66:16  active ready running
+  |- 0:0:1:2 sdp  8:240  active ready running
+  |- 2:0:1:2 sdan 66:112 active ready running
+  |- 0:0:2:2 sdv  65:80  active ready running
+  |- 2:0:2:2 sdat 66:208 active ready running
+  |- 0:0:3:2 sdab 65:176 active ready running
+  `- 2:0:3:2 sdaz 67:48  active ready running
+DVOL002 (3624a93707c4b037595650bd700011085) dm-11 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:3 sdk  8:160  active ready running
+  |- 2:0:0:3 sdai 66:32  active ready running
+  |- 0:0:1:3 sdq  65:0   active ready running
+  |- 2:0:1:3 sdao 66:128 active ready running
+  |- 0:0:2:3 sdw  65:96  active ready running
+  |- 2:0:2:3 sdau 66:224 active ready running
+  |- 0:0:3:3 sdac 65:192 active ready running
+  `- 2:0:3:3 sdba 67:64  active ready running
+DVOL001 (3624a93707c4b037595650bd700011086) dm-12 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:4 sdl  8:176  active ready running
+  |- 2:0:0:4 sdaj 66:48  active ready running
+  |- 0:0:1:4 sdr  65:16  active ready running
+  |- 2:0:1:4 sdap 66:144 active ready running
+  |- 0:0:2:4 sdx  65:112 active ready running
+  |- 2:0:2:4 sdav 66:240 active ready running
+  |- 0:0:3:4 sdad 65:208 active ready running
+  `- 2:0:3:4 sdbb 67:80  active ready running
+mpathb (3624a93707c4b037595650bd70001105c) dm-7 PURE,FlashArray
+size=200G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 2:0:2:1 sdb  8:16   active ready running
+  |- 0:0:1:1 sde  8:64   active ready running
+  |- 2:0:1:1 sdc  8:32   active ready running
+  |- 0:0:3:1 sdf  8:80   active ready running
+  |- 2:0:0:1 sdd  8:48   active ready running
+  |- 0:0:2:1 sdh  8:112  active ready running
+  |- 2:0:3:1 sdg  8:96   active ready running
+  `- 0:0:0:1 sdi  8:128  active ready running
+DVOL006 (3624a93707c4b037595650bd700011087) dm-13 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:5 sdm  8:192  active ready running
+  |- 2:0:0:5 sdak 66:64  active ready running
+  |- 0:0:1:5 sds  65:32  active ready running
+  |- 2:0:1:5 sdaq 66:160 active ready running
+  |- 0:0:2:5 sdy  65:128 active ready running
+  |- 2:0:2:5 sdaw 67:0   active ready running
+  |- 0:0:3:5 sdae 65:224 active ready running
+  `- 2:0:3:5 sdbc 67:96  active ready running
+DVOL005 (3624a93707c4b037595650bd700011088) dm-14 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:6 sdn  8:208  active ready running
+  |- 2:0:0:6 sdal 66:80  active ready running
+  |- 0:0:1:6 sdt  65:48  active ready running
+  |- 2:0:1:6 sdar 66:176 active ready running
+  |- 0:0:2:6 sdz  65:144 active ready running
+  |- 2:0:2:6 sdax 67:16  active ready running
+  |- 0:0:3:6 sdaf 65:240 active ready running
+  `- 2:0:3:6 sdbd 67:112 active ready running
+DVOL004 (3624a93707c4b037595650bd700011089) dm-15 PURE,FlashArray
+size=500G features='0' hwhandler='0' wp=rw
+`-+- policy='round-robin 0' prio=1 status=active
+  |- 0:0:0:7 sdo  8:224  active ready running
+  |- 2:0:0:7 sdam 66:96  active ready running
+  |- 0:0:1:7 sdu  65:64  active ready running
+  |- 2:0:1:7 sdas 66:192 active ready running
+  |- 0:0:2:7 sdaa 65:160 active ready running
+  |- 2:0:2:7 sser 67:32  active ready running
+  |- 0:0:3:7 sdag 66:0   active ready running
+  `- 2:0:3:7 sdbe 67:128 active ready running
+
+  -------------------------------------------------------------------------------
+  
+  
+  reload the udev rules.
+  --------------------------------
+  check the /dev/oracleasm/disks/ if the disks are visible now or relAPP the udev using command below.
+  
+  /sbin/udevadm control --reload-rules
+
+[root@serrheorap032 ~]# cd /dev/oracleasm/disks/
+[root@serrheorap032 disks]# ls -ltr
+  
+lrwxrwxrwx 1 root root 11 Jan 29 09:29 DVOL003 -> ../../dm-16
+lrwxrwxrwx 1 root root 11 Jan 29 09:29 DVOL002 -> ../../dm-17
+lrwxrwxrwx 1 root root 11 Jan 29 09:29 DVOL004 -> ../../dm-21
+lrwxrwxrwx 1 root root 11 Jan 29 09:29 DVOL001 -> ../../dm-18
+lrwxrwxrwx 1 root root 11 Jan 29 09:29 DVOL006 -> ../../dm-19
+lrwxrwxrwx 1 root root 11 Jan 29 09:29 DVOL005 -> ../../dm-20
+
+Done for standalone setup 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+For RAC setup we need to the below :
+--------------------------------------------------
+
+SCAN the luns in each node of the cluster.
+
+SCSI
+for i in `ls /sys/class/scsi_host/`; do echo "- - -" > /sys/class/scsi_host/$i/scan; done
+multipath -ll
+
+if not detected then use 
+for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do echo "1" > /sys/class/fc_host/host$i/issue_lip; done
+
+multipath be care for the root disk and check the UUID from the LUNID given by storage team to be on the safer side.
+----------------------------------------------------------------------------------------------------------------------------
+lvs -o+devices
+
+  LV       VG     Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert Devices
+  data.vol datavg -wi-ao---- 199.00g                                                     /dev/mapper/mpathbp1(0)
+  home.vol sysvg  -wi-ao----   4.00g                                                     /dev/sda2(2048)
+  opt.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(5632)
+  root.vol sysvg  -wi-ao----  10.00g                                                     /dev/sda2(3072)
+  swap.vol sysvg  -wi-ao----   4.00g                                                     /dev/sda2(7680)
+  tmp.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(6656)
+  usr.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(0)
+  var.vol  sysvg  -wi-ao----   4.00g                                                     /dev/sda2(1024)
+
+
+
+[root@serrheorap033 ~]# multipath -ll |grep -i 7C4B037595650BD700011084
+mpathe (3624a93707c4b037595650bd700011084) dm-13 PURE,FlashArray
+
+do partprobe for each devices id the device
+-----------------------------------------------
+[root@serrheorap033 ~]#  multipath -ll |grep -i PUre
+mpathe (3624a93707c4b037595650bd700011084) dm-13 PURE,FlashArray
+mpathd (3624a93707c4b037595650bd700011087) dm-11 PURE,FlashArray
+mpathc (3624a93707c4b037595650bd700011085) dm-10 PURE,FlashArray
+mpathb (3624a93707c4b037595650bd70001105d) dm-7 PURE,FlashArray   --- ignore this as this is the root disk allocated for /data
+mpathh (3624a93707c4b037595650bd700011088) dm-19 PURE,FlashArray
+mpathg (3624a93707c4b037595650bd700011089) dm-18 PURE,FlashArray
+mpathf (3624a93707c4b037595650bd700011086) dm-16 PURE,FlashArray
+
+
+/sbin/partprobe /dev/mapper/
+/sbin/partprobe /dev/mapper/mpathe
+/sbin/partprobe /dev/mapper/mpathd
+/sbin/partprobe /dev/mapper/mpathc
+/sbin/partprobe /dev/mapper/mpathh
+/sbin/partprobe /dev/mapper/mpathg
+/sbin/partprobe /dev/mapper/mpathf
+
+
+
+check if the disks are visible
+-----------------------------------
+[root@serrheorap033 ~]# fdisk -l
+
+Disk /dev/sda: 299.0 GB, 298999349248 bytes
+255 heads, 63 sectors/track, 36351 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x000b4561
+
+   Device Boot      Start         End      Blocks   Id  User
+/dev/sda1   *           1          64      512000   83  Linux
+Partition 1 does not end on cylinder boundary.
+/dev/sda2              64       36352   291478528   8e  Linux LVM
+
+
+
+
+===============================================================
+
+copy the below files from the first node :
+
+1. /etc/multipath.conf
+2. /etc/udev/rules.d/99-oracle-asmdevices.rules
+3. /etc/udev/rules.d/99-pure-storage.rules
+
+make the changes for the blacklist disk in /etc/multipath.conf
+-------------------------------------------------------------------
+defaults {
+         user_friendly_names yes
+        polling_interval      10
+}
+
+blacklist {
+                wwid "3624a93707c4b037595650bd70001105d" - this will be different as this is not shared across nodes.
+}
+
+after coping the files reload multipath server and udev.
+---------------------------------------------------------------
+
+[root@serrheorap033 ~]# /etc/init.d/multipathd reload
+Reloading multipathd:                                      [  OK  ]
+[root@serrheorap033 ~]# /sbin/udevadm control --reload-rules
+
+
+[root@serrheorap033 ~]# cd /dev/oracleasm/disks/
+[root@serrheorap033 disks]# ls -ltr
+total 0
+lrwxrwxrwx 1 root root 11 Jan 29 09:54 DVOL002 -> ../../dm-12
+lrwxrwxrwx 1 root root 11 Jan 29 09:54 DVOL001 -> ../../dm-17
+lrwxrwxrwx 1 root root 11 Jan 29 09:54 DVOL006 -> ../../dm-14
+lrwxrwxrwx 1 root root 11 Jan 29 09:54 DVOL003 -> ../../dm-15
+lrwxrwxrwx 1 root root 11 Jan 29 09:54 DVOL005 -> ../../dm-21
+lrwxrwxrwx 1 root root 11 Jan 29 09:54 DVOL004 -> ../../dm-20
+
+
+
+
+====================================================================================
+
+In case of addition of new disks :
+--------------------------------------
+
+changes need to be made in the below 2 files and reload the multipath and udev services.
+
+1. /etc/multipath.conf
+2. /etc/udev/rules.d/99-oracle-asmdevices.rules
+
+reload :
+/etc/init.d/multipathd reload
+/sbin/udevadm control --reload-rules

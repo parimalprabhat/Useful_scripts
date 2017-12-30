@@ -1,0 +1,263 @@
+How-to find the SQL that using lots of temp tablespace in Oracle
+==================================================================
+
+tablespace usage
+-------------------
+col TABLESPACE form a10;
+col USERNAME form a10;
+col OSUSER form a10
+col PROGRAM form a20 trunc;
+SELECT   b.TABLESPACE
+  , b.segfile#
+     , b.segblk#
+       , ROUND (  (  ( b.blocks * p.VALUE ) / 1024 / 1024 ), 2 ) size_mb
+       , a.SID
+       , a.serial#
+       , a.username
+       , a.osuser
+  , a.program
+       , a.status
+    FROM v$session a
+       , v$sort_usage b
+       , v$process c
+       , v$parameter p
+   WHERE p.NAME = 'db_block_size'
+     AND a.saddr = b.session_addr
+     AND a.paddr = c.addr
+ORDER BY b.TABLESPACE
+       , b.segfile#
+       , b.segblk#
+       , b.blocks;
+
+
+TABLESPACE   SEGFILE#    SEGBLK#    SIZE_MB        SID    SERIAL# USERNAME   OSUSER     PROGRAM              STATUS
+---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- -------------------- --------
+TEMPGROUP         202    4145664      12633       1990      11351 SOS_ODS    tibco      tibcosoftwareinc.jdb ACTIVE
+TEMPGROUP         202    4191232       2563       1990      11351 SOS_ODS    tibco      tibcosoftwareinc.jdb ACTIVE
+TEMPGROUP         212      82816      46873       1496      36507 SOS_ODS    tibco      tibcosoftwareinc.jdb INACTIVE
+TEMPGROUP         212      91136       9519       1496      36507 SOS_ODS    tibco      tibcosoftwareinc.jdb INACTIVE
+TEMPGROUP         212    3751296       6893        644      42537 SOS_ODS    tibco      tibcosoftwareinc.jdb ACTIVE
+TEMPGROUP         212    3862656      33857        644      42537 SOS_ODS    tibco      tibcosoftwareinc.jdb ACTIVE
+
+
+set long 9999;
+select sql_fulltext from v$sql where sql_id='&sql_id';
+
+
+SQL_FULLTEXT
+--------------------------------------------------------------------------------
+INSERT INTO /*+append*/ GLT_ADT_ODS_STUDY SELECT CNTRY_KEY, STR_KEY, CTG_KEY, EX
+HBTN_KEY, EXHBTN_PST_KEY, LCTN_KEY, ADT_FCT_KEY, ADT_PRD_KEY, ENTY_TYP_KEY, ENTY
+_KEY, EXHBTN_INSTNC_NUM, ADT_INSTR_KEY, FCT_VL_NMRC, ADT_FCT_GRP_KEY, GRP_KEY, L
+CTN_INSTNC_NUM, FCT_VL_TXT, CLCTN_TYP, VLDTN_IND, INSRT_TS, UPD_TS, STUDY_ID, WE
+EK_ID, YEAR, SYNERGY_MODE_ID, YEAR_COUNTRY_STUDY_ID, SUB_PRDC_IND, NULL FROM SOS
+_ADT_ODS_STUDY WHERE ADT_INSTR_KEY NOT IN (SELECT INSTRUCTION_ID FROM GLT_SOS_ST
+UDY_AI_ALL) AND STUDY_ID = :B1 AND CNTRY_KEY = :B2 AND WEEK_ID = :B4 AND YEAR =
+:B3 AND YEAR_COUNTRY_STUDY_ID = :B3 || :B2 || :B1
+
+
+
+First, check the space usage:
+-------------------------------
+
+ select b.Total_MB,
+       b.Total_MB - round(a.used_blocks*8/1024) Current_Free_MB,
+       round(used_blocks*8/1024)                Current_Used_MB,
+      round(max_used_blocks*8/1024)             Max_used_MB
+from v$sort_segment a,
+ (select round(sum(bytes)/1024/1024) Total_MB from dba_temp_files ) b;
+ 
+  TOTAL_MB CURRENT_FREE_MB CURRENT_USED_MB MAX_USED_MB
+---------- --------------- --------------- -----------
+     36011            1097           34914       35075
+
+
+Then, check the sessions that use temp tablespace:
+--------------------------------------------------
+
+col hash_value for a40
+col tablespace for a10
+col username for a15
+set linesize 132 pagesize 1000
+
+SELECT s.sid, s.username, u.tablespace, s.sql_hash_value||'/'||u.sqlhash hash_value, u.segtype, u.contents, u.blocks
+FROM v$session s, v$tempseg_usage u
+WHERE s.saddr=u.session_addr
+order by u.blocks;
+
+       SID USERNAME        TABLESPACE HASH_VALUE                               SEGTYPE   CONTENTS      BLOCKS
+---------- --------------- ---------- ---------------------------------------- --------- --------- ----------
+       574 SOS_ODS         TEMPGROUP  0/3142228645                             INDEX     TEMPORARY        128
+       574 SOS_ODS         TEMPGROUP  0/3142228645                             DATA      TEMPORARY        128
+       644 SOS_ODS         TEMPGROUP  1587383436/1587383436                    INDEX     TEMPORARY        128
+      1496 SOS_ODS         TEMPGROUP  1587383436/1587383436                    INDEX     TEMPORARY        128
+      1990 SOS_ODS         TEMPGROUP  1587383436/1587383436                    INDEX     TEMPORARY        128
+      1496 SOS_ODS         TEMPGROUP  1587383436/1587383436                    DATA      TEMPORARY        128
+       644 SOS_ODS         TEMPGROUP  1587383436/1587383436                    DATA      TEMPORARY        128
+      1990 SOS_ODS         TEMPGROUP  1587383436/1587383436                    DATA      TEMPORARY        128
+      1990 SOS_ODS         TEMPGROUP  1587383436/1587383436                    INDEX     TEMPORARY     328064
+       644 SOS_ODS         TEMPGROUP  1587383436/1587383436                    INDEX     TEMPORARY     882304
+      1496 SOS_ODS         TEMPGROUP  1587383436/1587383436                    INDEX     TEMPORARY    1218432
+      1990 SOS_ODS         TEMPGROUP  1587383436/1587383436                    DATA      TEMPORARY    1617024
+       644 SOS_ODS         TEMPGROUP  1587383436/1587383436                    DATA      TEMPORARY    4333696
+      1496 SOS_ODS         TEMPGROUP  1587383436/1587383436                    DATA      TEMPORARY    5999744
+
+
+The tempspace can be used by any open cursor in that session. The current SQL is not necessary the culprit. In that case, we can check it from v$sql:
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+col hash_value for 999999999999
+select hash_value, sorts, rows_processed/executions
+ from v$sql
+ where hash_value in (select hash_value from v$open_cursor where sid='&sid')
+ and sorts > 0
+ and PARSING_SCHEMA_NAME='SOS_ODS'
+ order by rows_processed/executions;
+
+Enter value for sid: 1990
+old   3:  where hash_value in (select hash_value from v$open_cursor where sid='&sid')
+new   3:  where hash_value in (select hash_value from v$open_cursor where sid='1990')
+
+   HASH_VALUE      SORTS ROWS_PROCESSED/EXECUTIONS
+------------- ---------- -------------------------
+    585778305       1122                .606951872
+    585778305        359                .858333333
+    585778305         51                1.13461538
+   2925886056        117                6.94017094
+   2925886056         28                         7
+   2925886056          8                         7
+   2925886056        127                         7
+   2925886056         18                         7
+   2925886056          1                         7
+   2925886056          5                         7
+   2925886056         52                         7
+   2925886056         61                         7
+   2925886056          2                         7
+   2925886056         22                         7
+
+14 rows selected.
+
+SQL> /
+Enter value for sid: 1496
+old   3:  where hash_value in (select hash_value from v$open_cursor where sid='&sid')
+new   3:  where hash_value in (select hash_value from v$open_cursor where sid='1496')
+
+   HASH_VALUE      SORTS ROWS_PROCESSED/EXECUTIONS
+------------- ---------- -------------------------
+    585778305       1122                .606951872
+    585778305        359                .858333333
+    585778305         51                1.13461538
+   2925886056        117                6.94017094
+   2925886056         28                         7
+   2925886056          8                         7
+   2925886056        127                         7
+   2925886056         18                         7
+   2925886056          1                         7
+   2925886056          5                         7
+   2925886056         52                         7
+   2925886056         61                         7
+   2925886056          2                         7
+   2925886056         22                         7
+
+14 rows selected.
+
+SQL> /
+Enter value for sid: 644
+old   3:  where hash_value in (select hash_value from v$open_cursor where sid='&sid')
+new   3:  where hash_value in (select hash_value from v$open_cursor where sid='644')
+
+   HASH_VALUE      SORTS ROWS_PROCESSED/EXECUTIONS
+------------- ---------- -------------------------
+    585778305       1122                .606951872
+    585778305        359                .858333333
+    585778305         51                1.13461538
+   2925886056        117                6.94017094
+   2925886056         28                         7
+   2925886056          8                         7
+   2925886056        127                         7
+   2925886056         18                         7
+   2925886056          1                         7
+   2925886056          5                         7
+   2925886056         52                         7
+   2925886056         61                         7
+   2925886056          2                         7
+   2925886056         22                         7
+
+14 rows selected.
+
+
+
+
+
+prechecks:
+-----------
+
+the first view of the current database default table space:
+SQL> select * from database_properties
+where property_name = 'DEFAULT_TEMP_TABLESPACE';
+
+Confirm the current temporary tablespace TEMP
+
+2, the view of the size of the temporary table space:
+SQL> select file_name, tablespace_name, bytes/1024/1024 "MB", autoextensible from dba_temp_files;
+
+3, create a new temporary table space: (first borrow space in the disk space)
+SQL> create temporary tablespace temp02 tempfile '/ oracle/oms/oradata/undo/temp02.dbf'size 512M;
+
+4, the new temporary table space is replaced by the default temporary tablespace for the database
+
+SQL> alter database default temporary tablespace temp02;
+
+
+5, confirm the current database's default temporary table space
+
+SQL> select * from database_properties where property_name = 'DEFAULT_TEMP_TABLESPACE';
+
+Recognized temp02 current database default table space 
+
+6, delete temp temporary table space before the first operation in the the temp temporary table space statement kill off this sql statement to sort statement
+SQL> Select se.username, se.sid, se.serial#, su.extents, su.blocks * to_number (rtrim (p.value)) as Space,
+tablespace, segtype, sql_text
+from v$sort_usage su, v$parameter p, v$session se, v$sql s
+where p.name = 'db_block_size' and su.session_addr = se.saddr and s.hash_value = su.sqlhash
+and s.address = su.sqladdr
+order by se.username, se.sid;
+
+
+
+ After check out, kill out the SQL statement:
+SQL> alter User kill session '524, 778 '; (if a one run sql statement SID 524 Serial # to 778)
+
+Confirmation is not running in the the temp temporary table space SQL statement, you can delete temp temporary table space data file
+
+7, delete temp temporary table space
+SQL> drop tablespace temp including contents and datafiles;
+
+Soon be able to delete the temporary table space data file
+
+8 temp02 temporary table space occupied disk space of others, need to re-establish temporary table space in the original position, re-create the temp temporary tablespace
+SQL> create temporary tablespace temp
+2 tempfile '/ oracle/oms/oradata/temp/temp01.dbf'
+3 size 512M autoextend on maxsize 15G;
+
+Create a new 512M automatic extension of the temporary table space, the largest expansion to 15G.
+
+View the new temp temporary table space is correct:
+SQL> select file_name, tablespace_name, bytes/1024/1024, maxbytes/1024/1024, autoextensible from dba_temp_files;
+
+9 new the temp temporary table space is replaced by the database default temporary tablespace
+SQL> alter database default temporary tablespace temp;
+
+
+10, confirm the current database's default temporary table space
+SQL> select * from database_properties
+where property_name = 'DEFAULT_TEMP_TABLESPACE';
+
+Recognized temp for the current database default tablespace
+
+
+11, the original the temp temporary table space into a 512M, empty out the remaining disk space temp02 temporary table space, there is no use, delete temp02 temporary table space
+SQL> drop tablespace temp02 including contents and datafiles; 
+
+
+

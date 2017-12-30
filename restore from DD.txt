@@ -1,0 +1,160 @@
+CASE : 
+
+We have to restore the database from the current production box naaixora001 [LMPPROD] to the UAT [IDOMPR] running on naaixora009. The backup has been switched to data domain recently making this a new case for restoration. below can be helpful if you are new to restore database from data domain
+
+
+
+1.register to the Datadomain 
+================================================
+
+- copy the tar for the plugin software of data domain boost in this case the server is running on a AIX Os and the database version is 10g
+- RMAN_1.2.1.0-436349_RMAN_aix_64.tar
+
+
+untar the dd boost
+-------------------
+
+- you will find a "install.sh" script which will help you link the oracle binaries to the datadoamin binaries.
+
+==> sh install.sh
+Installing the Data Domain plugin for RMAN ...
+Copying the lockbox libraries to /u01/app/oracle/product/10.2.0/config/.
+Copying libddobk.so to /u01/app/oracle/product/10.2.0/lib/.
+Copying libDDBoost.so to /u01/app/oracle/product/10.2.0/lib/.
+Successfully installed the Data Domain plugin for RMAN
+
+
+
+2. Spon a new instance
+=======================
+
+we need to create a new instance with  modified pfile from prodution database.
+
+- using the pfile "nomount" the database instance
+
+
+
+- Need to register it to the ddbost we can use the below policy to do that
+
+
+run 
+{
+ALLOCATE CHANNEL C1 TYPE SBT_TAPE PARMS 'SBT_LIBRARY=/u01/app/oracle/product/10.2/lib/libddobk.so';
+send 'set username ddboost password t@pesRu$ servername oldsdd06.companymedia.com';
+RELEASE CHANNEL C1;
+}
+
+
+
+2.
+
+
+
+
+run
+{
+ALLOCATE CHANNEL T1 DEVICE TYPE 'SBT_TAPE' PARMS  'BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+ALLOCATE CHANNEL T2 DEVICE TYPE 'SBT_TAPE' PARMS  'BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+ALLOCATE CHANNEL T3 DEVICE TYPE 'SBT_TAPE' PARMS  'BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+ALLOCATE CHANNEL T4 DEVICE TYPE 'SBT_TAPE' PARMS  'BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+set newname for datafile 1 to '/oradata/IDOMPR/User01.dbf';
+set newname for datafile 2 to '/oradata/IDOMPR/undotbs01.dbf';
+set newname for datafile 3 to '/oradata/IDOMPR/sysaux01.dbf';
+set newname for datafile 4 to '/oradata/IDOMPR/users01.dbf';
+set newname for datafile 5 to '/oradata/IDOMPR/xmldb01.dbf';
+set newname for datafile 6 to '/oradata/IDOMPR/lmp_mdr_idx_01.dbf';
+set newname for datafile 7 to '/oradata/IDOMPR/lmp_abinitio_01.dbf';
+set newname for datafile 8 to '/oradata/IDOMPR/CKAETL.dbf';
+set newname for datafile 9 to '/oradata/IDOMPR/PERIOD_CHR_IDX.dbf';
+set newname for datafile 10 to '/oradata/IDOMPR/PERIOD_CHR.dbf';
+set newname for datafile 11 to '/oradata/IDOMPR/CKA_IDX.dbf';
+set newname for datafile 12 to '/oradata/IDOMPR/CKA.dbf';
+set newname for datafile 13 to '/oradata/IDOMPR/HOMESCAN_DATA_01.dbf';
+set newname for datafile 14 to '/oradata/IDOMPR/lmpwebmntr_01.dbf';
+set newname for datafile 15 to '/oradata/IDOMPR/lmp_abinitio_idx_01.';
+set newname for datafile 16 to '/oradata/IDOMPR/lmp_mdr_01.dbf';
+set newname for datafile 17 to '/oradata/IDOMPR/lmp_mdr_02.dbf';
+set newname for datafile 18 to '/oradata/IDOMPR/MKTREF_DATA.dbf';
+set newname for datafile 19 to '/oradata/IDOMPR/MKTREF_INDEX.dbf';
+set newname for datafile 20 to '/oradata/IDOMPR/OPS_ORACLE_DATA.dbf';
+set newname for datafile 21 to '/oradata/IDOMPR/rtl_store_grp_01.dbf';
+set newname for datafile 22 to '/oradata/IDOMPR/rtl_store_grp_idx_01';
+set newname for datafile 23 to '/oradata/IDOMPR/store_chr_01.dbf';
+set newname for datafile 24 to '/oradata/IDOMPR/store_chr_02.dbf';
+set newname for datafile 25 to '/oradata/IDOMPR/store_chr_03.dbf';
+set newname for datafile 26 to '/oradata/IDOMPR/sotre_chr_04.dbf';
+set newname for datafile 27 to '/oradata/IDOMPR/store_chr_idx_01.dbf';
+set newname for datafile 28 to '/oradata/IDOMPR/store_chr_idx_02.dbf';
+set newname for datafile 29 to '/oradata/IDOMPR/store_chr_idx_03.dbf';
+set newname for datafile 30 to '/oradata/IDOMPR/MP_FCTRY_DATA.dbf';
+set newname for datafile 31 to '/oradata/IDOMPR/MP_REF_DATA.dbf';
+set newname for datafile 32 to '/oradata/IDOMPR/MP_FCTRY_02.dbf';
+set newname for datafile 33 to '/oradata/IDOMPR/MP_FCTRY_03.dbf';
+set newname for datafile 34 to '/oradata/IDOMPR/MP_FCTRY_04.dbf';
+set newname for datafile 35 to '/oradata/IDOMPR/MP_FCTRY_05.dbf';
+set newname for datafile 36 to '/oradata/IDOMPR/MP_FCTRY_06.dbf';
+set newname for datafile 37 to '/oradata/IDOMPR/MP_FCTRY_07.dbf';
+set newname for datafile 38 to '/oradata/IDOMPR/MP_FCTRY_08.dbf';
+set newname for datafile 39 to '/oradata/IDOMPR/MP_FCTRY_09.dbf';
+set newname for datafile 40 to '/oradata/IDOMPR/MP_FCTRY_10.dbf';
+set newname for datafile 41 to '/oradata/IDOMPR/MP_FCTRY_11.dbf';
+set newname for datafile 42 to '/oradata/IDOMPR/MP_FCTRY_12.dbf';
+set newname for datafile 43 to '/oradata/IDOMPR/MP_FCTRY_13.dbf';
+set newname for datafile 44 to '/oradata/IDOMPR/MP_FCTRY_14.dbf';
+set newname for datafile 45 to '/oradata/IDOMPR/MP_FCTRY_15.dbf';
+set newname for datafile 46 to '/oradata/IDOMPR/MP_FCTRY_16.dbf';
+set newname for datafile 47 to '/oradata/IDOMPR/MP_FCTRY_17.dbf';
+set newname for datafile 48 to '/oradata/IDOMPR/MP_FCTRY_18.dbf';
+set newname for datafile 49 to '/oradata/IDOMPR/MP_FCTRY_20.dbf';
+set newname for datafile 50 to '/oradata/IDOMPR/MP_FCTRY_19.dbf';
+set newname for datafile 51 to '/oradata/IDOMPR/MP_REF_02.dbf';
+set newname for datafile 52 to '/oradata/IDOMPR/MP_REF_03.dbf';
+set newname for datafile 53 to '/oradata/IDOMPR/MP_REF_04.dbf';
+set newname for datafile 54 to '/oradata/IDOMPR/MP_REF_05.dbf';
+set newname for datafile 55 to '/oradata/IDOMPR/MP_REF_06.dbf';
+set newname for datafile 56 to '/oradata/IDOMPR/MP_REF_07.dbf';
+set newname for datafile 57 to '/oradata/IDOMPR/MP_REF_08.dbf';
+set newname for datafile 58 to '/oradata/IDOMPR/MP_REF_09.dbf';
+set newname for datafile 59 to '/oradata/IDOMPR/MP_REF_10.dbf';
+set newname for datafile 60 to '/oradata/IDOMPR/MP_REF_11.dbf';
+set newname for datafile 61 to '/oradata/IDOMPR/MP_REF_12.dbf';
+set newname for datafile 62 to '/oradata/IDOMPR/MP_REF_13.dbf';
+set newname for datafile 63 to '/oradata/IDOMPR/MP_REF_14.dbf';
+set newname for datafile 64 to '/oradata/IDOMPR/MP_REF_15.dbf';
+set newname for datafile 65 to '/oradata/IDOMPR/MP_REF_16.dbf';
+set newname for datafile 66 to '/oradata/IDOMPR/MP_REF_17.dbf';
+set newname for datafile 67 to '/oradata/IDOMPR/MP_REF_18.dbf';
+set newname for datafile 68 to '/oradata/IDOMPR/MP_REF_19.dbf';
+set newname for datafile 69 to '/oradata/IDOMPR/MP_REF_20.dbf';
+set newname for datafile 70 to '/oradata/IDOMPR/CKA_IDX_01.dbf';
+set newname for datafile 71 to '/oradata/IDOMPR/undotbs02.dbf';
+set newname for datafile 72 to '/oradata/IDOMPR/undotbs03.dbf';
+set newname for datafile 73 to '/oradata/IDOMPR/sotre_chr_05.dbf';
+set newname for datafile 74 to '/oradata/IDOMPR/sotre_chr_06.dbf';
+set newname for datafile 75 to '/oradata/IDOMPR/lmp_abinitio_02.dbf';
+set newname for datafile 76 to '/oradata/IDOMPR/sotre_chr_07.dbf';
+set newname for datafile 77 to '/oradata/IDOMPR/MP_FCTRY_21.dbf';
+set newname for datafile 78 to '/oradata/IDOMPR/cka_adv_01.dbf';
+set newname for datafile 79 to '/oradata/IDOMPR/undotbs04.dbf';
+set newname for datafile 80 to '/oradata/IDOMPR/rtl_store_grp_02.dbf';
+set newname for datafile 81 to '/oradata/IDOMPR/TRNDBLN_01.dbf';
+set newname for datafile 82 to '/oradata/IDOMPR/sysaux02.dbf';
+set newname for datafile 83 to '/oradata/IDOMPR/SQLTXPLAIN_01.dbf';
+set newname for datafile 84 to '/oradata/IDOMPR/undotbs05.dbf';
+set newname for datafile 85 to '/oradata/IDOMPR/undotbs06.dbf';
+set newname for datafile 86 to '/oradata/IDOMPR/undotbs07.dbf';
+set newname for datafile 87 to '/oradata/IDOMPR/undotbs08.dbf';
+set newname for datafile 88 to '/oradata/IDOMPR/MP_FCTRY_22.dbf';
+restore database from tag 'TAG20150624T000802';
+switch datfile all;
+RELEASE CHANNEL T1;
+RELEASE CHANNEL T2;
+RELEASE CHANNEL T3;
+RELEASE CHANNEL T4;
+}
+
+
+
+
+
+

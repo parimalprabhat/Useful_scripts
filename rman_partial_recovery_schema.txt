@@ -1,0 +1,528 @@
+This document would explain the steps that need to be followed to restore and recover a single schema from an RMAN Hotbackup taken to disk.
+Here the source and destination are considered to be two different servers.
+
+Step0
+-----
+Copy all the files created by the RMAN backup from source to destination.
+Ensure that the location is the same i.e., the path.If the path is the same it would ease our work else we need to catalog the backups manually.
+Copy the backupset that contains the datafile and archives as well as copy the controlfile created from by autobackup.
+
+Step1
+-----
+startup nomount;
+
+
+(naaixdbs002.companymedia.com:IDOANSR:oracle:/home/oracle>) sqlplus "/ as sysdba"
+
+SQL*Plus: Release 10.2.0.3.0 - Production on Sat Sep 12 03:45:40 2009
+
+Copyright (c) 1982, 2006, Oracle.  All Rights Reserved.
+
+Connected to an idle instance.
+
+SQL> startup nomount
+ORA-32004: obsolete and/or deprecated parameter(s) specified
+ORACLE instance started.
+
+Total User Global Area 2684354560 bytes
+Fixed Size                  2075280 bytes
+Variable Size            1509950832 bytes
+Database Buffers         1157627904 bytes
+Redo Buffers               14700544 bytes
+
+You can restore the spfile also using rman,but we manually created an init.ora file(copied the init.ora file from source) and started the instance in nomount.
+Once this was done the controlfile was restored fromt the AUTOBACKUP using RMAN.
+
+Recovering the controlfile from the autobackup using rman
+----------------------------------------------------------
+
+
+RMAN> set CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '/oradata/backups/controlbckup/cf%F';
+
+executing command: SET CONTROLFILE AUTOBACKUP FORMAT
+
+RMAN> restore controlfile from autobackup;
+
+Starting restore at 12-SEP-09
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: sid=1485 devtype=DISK
+
+channel ORA_DISK_1: looking for autobackup on ser: 20090912
+channel ORA_DISK_1: looking for autobackup on ser: 20090911
+channel ORA_DISK_1: looking for autobackup on ser: 20090910
+channel ORA_DISK_1: looking for autobackup on ser: 20090909
+channel ORA_DISK_1: autobackup found: /oradata/backups/controlbckup/cfc-2178912217-20090909-00
+channel ORA_DISK_1: control file restore from autobackup complete
+output filename=/oradata/IDOANSR/control01.ctl
+output filename=/oradata/IDOANSR/control02.ctl
+output filename=/oradata/IDOANSR/control03.ctl
+Finished restore at 12-SEP-09
+
+Step2
+-----
+After we have successfully restore the controlfile we can mount the database using it.
+shutdown immediate;
+startup mount;
+
+We then manually catalog the backuppiece information into the controlfile.
+These include the hotbackups and the archivelogs.
+Your files should be physically present in the location.
+Manual catalogging may not be necessary if the paths were the same at both the source and desstination.
+
+SQL> shut immediate;
+ORA-01507: database not mounted
+
+
+ORACLE instance shut down.
+SQL>
+
+SQL> SQL> startup mount
+ORA-32004: obsolete and/or deprecated parameter(s) specified
+ORACLE instance started.
+
+Total User Global Area 2684354560 bytes
+Fixed Size                  2075280 bytes
+Variable Size            1509950832 bytes
+Database Buffers         1157627904 bytes
+Redo Buffers               14700544 bytes
+Database mounted.
+SQL>
+
+STEP 3
+=========
+Finding the tablespaces needed to restore the schema
+
+
+Here we need to find the tablespaces of the scheams from dba_segments
+
+SQL> select username,default_tablespace,temporary_tablespace from dba_users where username like 'IDO_METADATA';
+
+USERNAME                       DEFAULT_TABLESPACE
+------------------------------ ------------------------------
+TEMPORARY_TABLESPACE
+------------------------------
+IDO_METADATA                   IDO_META_DATA
+TEMP
+
+SQL> select distinct tablespace_name from dba_segments where owner='IDO_METADATA';
+
+TABLESPACE_NAME
+------------------------------
+IDO_META_DATA
+
+
+In this case we are going to restore the IDO_META_DATA tablespace alone (Since this is the only tablespaces which contains data of IDO_METADATA schema)
+
+For all recoveries we need 3 mandatory tablespaces 
+1.User
+2.sysaux
+3.undo
+
+So i have included those tablespaces in the restore command.
+
+
+Use the below if the source and destination have the same file locations.This is true for most of the environments where we have /oradata at both source as well as destination.
+
+RMAN> run
+2> {
+3> allocate channel d1 device type disk;
+4> allocate channel d2 device type disk;
+5> allocate channel d3 device type disk;
+6> allocate channel d4 device type disk;
+7> restore tablespace User;
+8> restore tablespace sysaux;
+9> restore tablespace IDO_METADATA;
+10> restore tablespace UNDOTBS;
+11> release channel d1;
+12> release channel d2;
+13> release channel d3;
+14> release channel d4;
+}
+15>
+
+
+
+using target database control file instead of recovery catalog
+allocated channel: d1
+channel d1: sid=1485 devtype=DISK
+
+allocated channel: d2
+channel d2: sid=1484 devtype=DISK
+
+allocated channel: d3
+channel d3: sid=1483 devtype=DISK
+
+allocated channel: d4
+channel d4: sid=1482 devtype=DISK
+
+Starting restore at 12-SEP-09
+
+channel d1: starting datafile backupset restore
+channel d1: specifying datafile(s) to restore from backup set
+restoring datafile 00001 to /oradata/IDOANSR/User01.dbf
+channel d1: reading from backup piece /oradata/backups/hotbackup/db_hot_697154421_1042_1_20090909
+channel d1: restored backup piece 1
+piece handle=/oradata/backups/hotbackup/db_hot_697154421_1042_1_20090909 tag=FULL_BACKUP
+channel d1: restore complete, elapsed time: 00:00:46
+Finished restore at 12-SEP-09
+
+
+Starting restore at 12-SEP-09
+
+channel d1: starting datafile backupset restore
+channel d1: specifying datafile(s) to restore from backup set
+restoring datafile 00003 to /oradata/IDOANSR/sysaux01.dbf
+channel d1: reading from backup piece /oradata/backups/hotbackup/db_hot_697154420_1040_1_20090909
+channel d1: restored backup piece 1
+piece handle=/oradata/backups/hotbackup/db_hot_697154420_1040_1_20090909 tag=FULL_BACKUP
+channel d1: restore complete, elapsed time: 00:00:55
+Finished restore at 12-SEP-09
+
+Starting restore at 12-SEP-09
+
+channel d1: starting datafile backupset restore
+channel d1: specifying datafile(s) to restore from backup set
+restoring datafile 00002 to /oradata/IDOANSR/undotbs01.dbf
+channel d1: reading from backup piece /oradata/backups/hotbackup/db_hot_697154420_1041_1_20090909
+channel d1: restored backup piece 1
+piece handle=/oradata/backups/hotbackup/db_hot_697154420_1041_1_20090909 tag=FULL_BACKUP
+channel d1: restore complete, elapsed time: 00:00:55
+Finished restore at 12-SEP-09
+
+Starting restore at 12-SEP-09
+released channel: d1
+
+
+channel ORA_DISK_1: starting datafile backupset restore
+channel ORA_DISK_1: specifying datafile(s) to restore from backup set
+restoring datafile 00010 to /oradata/IDOANSR/ido_meta_data_01.dbf
+channel ORA_DISK_1: reading from backup piece /oradata/backups/hotbackup/db_hot_697154421_1042_1_20090909
+
+channel ORA_DISK_1: restored backup piece 1
+piece handle=/oradata/backups/hotbackup/db_hot_697154421_1042_1_20090909 tag=FULL_BACKUP
+channel ORA_DISK_1: restore complete, elapsed time: 00:06:25
+Finished restore at 12-SEP-09
+
+
+Step 4
+========
+
+Once you restore the required tablespaces, offline drop all the datafiles other than the required.
+
+SQL> select file#,status from v$datafile;
+
+     FILE# STATUS
+---------- -------
+         1 User
+         2 ONLINE
+         3 ONLINE
+         4 ONLINE
+         5 ONLINE
+         6 ONLINE
+         7 ONLINE
+         8 ONLINE
+         9 ONLINE
+        10 ONLINE
+        11 ONLINE
+
+     FILE# STATUS
+---------- -------
+        12 ONLINE
+        13 ONLINE
+        14 ONLINE
+        15 ONLINE
+        16 ONLINE
+
+16 rows selected.
+
+SQL>  alter database datafile '/oradata/IDOANSR/IDO_ADF.dbf' offline drop ;
+
+Database altered.
+
+SQL> alter database datafile '/oradata/IDOANSR/ido_meta_ind_01.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/OD_PRDC_GRP.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/ANS_STTC_INDEX.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/ANS_STTC_DATA.dbf' offline drop ;
+alter database datafile /oradata/IDOANSR/xmldb01.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/users01.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/IDO_ADF1.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/hmpage01.'dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/csf01.dbf offline drop ;
+alter database datafile '/oradata/IDOANSR/ido_composite_data_01.dbf' offline drop ;
+alter database datafile '/oradata/IDOANSR/TS_ADMDB_01.dbf' offline drop ;
+
+
+Database altered.
+
+SQL>
+Database altered.
+
+SQL>
+Database altered.
+
+SQL>
+Database altered.
+
+SQL>
+Database altered.
+
+SQL>
+Database altered.
+
+
+
+SQL> alter database datafile '/oradata/IDOANSR/csf01.dbf offline drop
+                        *
+ERROR at line 1:
+ORA-01756: quoted string not properly terminated
+
+
+SQL>
+Database altered.
+
+SQL>
+Database altered.
+
+SQL> SQL>
+SQL> alter database datafile '/oradata/IDOANSR/hmpage01.dbf' offline drop
+  2  ;
+
+Database altered.
+
+SQL>
+ alter database datafile '/oradata/IDOANSR/xmldb01.dbf' offline drop;
+
+ alter database datafile '/oradata/IDOANSR/csf01.dbf' offline dropSQL>
+Database altered.
+
+SQL> SQL>
+  2
+SQL> select file#,status from v$datafile;
+
+
+     FILE# STATUS
+---------- -------
+         1 User
+         2 ONLINE
+         3 ONLINE
+         4 RECOVER
+         5 RECOVER
+         6 RECOVER
+         7 RECOVER
+         8 RECOVER
+         9 RECOVER
+        10 ONLINE
+        11 RECOVER
+
+     FILE# STATUS
+---------- -------
+        12 RECOVER
+        13 RECOVER
+        14 ONLINE
+        15 RECOVER
+        16 RECOVER
+
+16 rows selected.
+
+
+
+
+
+
+
+
+STEP 5
+------
+Recovery of the database
+
+Once the restoration and file name changes have been accomplished please verify the same from v$datafile.
+Before the restoration and datafile rename a query on v$datafile whould show the file User locations.
+
+select name from v$datafile;
+
+Now we need to restore the archivelogs from the RMAN archive backup and then perform the recovery.
+We specify the destination where the archives would be restored.
+
+RMAN> run
+{
+set archivelog destination to '/oradata/backups/IDOANSR_ARCH';
+restore archivelog all;(To be more precise we can specify to restore only the archive logs genereated during te hotbackup window)
+}
+
+You can alter ther archivelog restoration command to restore archives of respective sequences,timestamps etc.
+Use which ever command suits your need.
+
+Recover was done using the below command.....
+
+recover automatic database using backup controlfile until cancel;
+
+
+SQL> recover database using backup controlfile until cancel;
+ORA-00279: change 96038304592 generated at 09/09/2009 22:00:20 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6122_656440933.dbf
+ORA-00280: change 96038304592 for thread 1 is in sequence #6122
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/oradata/backups/IDOANSR_ARCH/1_6122_656440933.dbf
+ORA-00279: change 96038338164 generated at 09/10/2009 01:08:56 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6123_656440933.dbf
+ORA-00280: change 96038338164 for thread 1 is in sequence #6123
+ORA-00278: log file '/oradata/backups/IDOANSR_ARCH/1_6122_656440933.dbf' no
+longer needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/oradata/backups/IDOANSR_ARCH/1_6123_656440933.dbf
+ORA-00279: change 96038367990 generated at 09/10/2009 02:27:31 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6124_656440933.dbf
+ORA-00280: change 96038367990 for thread 1 is in sequence #6124
+ORA-00278: log file '/oradata/backups/IDOANSR_ARCH/1_6123_656440933.dbf' no
+longer needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/oradata/backups/IDOANSR_ARCH/1_6124_656440933.dbf
+ORA-00279: change 96038392939 generated at 09/10/2009 02:30:25 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6125_656440933.dbf
+ORA-00280: change 96038392939 for thread 1 is in sequence #6125
+ORA-00278: log file '/oradata/backups/IDOANSR_ARCH/1_6124_656440933.dbf' no
+longer needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/oradata/backups/IDOANSR_ARCH/1_6125_656440933.dbf
+ORA-00279: change 96038417679 generated at 09/10/2009 02:33:27 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6126_656440933.dbf
+ORA-00280: change 96038417679 for thread 1 is in sequence #6126
+ORA-00278: log file '/oradata/backups/IDOANSR_ARCH/1_6125_656440933.dbf' no
+longer needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/oradata/backups/IDOANSR_ARCH/1_6126_656440933.dbf
+ORA-00279: change 96038442542 generated at 09/10/2009 02:36:29 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6127_656440933.dbf
+ORA-00280: change 96038442542 for thread 1 is in sequence #6127
+ORA-00278: log file '/oradata/backups/IDOANSR_ARCH/1_6126_656440933.dbf' no
+longer needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/oradata/backups/IDOANSR_ARCH/1_6127_656440933.dbf
+ORA-00279: change 96038467773 generated at 09/10/2009 02:39:24 needed for
+thread 1
+ORA-00289: suggestion : /oradata/backups/IDOANSR_ARCH/1_6128_656440933.dbf
+ORA-00280: change 96038467773 for thread 1 is in sequence #6128
+ORA-00278: log file '/oradata/backups/IDOANSR_ARCH/1_6127_656440933.dbf' no
+longer needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+cancel
+Media recovery cancelled.
+
+STep 6
+=======
+
+
+open the database with reset logs
+SQL> alter database open resetlogs;
+
+Database altered.
+
+SQL> select name,open_mode from v$database;
+
+NAME      OPEN_MODE
+--------- ----------
+IDOANSR   READ WRITE
+
+SQL> select file#,a.status,FILE_NAME,TABLESPACE_NAME from v$datafile a,dba_data_files where file#=file_id;
+
+     FILE# STATUS  FILE_NAME                                          TABLESPACE_NAME
+---------- ------- -------------------------------------------------- ------------------------------
+         1 User  /oradata/IDOANSR/User01.dbf                      User
+         2 ONLINE  /oradata/IDOANSR/undotbs01.dbf                     UNDOTBS
+         3 ONLINE  /oradata/IDOANSR/sysaux01.dbf                      SYSAUX
+         4 OFFLINE /oradata/IDOANSR/users01.dbf                       USERS
+         5 OFFLINE /oradata/IDOANSR/xmldb01.dbf                       XMLDB_TBS
+         6 OFFLINE /oradata/IDOANSR/ANS_STTC_DATA.dbf                 ANS_STTC_DATA
+         7 OFFLINE /oradata/IDOANSR/ANS_STTC_INDEX.dbf                ANS_STTC_INDEX
+         8 OFFLINE /oradata/IDOANSR/OD_PRDC_GRP.dbf                   OD_PRDC_GRP
+         9 OFFLINE /oradata/IDOANSR/ido_meta_ind_01.dbf               IDO_META_INDEX
+        10 ONLINE  /oradata/IDOANSR/ido_meta_data_01.dbf              IDO_META_DATA
+        11 OFFLINE /oradata/IDOANSR/IDO_ADF.dbf                       IDO_ADF
+
+     FILE# STATUS  FILE_NAME                                          TABLESPACE_NAME
+---------- ------- -------------------------------------------------- ------------------------------
+        12 OFFLINE /oradata/IDOANSR/IDO_ADF1.dbf                      IDO_ADF
+        13 OFFLINE /oradata/IDOANSR/hmpage01.dbf                      HMPAGE
+        14 OFFLINE /oradata/IDOANSR/csf01.dbf                         CSF
+        15 OFFLINE /oradata/IDOANSR/ido_composite_data_01.dbf         IDO_COMPOSITE_DATA
+        16 OFFLINE /oradata/IDOANSR/TS_ADMDB_01.dbf                   TS_ADMDB
+
+16 rows selected.
+
+Additional Hints
+==================
+
+In this section you would find useful rman commands that can be used as and when required.
+
+How to restore an Spfile from autobackup older than 7 sers 
+Whenever we issue in RMAN, RMAN> restore spfile from autobackup; then restoring from autobackup stops at seven sers and then it arises message channel ORA_DISK_1: no autobackup in 7 sers found. For example,
+
+RMAN> restore spfile from autobackup;
+Starting restore at 31-AUG-08
+using channel ORA_DISK_1
+
+channel ORA_DISK_1: looking for autobackup on ser: 20080831
+channel ORA_DISK_1: looking for autobackup on ser: 20080830
+channel ORA_DISK_1: looking for autobackup on ser: 20080829
+channel ORA_DISK_1: looking for autobackup on ser: 20080828
+channel ORA_DISK_1: looking for autobackup on ser: 20080827
+channel ORA_DISK_1: looking for autobackup on ser: 20080826
+channel ORA_DISK_1: looking for autobackup on ser: 20080825
+channel ORA_DISK_1: no autobackup in 7 sers found
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of restore command at 08/31/2008 01:31:12
+RMAN-06172: no autobackup found or specified handle is not a valid copy or piece
+
+Whenever you give RMAN to RESTORE SPFILE FROM AUTOBACKUP or RESTORE CONTROLFILE FROM AUTOBACKUP, RMAN begins the search on the current ser or on the ser specified with the SET UNTIL caluse. If no autobackup is found in the current or SET UNTIL ser, RMAN checks the previous ser. In this way RMAN by default checks for 7 sers autobackup from the current or SET UNTIL ser. 
+
+However if you want to extend your searching of autobackup more than 7 then you have to use MAXserS option with the RESTORE command.
+
+For example,
+RMAN>restore spfile from autobackup maxsers 30;
+or
+RMAN>restore controlfile from autobackup maxsers 30;
+
+In these cases autobackup searches will be performed up to 30 sers from the current or SET UNTIL ser. 
+
+How to restore archivelogs of a specific sequence?
+run
+{
+set archivelog destination to '/oradata/backups/IDOANSR_ARCH';
+restore archivelog from logseq=24097 until logseq=24100;
+}
+
+
+How to monitor progress of RMAN restore/backup?
+================================================
+
+SELECT SID, SERIAL#, CONTEXT, SOFAR, TOTALWORK,
+ROUND(SOFAR/TOTALWORK*100,2) "%_COMPLETE"
+FROM V$SESSION_LONGOPS
+WHERE OPNAME LIKE 'RMAN%'
+AND OPNAME NOT LIKE '%aggregate%'
+AND TOTALWORK != 0
+AND SOFAR <> TOTALWORK
+/
+

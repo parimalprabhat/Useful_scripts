@@ -1,0 +1,43 @@
+Database Archiving
+_____________________________________________________________________________________________
+
+Checking the table and object related to a SChema
+_____________________________________________________________________________________________
+
+SELECT DISTINCT OWNER, OBJECT_NAME FROM DBA_OBJECTS WHERE OBJECT_TYPE = 'TABLE' AND OWNER = 'RRS' and OBJECT_NAME='RA_RAW';
+
+
+
+Dropping a tablspace including content and datafile
+_____________________________________________________________________________________________
+
+drop tablespace &tablespace including contents and datafiles
+
+
+Dropping a aprtition in a table
+_____________________________________________________________________________________________
+
+alter table rrs.RA_RAW drop partition P20041403;
+
+
+
+Droprring a table
+_____________________________________________________________________________________________
+
+drop table <table_name> purge;
+
+
+
+Checking the content of a tablespce
+_____________________________________________________________________________________________
+
+select segment_name , segment_type,owner from dba_segments where tablespace_name ='&tablspace'
+
+
+Creating the drop script for 
+_____________________________________________________________________________________________
+
+select 'alter table rrs.sc_raw drop partition '||partition_name||';' from dba_tab_partitions where tablespace_name='SC_05';
+
+
+

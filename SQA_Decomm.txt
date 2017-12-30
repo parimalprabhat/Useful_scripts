@@ -1,0 +1,78 @@
+
+set line 300;
+col machine form a13 trunc;
+select * from User.USER_LOGIN_HISTORY where username not in ('ORACLE_OCM','User','SYS','DBACOE','SYSMAN');
+
+APPDBRQ
+==========
+
+USERNAME   OSUSER                         MACHINE       LOGIN_COUNT LAST_LOGI
+---------- ------------------------------ ------------- ----------- ---------
+DBR        NULL                           Nawinapp505            88 12-DEC-14
+HOMESCN    odsgmn2q                       serrhedatd001           2 26-MAR-15
+HOMESCN    387142                         01HW204560              3 26-MAR-15
+
+
+
+
+APPDBRPQ
+=========
+
+
+USERNAME                       OSUSER                         MACHINE       LOGIN_COUNT LAST_LOGI
+------------------------------ ------------------------------ ------------- ----------- ---------
+SYNEX                         ??                      lnx51.company      206502 08-MAY-15
+DBR                            synserverq                       serrhedatq001           1 23-JAN-15
+DBR                            NULL                           01HW197541             17 05-MAR-15
+DBR                            APP_25                         serrhedatd001        1530 23-FEB-15
+PERIOD                         APP_25                         serrhedatq001          23 18-FEB-15
+DBR                            NULL                           01HWCL691503            3 03-FEB-15
+DBR                            554954                         01HW198830              4 19-FEB-15
+PERIOD                         APP_25                         serrhedatd001           4 23-FEB-15
+SYNEX                          599509                         01HW745460              3 05-MAR-15
+APPCONFIG_serverR                599509                         01HW745460              1 05-MAR-15
+APPCONFIG_serverR                synserverq                       serrhedatq001        6122 09-MAR-15
+ONDEMAND                       synserverq                       serrhedatq001           1 23-JAN-15
+HOMESCN                        odmmfrr                        serrhedatq001           2 14-MAY-15
+HOMESCN                       ??                      lnx51.company          36 04-JUN-15
+DBR                            APP_25                         serrhedatq001       49830 18-FEB-15
+ONDEMAND                       APP_25                         serrhedatq001         256 18-FEB-15
+DBR                            345214                         01HW197509              2 02-FEB-15
+ONDEMAND                       APP_25                         serrhedatd001          46 23-FEB-15
+APPCONFIG_serverR                554954                         01HW198830             20 09-MAR-15
+APPCONFIG_serverR                350361                         01HW595720              6 06-MAR-15
+
+
+
+
+APPDBRPD
+========
+
+
+
+USERNAME                       OSUSER                         MACHINE       LOGIN_COUNT LAST_LOGI
+------------------------------ ------------------------------ ------------- ----------- ---------
+ONDEMAND                       NULL                           01HWCL741408            2 15-DEC-14
+SYNEX                          psqcrsyn                       serrhedatq001          14 16-DEC-14
+SYNEX                          APPcrsyn                       serrhedatq001          25 16-DEC-14
+CVGserverAPPCONFIGE              NULL                           01HWCL741408            6 30-JAN-15
+DBR                            594391                         01hw204487              4 04-FEB-15
+PERIOD                         APP_25                         serrhedatd001          30 24-FEB-15
+ONDEMAND                       APP_25                         serrhedatd001         318 24-FEB-15
+DBR                            APP_25                         serrhedatd001       10444 24-FEB-15
+DBR                            NULL                           01HW197541             31 20-MAR-15
+HOMESCN                        sklugr02                       USLCNU151233X           3 02-APR-15
+CVGserverAPPCONFIGE              synservere                       serrhedatq001       14613 23-APR-15
+CVGserverAPPCONFIGE              350361                         01HW595720             70 24-APR-15
+SYNEX                         ??              lnx51.company      195268 08-MAY-15
+DBR                            665948                         01HWCL781656            6 13-MAY-15
+HOMESCN                        odmmfre                        serrhedatq001           3 14-MAY-15
+HOMESCN                        RamaCh03                       USL2CE0101FH7           2 12-JUN-15
+HOMESCN                        odmmfrr                        serrhedatq001           3 12-JUN-15
+HOMESCN                        devodmp                        serrheAPPd028          39 25-JUN-15
+HOMESCN                        sqAPPmp                        serrheAPPd029          77 01-JUL-15
+DBR                           ??              lnx51.company      879687 07-JUL-15
+
+
+
+can u share the last used date for these db's...APPDBRPQ, APPDBRQ, APPDBRPD

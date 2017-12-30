@@ -1,0 +1,183 @@
+datadomain NFS
+
+
+The Data Domain storage needs different mount options. The current options are not correct.
+
+
+From the vendor (EMC) website at www.datadomain.com:
+
+Best practices mount options:
+
+Sun Solaris and other Unix: 
+  rw,noac,hard,rsize=32768,wsize=32768,llock
+
+Linux: 
+  rw,noac,hard,rsize=32768,wsize=32768,nolock
+
+
+
+
+===================================================================================================================================
+
+
+
+
+
+
+Mounting and Verifying Exports on the NFS Client
+
+
+PURPOSE : 
+ 
+NFS allows a User to share directories and files with others over a network. This article is helpful in verifying whether an NFS export is configured correctly.
+
+APPLIES TO :
+ 
+All Data Domain Users
+All Software Releases
+
+SOLUTION :
+ 
+Verify NFS is enabled
+At the restorer Command Line Interface (CLI) enter the command "nfs enable":
+
+# nfs enable
+ 
+Verify the correct mount options are set on the Data Domain User:
+
+
+# nfs show clients
+
+path      client                   options
+-------   ----------------------   ----------------------------------------
+/backup   *                        (rw,no_root_squash,no_all_squash,secure)
+/ddvar    *                        (rw,no_root_squash,no_all_squash,secure)
+-------   ----------------------   ----------------------------------------
+
+Enabling access to NFS on the Datadomain Restorer.
+Add NFS clients that can access the Data Domain User. Use a comma- or space-separated (or both) list for multiple clients. A client can be a fully-qualified domain hostname, class-C IP addresses, IP addresses with either netmasks or length, or an asterisk (*) wildcard with a domain name, such as *.yourcompany.com. An asterisk (*) by itself means no restrictions. A client added to a sub-directory under /backup has access only to that sub-directory. ï¿½
+The <nfs-options> are a comma-separated or space-separated (or both) list bounded by parentheses. With no options specified, the default options are rw, root_squash, no_all_squash, and secure. The following options are allowed:
+
+
+ro
+Read only permission.
+
+rw
+Read and write permissions.
+
+root_squash
+Map requests from uid/gid 0 to the anonymous uid/gid.
+
+no_root_squash
+Turn off root squashing.
+
+all_squash
+Map all user requests to the anonymous uid/gid.
+
+no_all_squash
+Turn off the mapping of all user requests to the anonymous uid/gid.
+
+secure
+Require that all requests originate on an Internet port that is less than IPPORT_RESERVED (1024).
+
+insecure
+Turns off the secure option.
+
+anonuid=id
+Set an explicit uid for the anonymous account. The id is an integer bounded from -65635 to 65635.
+
+anongid=id
+Set an explicit gid for the anonymous account. The id is an integer bounded from -65635 to 65635.
+
+nolock
+Do not use file locking.
+
+llock
+Requests that files lock locally at the NFS client. NFS network file locking requests are not sent to the NFS server if the llock option is used.
+
+
+
+Example:
+
+# nfs add /backup 192.168.29.30/24 (rw,no_root_squash,no_all_squash,secure)
+NFS Cient Service Configuration Example
+
+The following steps detail the requirements for configuring an NFS client. The examples demonstrate configuration on a Linux host. Refer to the clients operating-specific documentation for additional information
+
+Make sure that NFSD daemon is running on your OS(Operating User.)
+  2.     # /sbin/service nfs status
+  3.     rpc.mountd is stopped
+  4.     nfsd is stopped
+  5.     rpc.rquotad is stopped
+  6.     Currently NFS service is NOT enabled.
+  
+  
+Issue following command to enabled the NFS client.
+  8.  # /sbin/service nfs start
+  9.  Starting NFS services:                                     [  OK  ]
+ 10.  Starting NFS quotas:                                       [  OK  ]
+ 11.  Starting NFS daemon:                                       [  OK  ]
+ 12.  Starting NFS mountd:                                       [  OK  ]
+    
+Verify that NFS client service is running.
+ 14.  #/sbin/service nfs status
+ 15.  rpc.mountd (pid 7748) is running...
+ 16.  nfsd (pid 7746 7745 7744 7743 7742 7741  7740 7739) is running...
+ 17.  rpc.rquotad (pid 7723) is running...
+    
+Mounting /backup and /ddvar NFS Shares on the NFS Client
+
+The following procedure provides an example of configuring Linux and Solaris clients to mount NFS shares from the Data Domain User. The procedure is similar for other operating Users; although the specific commands may differ for each step. Refer to the client Operating Users documentation for specifics.
+Create a directory on the NFS client to use for accessing the Data Domain share. In the following example the directory “ddr” is used.
+Change to the newly created directory.
+
+Create two sub-directories called “backup” and “ddvar” (within /ddr).
+Note: Ensure the target sub-directories exist or the mount command will fail
+Mount the file User on the client, using any specific mount-options required for the Operating User.
+Verify the mount is successful.
+
+Examples
+
+Linux:
+# mkdir /ddr
+# cd /ddr
+# mkdir backup
+# mkdir ddvar
+# mount -t nfs -o hard,intr,nolock,nfsvers=3,tcp,rsize=1048600,wsize=1048600,bg HOSTNAME:/backup /ddr/backup
+# mount -t nfs -o hard,intr,nolock,nfsvers=3,tcp,rsize=1048600,wsize=1048600,bg HOSTNAME:/ddvar /ddr/ddvar
+# ls /ddr/backup
+ 
+Where "HOSTNAME" is the hostname or IP address of your Data Domain User.
+
+
+Solaris:
+# mkdir /ddr
+# cd /ddr
+# mkdir backup
+# mkdir ddvar 
+# mount -F nfs -o hard,intr,llock,vers=3,proto=tcp,rsize=1048600,wsize=1048600 HOSTNAME:/backup /ddr/backup
+# mount -F nfs -o hard,intr,llock,vers=3,proto=tcp,rsize=1048600,wsize=1048600 HOSTNAME:/ddvar /ddr/ddvar
+# ls /ddr/backup
+ 
+Where "HOSTNAME" is the hostname or IP address of your Data Domain User.
+
+
+AIX:
+#nfso -a                                                -check nfso options
+#nfso -o option=value                                   -set an nfs options
+#nfso -o nfs_use_reserved_ports=1
+
+
+#mkdir /ddr
+# cd /ddr
+# mkdir backup
+# mkdir ddvar 
+# mount –V nfs –o intr,hard,llock,rsize=65536,wsize=65536,vers=3,proto=tcp,\combehind,timeo=600,retrans=2 -p HOSTNAME:/backup /ddr/backup
+# mount –V nfs –o intr,hard,llock,rsize=65536,wsize=65536,vers=3,proto=tcp,\combehind,timeo=600,retrans=2 -p HOSTNAME:/ddvar /ddr/ddvar
+# ls /ddr/backup
+ 
+Where "HOSTNAME" is the hostname or IP address of your Data Domain User.
+
+
+Example of how to mount an mtree on a nfs client.
+# mount -t nfs -o hard,intr,nolock,nfsvers=3,tcp,rsize=1048600,wsize=1048600,bg HOSTNAME:/data/col1/mtree1 /ddr/mtree1

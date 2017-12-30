@@ -1,0 +1,486 @@
+How to cleanup ASM installation (RAC and Non-RAC) (Doc ID 311350.1)
+-----------------------------------------------------------------------
+
+How to drop the ASM instance installed in a seperate Oracle Home for both RAC and non-RAC installations.
+
+The outline of the steps involved are :
+
+a) Backup all the ASM client database files stored on the diskgroups. 
+b) Dropping all the diskgroups.
+c) Removing ASM resource from CRS (* RAC specific)
+d) Removing ASM disk signature (In case of asmlib)
+e) Remove the ASM pfile/spfile.
+f) Removing ASM entry in the file oratab
+g) Wipe out the disks header using dd
+
+
+
+
+
+Following are the steps to be followed:
+
+1) Log into the ASM instance and do 'select * from v$asm_client;'
+
+
+set line 300;
+col INSTANCE_NAME form a10;
+col SOFTWARE_VERSION form a10;
+col COMPATIBLE_VERSION form a10;
+select * from v$asm_client;
+
+GROUP_NUMBER INSTANCE_N DB_NAME  CLUSTER_NAME                    STATUS       SOFTWARE_V COMPATIBLE     CON_ID
+------------ ---------- -------- ------------------------------- ------------ ---------- ---------- ----------
+           3 test12c1   test12c  POC-cluster                     CONNECTED    12.1.0.2.0 12.1.0.2.0          0
+           2 test12c1   test12c  POC-cluster                     CONNECTED    12.1.0.2.0 12.1.0.2.0          0
+           1 +ASM1      +ASM     POC-cluster                     CONNECTED    12.1.0.2.0 12.1.0.2.0          0
+           3 +ASM1      +ASM     POC-cluster                     CONNECTED    12.1.0.2.0 12.1.0.2.0          0
+
+
+
+2) For each instance listed above, stop the respective databases.
+3) Backup all the datafiles, logfiles, controlfiles, archive logs, etc. that are currently using ASM storage, to tape or to fileUser (using RMAN). This needs to be done for every database (ASM client) using ASM.
+
+** NOTE: Please make sure you have the data secure before continuing to the next step.
+
+4) Find all the diskgroups: select * from v$asm_diskgroup
+
+
+
+GROUP_NUMBER NAME                           SECTOR_SIZE BLOCK_SIZE ALLOCATION_UNIT_SIZE STATE       TYPE     TOTAL_MB    FREE_MB HOT_USED_MB COLD_USED_MB REQUIRED_MIRROR_FREE_MB USABLE_FILE_MB OFFLINE_DISKS COMPATIBILITY
+------------ ------------------------------ ----------- ---------- -------------------- ----------- ------ ---------- ---------- ----------- ------------ ----------------------- -------------- ------------- ------------------------------------------------------------
+DATABASE_COMPATIBILITY                                       V     CON_ID
+------------------------------------------------------------ - ----------
+           2 FRA                                    512       4096              1048576 MOUNTED     EXTERN    2201590    2197258           0         4332                       0   2197258      0 12.1.0.0.0
+10.1.0.0.0                                                   N          0
+
+           3 DATA                                   512       4096              1048576 MOUNTED     EXTERN    7083118    7073565           0         9553                       0   7073565      0 12.1.0.0.0
+10.1.0.0.0                                                   N          0
+
+           1 CRS                                    512       4096              1048576 MOUNTED     EXTERN     208327     208028           0          299                       0    208028      0 12.1.0.0.0
+10.1.0.0.0                                                   Y          0
+
+
+
+
+5) For each diskgroup listed above:
+
+' drop diskgroup <name> including contents'
+
+
+drop diskgroup FRA including contents;
+drop diskgroup DATA including contents;
+drop diskgroup CRS including contents;
+
+
+
+
+
+
+6) Shutdown all(RAC nodes) ASM instances.
+
+
+Deconfigure Grid without deleting software
+=============================================
+Make sure no resource is running on crsctl status res -t
+
+Run As root,
+
+server23p5:/u01/app/11.2.0/grid/crs/install # perl rootcrs.pl -deconfig -force
+
+
+7) On RAC install verify that all asm instances are stopped
+$ORA_CRS_HOME/bin/crst_stat |more <- look for ASM resources and make sure the target=offline
+
+8) For single instance install run the following script:
+$ORACLE_HOME/bin/localconfig  delete
+
+* This cleans up the CSSD configuration.
+
+9)Invoke OUI, and now de-install the ASM Oracle home.
+
+10) For RAC install, remove the asm related resource.
+srvctl remove asm -n <nodename> <- Peform for all nodes of a RAC cluster
+crs_stat |more <- make sure no asm resources exists
+
+
+
+11) If using asmlib (on Linux only), then
+a. oracleasm listdisks
+
+CRS_DISK
+FVOL01
+FVOL02
+FVOL03
+FVOL04
+FVOL05
+FVOL06
+FVOL07
+FVOL08
+FVOL09
+FVOL10
+FVOL_001
+FVOL_002
+FVOL_003
+FVOL_004
+FVOL_005
+FVOL_006
+FVOL_007
+FVOL_008
+FVOL_009
+FVOL_010
+VOL1
+VOL10
+VOL11
+VOL12
+VOL13
+VOL14
+VOL15
+VOL16
+VOL17
+VOL18
+VOL2
+VOL20
+VOL21
+VOL22
+VOL23
+VOL24
+VOL25
+VOL26
+VOL27
+VOL28
+VOL29
+VOL3
+VOL30
+VOL31
+VOL32
+VOL33
+VOL34
+VOL35
+VOL4
+VOL5
+VOL6
+VOL7
+VOL8
+VOL9
+
+
+
+b. oracleasm deletedisk (do this for every disk listed above)
+
+================================================================================================================================================================================
+
+oracleasm deletedisk CRS_DISK
+oracleasm deletedisk FVOL01
+oracleasm deletedisk FVOL02
+oracleasm deletedisk FVOL03
+oracleasm deletedisk FVOL04
+oracleasm deletedisk FVOL05
+oracleasm deletedisk FVOL06
+oracleasm deletedisk FVOL07
+oracleasm deletedisk FVOL08
+oracleasm deletedisk FVOL09
+oracleasm deletedisk FVOL10
+oracleasm deletedisk FVOL_001
+oracleasm deletedisk FVOL_002
+oracleasm deletedisk FVOL_003
+oracleasm deletedisk FVOL_004
+oracleasm deletedisk FVOL_005
+oracleasm deletedisk FVOL_006
+oracleasm deletedisk FVOL_007
+oracleasm deletedisk FVOL_008
+oracleasm deletedisk FVOL_009
+oracleasm deletedisk FVOL_010
+oracleasm deletedisk VOL1
+oracleasm deletedisk VOL10
+oracleasm deletedisk VOL11
+oracleasm deletedisk VOL12
+oracleasm deletedisk VOL13
+oracleasm deletedisk VOL14
+oracleasm deletedisk VOL15
+oracleasm deletedisk VOL16
+oracleasm deletedisk VOL17
+oracleasm deletedisk VOL18
+oracleasm deletedisk VOL2
+oracleasm deletedisk VOL20
+oracleasm deletedisk VOL21
+oracleasm deletedisk VOL22
+oracleasm deletedisk VOL23
+oracleasm deletedisk VOL24
+oracleasm deletedisk VOL25
+oracleasm deletedisk VOL26
+oracleasm deletedisk VOL27
+oracleasm deletedisk VOL28
+oracleasm deletedisk VOL29
+oracleasm deletedisk VOL3
+oracleasm deletedisk VOL30
+oracleasm deletedisk VOL31
+oracleasm deletedisk VOL32
+oracleasm deletedisk VOL33
+oracleasm deletedisk VOL34
+oracleasm deletedisk VOL35
+oracleasm deletedisk VOL4
+oracleasm deletedisk VOL5
+oracleasm deletedisk VOL6
+oracleasm deletedisk VOL7
+oracleasm deletedisk VOL8
+oracleasm deletedisk VOL9
+
+================================================================================================================================================================================
+
+
+c. oracleasm listdisks (to verify they have been deleted)
+
+d. on other RAC nodes: oracleasm listdisks (to verify they have been deleted too)
+
+e. On all nodes(RAC) : 
+
+As root run:
+# /etc/init.d/oracleasm stop
+# /etc/init.d/oracleasm disable
+
+
+
+
+
+
+12) delete the ASM pfile or spfile
+
+13) in the file oratab, remove the line relative to the ASM instance
+
+14) clean out the disks headers using the dd command:
+
+for example: dd if=/dev/zero of=/dev/<asm_disk_name> bs=1024k count=50
+
+
+================================================================================================================================================================================
+
+
+[root@serrheorap007 tmp]# cat /opt/app/home/oracle/dba/parimal/get_luns_version2.log
+EMC Name        Frame Type              LUN ID                          LUN SIZE                Frame ID        DISK GROUP
+emcpowera       CLARiiON                                         		 1074 MB                000192604684
+emcpoweraa      Symmetrix               [LUN 1A34]                       218.4 GB               000192604684    CRS_DISK
+emcpowerab      Symmetrix               [LUN 1A24]                       218.4 GB               000192604684    VOL9
+emcpowerac      Symmetrix               [LUN 1A2C]                       218.4 GB               000192604684    VOL11
+emcpowerad      Symmetrix               [LUN 1A30]                       218.4 GB               000192604684    VOL12
+emcpowerae      Symmetrix               [LUN 1A1C]                       218.4 GB               000192604684    VOL7
+emcpoweraf      Symmetrix               [LUN 1A14]                       218.4 GB               000192604684    VOL5
+emcpowerag      Symmetrix               [LUN 1A20]                       218.4 GB               000192604684    VOL8
+emcpowerah      Symmetrix               [LUN 1A28]                       218.4 GB               000192604684    VOL10
+emcpowerai      Symmetrix               [LUN 1A18]                       218.4 GB               000192604684    VOL6
+emcpoweraj      Symmetrix               [LUN 1A10]                       218.4 GB               000192604684    VOL4
+emcpowerak      Symmetrix               [LUN 1A0C]                       218.4 GB               000192604684    VOL3
+emcpoweral      Symmetrix               [LUN 1A08]                       218.4 GB               000192604684    VOL35
+emcpoweram      Symmetrix               [LUN 1A04]                       218.4 GB               000192604684    VOL2
+emcpoweran      Symmetrix               [LUN 1A00]                       218.4 GB               000192604684    VOL1
+emcpowerao      CLARiiON                [lun2752]                        214.7 GB               APM00090400236
+emcpowerap      CLARiiON                [lun2880]                        214.7 GB               APM00090400236
+emcpoweraq      CLARiiON                [lun2625]                        214.7 GB               APM00090400236
+emcpowerar      CLARiiON                [lun2496]                        214.7 GB               APM00090400236
+emcpoweras      CLARiiON                [lun1600]                        214.7 GB               APM00090400236
+emcpowerat      CLARiiON                [lun2624]                        214.7 GB               APM00090400236
+emcpowerau      CLARiiON                [lun2240]                        214.7 GB               APM00090400236
+emcpowerav      CLARiiON                [lun2368]                        214.7 GB               APM00090400236
+emcpoweraw      CLARiiON                [lun2112]                        214.7 GB               APM00090400236
+emcpowerax      CLARiiON                [lun1412]                        214.7 GB               APM00090400236
+emcpoweray      CLARiiON                [LUN 129]                        230.8 GB               APM00142527307  FVOL_010
+emcpoweraz      CLARiiON                [LUN 127]                        230.8 GB               APM00142527307  FVOL_008
+emcpowerb       CLARiiON                                       				 1074 MB                000192604684
+emcpowerba      CLARiiON                [LUN 126]                        230.8 GB               APM00142527307  FVOL_007
+emcpowerbb      CLARiiON                [LUN 125]                        230.8 GB               APM00142527307  FVOL_006
+emcpowerbc      CLARiiON                [LUN 120]                        230.8 GB               APM00142527307  FVOL_001
+emcpowerbd      CLARiiON                [LUN 128]                        230.8 GB               APM00142527307  FVOL_009
+emcpowerbe      CLARiiON                [LUN 122]                        230.8 GB               APM00142527307  FVOL_003
+emcpowerbf      CLARiiON                [LUN 121]                        230.8 GB               APM00142527307  FVOL_002
+emcpowerbg      CLARiiON                [LUN 123]                        230.8 GB               APM00142527307  FVOL_004
+emcpowerbh      CLARiiON                [LUN 124]                        230.8 GB               APM00142527307  FVOL_005
+emcpowerc       Symmetrix               [LUN 1AA6]                       1074 MB                000192604684
+emcpowerd       Symmetrix               [LUN 1AA4]                       1074 MB                000192604684
+emcpowere       Symmetrix               [LUN 1AA5]                       1074 MB                000192604684
+emcpowerf       Symmetrix               [LUN 1AA0]                       218.4 GB               000192604684    VOL34
+emcpowerg       Symmetrix               [LUN 1A9C]                       218.4 GB               000192604684    VOL33
+emcpowerh       Symmetrix               [LUN 1A98]                       218.4 GB               000192604684    VOL32
+emcpoweri       Symmetrix               [LUN 1A78]                       218.4 GB               000192604684    VOL30
+emcpowerj       Symmetrix               [LUN 1A94]                       218.4 GB               000192604684    VOL31
+emcpowerk       Symmetrix               [LUN 1A74]                       218.4 GB               000192604684    VOL29
+emcpowerl       Symmetrix               [LUN 1A70]                       218.4 GB               000192604684    VOL28
+emcpowerm       Symmetrix               [LUN 1A58]                       218.4 GB               000192604684    VOL22
+emcpowern       Symmetrix               [LUN 1A6C]                       218.4 GB               000192604684    VOL27
+emcpowero       Symmetrix               [LUN 1A60]                       218.4 GB               000192604684    VOL24
+emcpowerp       Symmetrix               [LUN 1A64]                       218.4 GB               000192604684    VOL25
+emcpowerq       Symmetrix               [LUN 1A68]                       218.4 GB               000192604684    VOL26
+emcpowerr       Symmetrix               [LUN 1A5C]                       218.4 GB               000192604684    VOL23
+emcpowers       Symmetrix               [LUN 1A54]                       218.4 GB               000192604684    VOL21
+emcpowert       Symmetrix               [LUN 1A50]                       218.4 GB               000192604684    VOL20
+emcpoweru       Symmetrix               [LUN 1A38]                       218.4 GB               000192604684    VOL13
+emcpowerv       Symmetrix               [LUN 1A40]                       218.4 GB               000192604684    VOL15
+emcpowerw       Symmetrix               [LUN 1A4C]                       218.4 GB               000192604684    VOL18
+emcpowerx       Symmetrix               [LUN 1A3C]                       218.4 GB               000192604684    VOL14
+emcpowery       Symmetrix               [LUN 1A44]                       218.4 GB               000192604684    VOL16
+emcpowerz       Symmetrix               [LUN 1A48]                       218.4 GB               000192604684    VOL17
+
+
+
+
+================================================================================================================================================================================
+
+
+
+dd if=/dev/zero of=/dev/emcpowerab bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerac bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerad bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerae bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweraf bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerag bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerah bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerai bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweraj bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerak bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweral bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweram bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweran bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerao bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerap bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweraq bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerar bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweras bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerat bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerau bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerav bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweraw bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerax bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweray bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweraz bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerb bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerba bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbb bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbc bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbd bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbe bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbf bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbg bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerbh bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerc bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerd bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowere bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerf bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerg bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerh bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweri bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerj bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerk bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerl bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerm bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowern bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowero bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerp bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerq bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerr bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowers bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowert bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpoweru bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerv bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerw bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerx bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowery bs=1024k count=50
+dd if=/dev/zero of=/dev/emcpowerz bs=1024k count=50
+
+
+
+
+
+15) Finally clean out the possible remaining socket files as explained in the following note:
+
+
+
+
+
+=============================================================================================================================
+
+
+
+Frame Type 	LUN ID		LUN SIZE	FRAME ID		Tier		thin/thick provisioning
+VMAX		1A00		208328		VMAX_4684		2		Thin
+VMAX		1A04		208328		VMAX_4684		2		Thin
+VMAX		1A08		208328		VMAX_4684		2		Thin
+VMAX		1A0C		208328		VMAX_4684		2		Thin
+VMAX		1A10		208328		VMAX_4684		2		Thin
+VMAX		1A14		208328		VMAX_4684		2		Thin
+VMAX		1A18		208328		VMAX_4684		2		Thin
+VMAX		1A1C		208328		VMAX_4684		2		Thin
+VMAX		1A20		208328		VMAX_4684		2		Thin
+VMAX		1A24		208328		VMAX_4684		2		Thin
+VMAX		1A28		208328		VMAX_4684		2		Thin
+VMAX		1A2C		208328		VMAX_4684		2		Thin
+VMAX		1A30		208328		VMAX_4684		2		Thin
+VMAX		1A34		208328		VMAX_4684		2		Thin
+VMAX		1A38		208328		VMAX_4684		2		Thin
+VMAX		1A3C		208328		VMAX_4684		2		Thin
+VMAX		1A40		208328		VMAX_4684		2		Thin
+VMAX		1A44		208328		VMAX_4684		2		Thin
+VMAX		1A48		208328		VMAX_4684		2		Thin
+VMAX		1A4C		208328		VMAX_4684		2		Thin
+VMAX		1A50		208328		VMAX_4684		2		Thin
+VMAX		1A54		208328		VMAX_4684		2		Thin
+VMAX		1A58		208328		VMAX_4684		2		Thin
+VMAX		1A5C		208328		VMAX_4684		2		Thin
+VMAX		1A60		208328		VMAX_4684		2		Thin
+VMAX		1A64		208328		VMAX_4684		2		Thin
+VMAX		1A68		208328		VMAX_4684		2		Thin
+VMAX		1A6C		208328		VMAX_4684		2		Thin
+VMAX		1A70		208328		VMAX_4684		2		Thin
+VMAX		1A74		208328		VMAX_4684		2		Thin
+VMAX		1A78		208328		VMAX_4684		2		Thin
+VMAX		1A94		208328		VMAX_4684		2		Thin
+VMAX		1A98		208328		VMAX_4684		2		Thin
+VMAX		1A9C		208328		VMAX_4684		2		Thin
+VMAX		1AA0		208328		VMAX_4684		2		Thin
+VMAX		1AA4		1025		VMAX_4684		2		Thin
+VMAX		1AA5		1025		VMAX_4684		2		Thin
+VMAX		1AA6		1025		VMAX_4684		2		Thin
+VMAX		1AA7		1025		VMAX_4684		2		Thin
+VMAX		1AA8		1025		VMAX_4684		2		Thin
+										
+										
+										
+Clarion		lun2880		200		SST_142		             3						Thick
+Clarion		lun2752		200		SST_142		             3						Thick
+Clarion		lun2625		200		SST_142		             3						Thick
+Clarion		lun2624		200		SST_142		             3						Thick
+Clarion		lun2496		200		SST_142		             3						Thick
+Clarion		lun2368		200		SST_142		             3						Thick
+Clarion		lun2112		200		SST_142		             3						Thick
+Clarion		lun2240		200		SST_142		             3						Thick
+Clarion		lun1600		200		SST_142		             3						Thick
+Clarion		lun1412		200		SST_142		             3						Thick
+										
+VNX		LUN 120		215		SST_149		             3						Thin
+VNX		LUN 121		215		SST_149		             3						Thin
+VNX		LUN 122		215		SST_149		             3						Thin
+VNX		LUN 123		215		SST_149		             3						Thin
+VNX		LUN 124		215		SST_149		             3						Thin
+VNX		LUN 125		215		SST_149		             3						Thin
+VNX		LUN 126		215		SST_149		             3						Thin
+VNX		LUN 127		215		SST_149		             3						Thin
+VNX		LUN 128		215		SST_149		             3						Thin
+VNX		LUN 129		215		SST_149		             3						Thin
+
+
+
+==================================================================================================================================================
+required storage :
+
+serrheorap001
+NAME                           TOTAL_MB/1024
+------------------------------ -------------
+DATA                              6631.83008
+FLASH                             5797.67773
+
+serhreorap002
+NAME                           TOTAL_MB/1024
+------------------------------ -------------
+DATA                              6259.56836
+FLASH                             1599.35938
+
+
+
+

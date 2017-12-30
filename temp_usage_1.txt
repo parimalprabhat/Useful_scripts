@@ -1,0 +1,59 @@
+select USERNAME,TABLESPACE,SQL_ID,BLOCKS/1024/1024/1024 from gv$sort_usage;
+
+
+SELECT se.username username,
+se.SID sid, se.serial# serial#,
+se.status status, se.sql_hash_value,
+se.prev_hash_value,se.machine machine,
+su.TABLESPACE tablespace,su.segtype,
+su.CONTENTS CONTENTS
+FROM v$session se,
+v$sort_usage su
+WHERE se.saddr=su.session_addr;
+
+
+select distinct SQL_ID,sum(BLOCKS/1024/1024/1024) from gv$sort_usage group by sql_id;
+
+
+SELECT se.username username,
+se.SID sid, se.serial# serial#,
+se.status status, se.sql_hash_value,
+se.prev_hash_value,se.machine machine,
+su.TABLESPACE tablespace,su.segtype,
+su.CONTENTS CONTENTS
+FROM v$session se,
+v$sort_usage su
+WHERE se.saddr=su.session_addr and se.sid=327;
+
+132013 rows selected.
+
+
+       SID    SERIAL# USERNAME                       SQL_ID        PREV_SQL_ID   LOGON_TIME         STATUS
+---------- ---------- ------------------------------ ------------- ------------- ------------------ --------
+       327      17601 CR_VITE_EVENTING                             dy9s67x2tx98h 06-AUG-14          INACTIVE
+
+
+
+
+SELECT     edp.EXCLUSIVE_DEPENDENCY_PARAM_ID FROM     job j1 JOIN     JOB_EXCLUSIVE_DEPENDENCY jed     ON     j1.job_type_code = jed.job_type_code JOIN     JOB j     ON     j.job_type_code     = jed.dependent_job_type_code     and j.job_status_code = jed.dependent_job_status_code LEFT OUTER JOIN
+   EXCLUSIVE_DEPENDENCY_PARAM edp     ON     jed.EXCLUSIVE_DEPENDENCY_PARAM_ID = edp.EXCLUSIVE_DEPENDENCY_PARAM_ID WHERE     j1.job_id =  1004007GROUP BY     edp.EXCLUSIVE_DEPENDENCY_PARAM_ID ORDER BY     EXCLUSIVE_DEPENDENCY_PARAM_ID desc
+
+SELECT     edp.EXCLUSIVE_DEPENDENCY_PARAM_ID FROM     job j1 JOIN     JOB_EXCLUSIVE_DEPENDENCY jed     ON     j1.job_type_code = jed.job_type_code JOIN     JOB j     ON     j.job_type_code     = jed.dependent_job_type_code     and j.job_status_code = jed.dependent_job_status_code LEFT OUTER JOIN
+   EXCLUSIVE_DEPENDENCY_PARAM edp     ON     jed.EXCLUSIVE_DEPENDENCY_PARAM_ID = edp.EXCLUSIVE_DEPENDENCY_PARAM_ID WHERE     j1.job_id =  1004007GROUP BY     edp.EXCLUSIVE_DEPENDENCY_PARAM_ID ORDER BY     EXCLUSIVE_DEPENDENCY_PARAM_ID desc
+
+
+
+
+
+SELECT se.username username,
+se.SID sid, se.serial# serial#,
+se.status status, se.sql_hash_value,
+se.prev_hash_value,se.machine machine,
+su.TABLESPACE tablespace,su.segtype,
+su.CONTENTS CONTENTS
+FROM v$session se,
+v$sort_usage su
+WHERE se.saddr=su.session_addr and se.status='INACTIVE';
+
+
+serrheorau003.company.com

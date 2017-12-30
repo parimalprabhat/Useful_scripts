@@ -1,0 +1,229 @@
+wrapper.sh
+
+==> cat /home/oracle/dba/parimal/reports/DISK_space_usage_wrapper.sh
+##############################ASM DISK Space usage##################################################
+####################################################################################################
+#!/bin/ksh
+#set +x
+
+rm /home/oracle/dba/parimal/reports/asmmon_mail.txt
+rm /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log11
+rm /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log1
+
+TMPFILE=/home/oracle/dba/parimal/reports/logs/DISK_space_usage.log1
+. ./.profile
+
+#/home/oracle/dba/parimal/reports/DISK_space_usage.sh > /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log
+/home/oracle/dba/parimal/reports/dfdg.sh > /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log
+
+
+sed 's/[.]/ /g' /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log > /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log11
+sed 's/servernet org/ /g' /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log11 > /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log1
+#rm /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log11
+ASMMAIL=/home/oracle/dba/parimal/reports/asmmon_mail.txt
+
+
+NOW=$(date +"%m-%d-%Y")
+
+
+echo "TO: parimal.prabhat.ap@company.com"  > $ASMMAIL
+#echo "TO: PrimaryDBASupport@company.com,parimalakumar.shanmugam.ap@company.com"  > $ASMMAIL
+echo "FROM: ASMMON"  >> $ASMMAIL
+echo "SUBJECT:ASM DISK Space usage" >> $ASMMAIL
+echo "Mime-Version: 1.0" >> $ASMMAIL
+echo "Content-Type: text/html" >> $ASMMAIL
+echo "<html><body> <h3> ASM DISK Space usage </h3>" >> $ASMMAIL
+echo "<p> </p>" >> $ASMMAIL
+echo "<table border bgcolor=#EEDC82 size=2>" >> $ASMMAIL
+echo "<tr bgcolor=#FCD59C><b> <td><center><b>SERVER NAME</b></center></td> <td><center><b>DATABASE NAME</b></center></td> <td><center><b>DISKGROUP</b></center></td> <td><center><b>TOTAL SIZE IN GB</b></center></td> <td><center><b>FREE SIZE IN GB</b></center></td> <td><center><b>PERCENTAGE FREE </b></center></td></tr>" >> $ASMMAIL
+cat $TMPFILE |while read -r a b c d e f
+do
+echo "<tr bgcolor=#FBEC5D><td><center>$a</td> <td><center>$b</td> <td><center>$c</td> <td><center>$d</td> <td><center>$e</td> <td><center>$f</td></tr>" >> $ASMMAIL
+done
+echo "</body> </html>" >> $ASMMAIL
+/usr/sbin/sendmail -t -oi < $ASMMAIL
+#rm /home/oracle/dba/parimal/reports/asmmon_mail.txt
+#rm /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log11
+#rm /home/oracle/dba/parimal/reports/logs/DISK_space_usage.log1
+PROD:[KC01]oracle@:/home/oracle
+
+
+
+export ORACLE_HOME=/opt/app/oracle/11.2.0/grid
+export ORACLE_SID="+ASM"
+
+     $ORACLE_HOME/bin/sqlplus -S '/ as sysasm' << EOF
+      --set linesize 50
+      --set pagesize 9999
+      set heading off
+     set newpage none
+     set feedback off
+set pages 100 lines 200
+col host_name for a30
+      col total_mb format a8
+      col free_mb format a8
+      col name format a8
+      col free_pct format a8
+select a.HOST_NAME,'KC01',b.name,round(total_mb/1024) total_gb,round(free_mb/1024) free_gb,round(free_mb*100/total_mb)||'%' free_pct from v\$instance a,v\$asm_diskgroup b;
+EOF
+
+
+
+
+=============================================================================================================================================================
+for server in server04p2 server04p3 server04p4 server04p5 server04p6 server04p7 server04p8 server04p9 server04p10 server04p11 server04p12 server04p13
+do
+ssh $server "/home/oracle/dba/reports/dfdg.sh"
+done
+
+******************************************************************************************************************************************
+******************************************************************************************************************************************
+******************************************************************************************************************************************
+******************************************************************************************************************************************
+******************************************************************************************************************************************
+******************************************************************************************************************************************
+******************************************************************************************************************************************
+
+
+==> cat /opt/app/oracle/scripts/archive_gap/final_report.sh
+#!/bin/ksh
+export DATE=$(date +%Y-%m-%d)
+
+### Purge old logs #######
+rm /opt/app/oracle/scripts/archive_gap/consolidate_report.log
+rm /opt/app/oracle/scripts/archive_gap/failed_report.log
+mv /opt/app/oracle/scripts/archive_gap/final_temp.log /opt/app/oracle/scripts/archive_gap/logs/final_report_$DATE.log
+
+##### Collect Report from all primary host
+count_max=`cat /opt/app/oracle/scripts/archive_gap/server_list |wc -l`
+count=1
+while [ $count -le $count_max ]
+do
+i=`awk 'FNR == '$count' {print $1}' /opt/app/oracle/scripts/archive_gap/server_list`
+j=`awk 'FNR == '$count' {print $1}' /opt/app/oracle/scripts/archive_gap/database_list`
+rm /opt/app/oracle/scripts/archive_gap/final_report_$j.log
+scp oracle@$i:/opt/app/oracle/scripts/archive_gap/final_report_$j.log /opt/app/oracle/scripts/archive_gap/
+
+if  [ `stat -c %s /opt/app/oracle/scripts/archive_gap/final_report_$j.log` -gt 0 ]; then
+cat /opt/app/oracle/scripts/archive_gap/final_report_$j.log >> /opt/app/oracle/scripts/archive_gap/consolidate_report.log
+let count++
+else
+cat /dev/null > /opt/app/oracle/scripts/archive_gap/failed_report.log
+#echo "Below databases primary and standby set up are down or under issue" >> /opt/app/oracle/scripts/archive_gap/failed_report.log
+echo "$j" >> /opt/app/oracle/scripts/archive_gap/failed_report.log
+let count++
+fi
+done
+
+#### Send the report
+file=/opt/app/oracle/scripts/archive_gap/failed_report.log
+cp /opt/app/oracle/scripts/archive_gap/consolidate_report.log /opt/app/oracle/scripts/archive_gap/final_temp.log
+if test -s "$file"
+then
+#echo "Kindly take action on above databases , have a look now on below report and take action if needed" >> /opt/app/oracle/scripts/archive_gap/failed_report.log
+/opt/app/oracle/scripts/archive_gap/send_report_failure.sh
+else
+/opt/app/oracle/scripts/archive_gap/send_report.sh
+fi
+
+
+
+
+
+***************************************************************************************
+
+/opt/app/oracle/scripts/archive_gap/server_list
+
+serRHEORAD001.company.COM
+
+serRHEORAP002.company.COM
+
+serRHEORAP001.company.COM
+
+serRHEORAQ001.company.COM
+serRHEORAQ005.company.COM 
+
+serRHEORAU001.company.COM
+serRHEORAU002.company.COM    
+
+serRHEORAP022.servernet.ORG
+serRHEORAP023.servernet.ORG  
+
+
+****************************************************************************************
+/opt/app/oracle/scripts/archive_gap/database_list
+
+
+
+
+
+
+
+
+
+
+
+
+
+*******************************************************************************************
+
+==> cat /opt/app/oracle/scripts/archive_gap/archive_gap_monitor.sh
+#!/bin/ksh
+
+# Declare your environment variables
+. /opt/app/oracle/scripts/archive_gap/database_env
+ORACLE_SID=$1
+export ORACLE_SID
+export STANDBY_SID=`echo "$ORACLE_SID"SB1`
+export SCRIPT_PATH=/opt/app/oracle/scripts/archive_gap
+export DATE=$(date +%Y-%m-%d)
+### Purge old logs #######
+file=/opt/app/oracle/scripts/archive_gap/final_report_$ORACLE_SID.log
+if test -s "$file"
+then
+mv /opt/app/oracle/scripts/archive_gap/final_report_$ORACLE_SID.log /opt/app/oracle/scripts/archive_gap/logs/final_report_$DATE.log
+fi
+
+find /opt/app/oracle/scripts/archive_gap/logs -mtime +10 -exec rm -f {} \;
+
+## Collect primary Information
+/opt/app/oracle/scripts/archive_gap/primary_information.sh
+
+##Collect Standby Information
+/opt/app/oracle/scripts/archive_gap/standby_information.sh
+
+
+##Make the structure of Report
+if [[ (`grep -c -i "ORA-" /opt/app/oracle/scripts/archive_gap/primary_instance.log` -eq 0) && (`grep -c -i "ORA-" /opt/app/oracle/scripts/archive_gap/report_standby.log` -eq  0) ]]; then
+/opt/app/oracle/scripts/archive_gap/primary_report.sh
+/opt/app/oracle/scripts/archive_gap/final_report.sh
+awk '{$9=$4-$8;print $0}' /opt/app/oracle/scripts/archive_gap/final_report.log > /opt/app/oracle/scripts/archive_gap/final_temp.log
+mv /opt/app/oracle/scripts/archive_gap/final_temp.log /opt/app/oracle/scripts/archive_gap/final_report.log
+## Send Report via Mail
+cp /opt/app/oracle/scripts/archive_gap/final_report.log /opt/app/oracle/scripts/archive_gap/final_report_$ORACLE_SID.log
+else
+touch /opt/app/oracle/scripts/archive_gap/final_report_$ORACLE_SID.log
+mailx -s "Primary or Standby database $ORACLE_SID is down" tridib.das.ap@company.com < /dev/null
+fi
+
+**********************************************************************************************************************
+
+==> cat /opt/app/oracle/scripts/archive_gap/primary_information.sh
+sqlplus -s "$TARGETUSER/$TARGETPWD@$ORACLE_SID as sysdba" <<EOF
+set heading off
+set feedback off
+set pages 0
+set serveroutput off
+set echo off
+set head off
+set verify off
+set lines 500
+spool /opt/app/oracle/scripts/archive_gap/primary_instance.log
+select host_name,instance_name from gv\$instance order by instance_name;
+spool off
+spool /opt/app/oracle/scripts/archive_gap/primary_archive.log
+select thread#,max(sequence#) from v\$log group by thread# order by thread#;
+spool off
+exit
+EOF
+

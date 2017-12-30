@@ -1,0 +1,817 @@
+scp
+Adding a datafile.
+=============================================================
+------fileUser--------
+
+
+/oradata/ORASOAP1/applogprod_tbsp_45.dbf
+
+
+alter tablespace APPLOGPROD_TBSP add datafile '/oradata/ORASOAP1/applogprod_tbsp_46.dbf' size 10G;
+alter tablespace <table_space> add datafile '/full_pah.dbf' size 200M autoextend on;
+
+----ASM :- +DATA/-------
+alter tablespace <table_space> add datafile '+DATA' size 200M autoextend on;
+
+checking for tablespace.
+==============================================================
+select FILE_NAME, BYTES/1024/1024/1024, MAXBYTES/1024/1024/1024, TABLESPACE_NAME, AUTOEXTENSIBLE from dba_data_files where TABLESPACE_NAME ='&tablespace';
+
+Checking for tablespace more utilized
+==============================================================
+select TABLESPACE_NAME,USED_SPACE,TABLESPACE_SIZE,USED_PERCENT from dba_tablespace_usage_metrics;
+select TABLESPACE_NAME,USED_SPACE,TABLESPACE_SIZE,USED_PERCENT from dba_tablespace_usage_metrics where USED_PERCENT>70;
+
+
+
+select a.tablespace_name,round(sum(a.maxb)) Max_Size_mb,round(sum(a.tots)) Tot_Size_mb,--round(sum(a.sumb)) Tot_Free_mb,
+round(sum(decode(a.maxb,0,a.sumb,a.maxb-a.tots))*100/sum(decode(a.maxb,0,a.tots,a.maxb))) as "% Free"
+from
+(
+select tablespace_name,0 maxb,0 tots,sum(bytes/1024/1024) sumb, max(bytes/1024/1024) largest,count(*) chunks
+from dba_free_space a
+group by tablespace_name
+union
+select tablespace_name,sum(maxbytes/1024/1024) maxb,sum(bytes/1024/1024) tots,0,0,0
+from companydba.datafile_info
+group by tablespace_name) a
+having  (sum(decode(a.maxb,0,a.sumb,a.maxb-a.tots))*100/sum(decode(a.maxb,0,a.tots,a.maxb)))<30
+group by a.tablespace_name
+;
+
+oratab in solaris:
+
+cat /var/opt/oracle/oratab
+
+
+//finding the free space in ASM
+
+select NAME, TOTAL_MB/1024, FREE_MB/1024 from v$asm_diskgroup;
+
+
+
+TO check the RMAN progress
+s
+	
+
+
+
+select SID, START_TIME,TOTALWORK, sofar, (sofar/totalwork) * 100 done,sysdate + TIME_REMAINING/3600/24 end_at from v$session_longops where totalwork > sofar AND opname NOT LIKE '%aggregate%';
+
+
+find ip 
+
+ form CMDB 
+
+ take a putty session with the ip directly 
+
+ username: companysupport 
+
+ passwd 
+
+ Tc$$upp0rt! 
+
+ and then do sudo su - 
+
+ give same passwd 
+
+//
+
+
+Server          : cvgrhegmpp003 
+Location      : /archive/GMP/oracle_archives
+ 
+
+
+
+
+23:44:53 none:nolog> connect sys/m00n#r0ck@RIPROD2 as sysdba
+Connected to an idle instance.
+23:45:07 none:nolog> startup pfile='D:\oracle\ora81\database\initRIPROD2.ora'
+ORACLE instance started.
+
+Total User Global Area  963168284 bytes
+Fixed Size                    75804 bytes
+Variable Size             123199488 bytes
+Database Buffers          838860800 bytes
+Redo Buffers                1032192 bytes
+Database mounted.
+Database opened.
+
+
+
+
+
+
+Ticket No  9402138    Logged Date  09/05/2013 15:40:57 
+
+
+RMAN backup ---
+
+*********************************************
+
+#00 00 * * * /remotebu/rman_sample_script.sh
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+allocate channel d4 device type disk;
+allocate channel d5 device type disk;
+allocate channel d6 device type disk;
+backup current controlfile format '/remotebu/rman/RFPH01PR_control_pre_%U';
+backup as compressed backupset database format '/remotebu/rman/RFPH01PR_cold_%U';
+backup current controlfile format '/remotebu/rman/RFPH01PR_control_post_%U';
+release channel d1;
+release channel d2;
+release channel d3;
+release channel d4;
+release channel d5;
+release channel d6;
+}
+ 
+rman target /
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+allocate channel d4 device type disk;
+allocate channel d5 device type disk;
+allocate channel d6 device type disk;
+backup current controlfile format 'J:\RMAN\cold_backup_monthly\RFNT_control_pre_%U';
+backup as compressed backupset database format 'J:\RMAN\cold_backup_monthly\RFNT_cold_%U';
+backup current controlfile format 'J:\RMAN\cold_backup_monthly\RFNT_control_post_%U';
+release channel d1;
+release channel d2;
+release channel d3;
+release channel d4;
+release channel d5;
+release channel d6;
+}
+
+
+
+
+//Databank ID deletion
+
+
+select object_type,count(*) from dba_objects where owner='<name>';
+
+
+drop user <name> cascade;
+
+
+
+delete from dbr.password_rep where USER_ID='HRSF7Y' and DB_NAME='HERSY01';
+
+update dbr.password set USER_NM_FRST='<fst_name>',USER_NM_LST='<lst_name>' where USER_ID='<name>' and DB_NAME='<db_name>'
+
+******************
+serrheqms001
+******************
+
+// Listner status
+
+lsnrctl status
+
+// Finding Db status
+
+
+
+select a.host_name "Server",b.name "Database",b.open_mode "Database Status" from v$database b,v$instance a;
+col "Server" format a30
+col "Database" format a30
+col "Database Status" format a30
+select round(sum(bytes)/1024/1024/1024,2)||' GB' "Size Allocated to the DB" from dba_data_files;
+select round(sum(bytes)/1024/1024/1024,2)||' GB' "Database Current Size" from dba_segments;
+select distinct tablespace_name "Tablespaces In the Database" from dba_data_files;
+select owner "Schemas",round(sum(bytes)/1024/1024/1024,2)||' GB' "Size Of schema" from dba_segments group by owner;
+
+
+select round(sum(bytes)/1024/1024/1024,2)||' GB' "Size Of schema" from dba_segments where owner='
+
+// checking the host name;
+
+select host_name from v$instance
+
+
+alter rollback segment sysrol online;
+
+
+
+
+// for finding the enterprise manager link
+
+emctl status dbconsole
+
+-----to start it----------
+
+emctl start dbconsole
+
+//Killing session
+
+select sid,serial#,username,status,sql_hash_value,TO_CHAR(logon_time, 'DD-MON-YYYY HH24:MI:SS')TIME from v$session where sid in (342,584,528,522,285,48);
+
+
+SQL> ALTER User KILL SESSION 'sid,serial#';
+
+select inst_id,sid,serial# from gv$session where username='SCOTT';
+   INST_ID        SID    SERIAL# 
+---------- ---------- ---------- 
+         1        130        620 
+
+SQL>  alter User kill session '130,620,1'; 
+ alter User kill session '130,620,1' 
+* 
+ERROR at line 1: 
+ORA-00026: missing or invalid session ID 
+
+Now, it works: 
+
+SQL>  alter User kill session '130,620,@1' immediate; 
+
+User altered. 
+
+
+
+select username,sid,serial#,sql_hash_value,status,inst_id from gv$session where sid='1351';
+
+USERNAME                              SID    SERIAL# SQL_HASH_VALUE STATUS
+------------------------------ ---------- ---------- -------------- --------
+   INST_ID
+----------
+CMIPLN                               1351      23983      180331936 ACTIVE
+         2
+
+
+SQL> select sql_text from v$sql where HASH_VALUE='310208872';
+
+SQL_TEXT
+--------------------------------------------------------------------------------
+insert into RUL_DB_RLTD (RUL_DB_RLTD_ID,RUL_ID,DB_ID,INS_TS,UPD_TS,DEL_TS)
+select rul_db_rltd_id_seq.nextval, rul_id, prnt_db_id, sysdate as INS_TS, null a
+s UPD_TS, null as DEL_TS from (       select distinct SRCRUL.RUL_ID,DB.PRNT_DB_I
+D         from (select RUL_ID,DBS.DB_NM CHILDDB                 from ( select SR
+CRDB.RUL_ID,SRCRDB.DB_ID, SRCDB.DB_NM                           from rul_db_rltd
+_lty SRCRDB, DB@cmistg.accompany.com SRCDB                         where SRCRDB.
+DB_ID=SRCDB.DB_ID                           and SRCDB.DB_GRP_IND='Y'
+               and SRCDB.DB_NM <> 'Global Database Group'
+    and SRCRDB.DEL_TS is null                           and SRCDB.DEL_TS is null
+                       ) SRCDB, DB_GRP@cmistg.accompany.com DBG, DB@cmistg.acnie
+lsen.com DBS                where SRCDB.DB_ID=DBG.PRNT_DB_ID                   a
+
+SQL_TEXT
+--------------------------------------------------------------------------------
+nd DBG.DB_ID=DBS.DB_ID                   and DBG.DEL_TS is null
+  and DBS.DEL_TS is null               )
+
+select username,sid,serial#,sql_hash_value,status,inst_id from gv$session where sid='&sid';
+select sql_text from v$sql where HASH_VALUE='&hash';
+
+
+
+// archive log destination and other details
+
+ARCHIVE LOG LIST
+
+details available are 
+
+Database log mode              Archive Mode
+Automatic archival             Enabled
+Archive destination            /vobs/oracle/dbs/arch
+Oldest online log sequence     221
+Next log sequence to archive   222
+Current log sequence           222
+
+  
+
+xcopy C:\Users\apacoracleservice\Desktop\win64_11gR2_client.zip \\10.240.29.111\c$\Users\apacoracleservice\Desktop 
+
+
+
+
+
+// extracting report about the database.
+
+set pages 9999
+set lines 300
+col owner for a30
+col segment_name for a50
+col segment_type for a20
+spool /home/oracle/segment_size_memn02dv.log
+select owner, segment_name, segment_type, bytes/1024/1024 "Size in MB" from dba_segments where owner not in ('SYS','User','OUTLN','DIP','DBSNMP','APPQOSSYS','WMSYS','EXFSYS','XDB','ANONYMOUS','XS$NULL','ORDPLUGINS','MDSYS','SI_INFORMTN_SCHEMA','ORDDATA','ORDSYS','SYSMAN','MGMT_VIEW','APEX_PUBLIC_USER','FLOWS_FILES','APEX_030200');
+spool off;
+
+
+
+
+
+
+
+
+
+select 
+a.sid, 
+a.serial#, 
+b.sql_text
+from 
+v$session a, 
+v$sqlarea b
+where 
+a.sql_address=b.address
+and
+sid=43;
+
+
+
+///
+
+changing the schema name 
+
+ALTER SESSION SET CURRENT_SCHEMA=MV_PROMPT_NOCR
+
+
+
+
+delete from DQ_CHCK_CLSF_TYP where DQ_CHCK__CLSF_TYP_CD = '4F';
+
+
+
+
+
+
+
+WP3_ROLLOUT_OR_DML_EVENTING_INTEGRAL
+WP3_ROLLOUT_OR_DML_EVENTING_INTEGRAL_DQA
+WP3_ROLLOUT_ORA_EVENTING_PROMPTING
+WP3_ROLLOUT_ORA_EVENTING_NEW_REPROCESS_MANUAL_JOB
+
+
+
+WP3_ROLLOUT_OR_DML_EVENTING_INTEGRAL_DQA.sql
+WP3_ROLLOUT_ORA_EVENTING_PROMPTING.sql
+WP3_ROLLOUT_OR_DML_EVENTING_INTEGRAL.sql
+WP3_ROLLOUT_ORA_EVENTING_NEW_REPROCESS_MANUAL_JOB.sql
+
+
+
+/db10_new/oradata/rfntux/RFNTDATATEMP_QCSC02.ORA
+
+
+
+grab it from $ORACLE_HOME/network/admin/tnsnames.ora
+lsnrctl services
+
+
+
+shrink the Tempfiles
+========================================== 
+set line 300
+col file_name format a77
+select file_name,sum(bytes)/1024/1024/1024 from dba_temp_files group by file_name;
+ 
+alter database tempfile '/db10_new/oradata/rfntux/RFNTDATATEMP_QCSC02.ORA' resize 10G;
+ 
+11g ---> alter tablespace TEMP shrink space;
+3.Try to run maxshrink on Datafiles :
+ 
+Check autoextensible enabled or not?
+ 
+SQL> select distinct autoextensible from dba_Data_Files;
+If Yes ...> Proceed
+ 
+SQL> select distinct autoextensible,count(*) from dba_Data_Files group by autoextensible;
+select 'alter database datafile '''||file_name||''' autoextend on ;' from dba_data_files where autoextensible='NO';
+ 
+SQL> select distinct autoextensible,count(*) from dba_Data_Files group by autoextensible;
+serrheorad001 --- oracle/dbat3am
+cd /home/oracle/dba/ram
+DEV:[TIBSOAD1]oracle@serrheorad001:/home/oracle/dba/ram
+==> scp maxshrink.sql nasolora012:/oracle/dba/ram
+Password:
+maxshrink.sql 100% 1201 1.2KB/s 00:0
+DEV:[TIBSOAD1]oracle@serrheorad001:/home/oracle/dba/ram
+ 
+ 
+@maxshrink.sql 
+
+Tim	Knea	A	tknea@hersheys.com	hrsf48
+TIM     KNEA  HRSF48
+
+
+
+
+
+insert into dbr.password_rep(CSTMER_ID,USER_ID,PSW,USER_NM_FRST,USER_NM_LST,EXTERNAL,DB_NAME) values ('1','HRSF48','supp0rt','TIM','KNEA','NO','ORNPROD');
+
+
+
+create user HRSF48 identified by supp0rt default tablespace users;
+grant connect,resource,select any table to HRSF48;
+
+
+grant connect,resource,COLGATE_ALL_DATA_ROLE to COLGE8;
+
+
+
+
+
+impdp REMAP_TABLE=ADV.ME_RFRSH_CNTXT_BK:RBADVP.ME_RFRSH_CNTXT directory=DATA_PUMP_DIR DUMPFILE=ADV_ME_RFRSH_CNTXT_BK.dmp TABLE_EXISTS_ACTION=APPEND logfile=imp_ADV_ME_RFRSH_CNTXT_BK.log 
+/opt/app/oracle/product/11.2.0/db_1/rdbms/log/
+
+
+// find the table size 
+
+select
+segment_name table_name, 
+sum(bytes)/(1024*1024) table_size_meg
+from user_extents
+where segment_type='TABLE'
+and segment_name = '&table_name'
+group by segment_name;
+
+
+
+
+Oracle client
+
+
+
+
+server04p2	DBRP
+server04p2	DBRP
+server04p3	COKE01
+server04p4	HERSY01
+server04p5	KC01
+server04p6	COLGT01
+server04p7	OCNSP01
+server04p8	BRSDRF01
+server04p9	NSLPUR01
+server04p10	MOTTS01
+server04p11	UNLVR01
+server04p12	SCJ01
+server04p13	CHDW01
+
+
+
+
+CROSSCHECK BACKUP;
+DELETE EXPIRED BACKUP;
+DELETE OBSOLETE;
+
+
+
+
+dba_table_statistics
+dba_tab_mofidications
+
+select OWNER,TABLE_NAME,LAST_ANALYZED,STALE_STATS from dba_tab_statistics where TABLE_NAME='STG_PROD_AGG' and owner like 'R14500%';
+
+
+password_file
+
+/u01/app/oracle/dba/util/cntl
+
+
+
+show parameter recovery
+archive log list;
+
+
+select segment_name , tablespace_name, bytes/1024, blocks, extents from dba_segments where segment_type='TABLE' and owner='RRS' and PARTITION_NAME like 'P200%';
+
+
+
+SELECT DBMS_METADATA.GET_DDL(object_type, object_name, owner) FROM all_OBJECTS  WHERE (OWNER = '&OWNER1');
+
+SELECT DBMS_METADATA.GET_DDL('TABLESPACE','&owner','&tablespace') from dual;
+
+
+ctM2013%'; 
+
+
+select tablespace_name from dba_tablespaces where tablespace_name like 'M2013%'; 
+
+
+
+
+CREATE TABLESPACE CA_EX_AEM_14 DATAFILE '/oradata/IDOANSR2/test01.dbf' SIZE 3M AUTOEXTEND OFF;
+
+
+SQL> select table_name,count(partition_name) from dba_tab_partitions where partition_name like 'P2014%' group by table_name;
+
+
+
+
+select * from gv$locked_object;
+
+
+
+select OBJECT_NAME,OBJECT_TYPE,OBJECT_ID from dba_objects where OBJECT_ID='&object_id'
+
+
+
+
+
+BRSDRF01
+
+
+select * from v$flash_recovery_area_usage;
+
+
+
+
+
+select sid,serial#,username,machine,SQL_HASH_VALUE from v$session where status='ACTIVE' and username='&user';
+
+select sql_text from v$sql where HASH_VALUE='&hash_value';
+
+
+
+
+ n
+
+
+Do you have a backup?
+
+We might just need a few datafiles to restore.
+
+We need to look at the complete database
+
+Start RMAN in nocatalog mode and connect to your database:
+
+From the operating User prompt issue:
+
+$ rman target / nocatalog
+
+or
+
+$ rman target sys/<sys_password> nocatalog
+
+
+The following example shows how to validate all datafiles:
+
+Complete database check
+
+run {
+allocate channel d1 type disk;
+backup check logical validate database;
+release channel d1;
+}
+
+Datafile check
+
+run {
+allocate channel d1 type disk;
+backup validate datafile 1;
+release channel d1;
+}
+
+Check how long the RMAN validate will run
+
+select sid, serial#, context, sofar, totalwork,round(sofar/totalwork*100,2) "%_complete"
+from v$session_longops
+where opname like 'RMAN%'
+and opname not like '%aggregate%'
+and totalwork != 0
+and sofar <> totalwork;
+
+
+select * from V$DATABASE_BLOCK_CORRUPTION;
+
+
+
+awk report 
+===========================================
+@$ORACLE_HOME/rdbms/admin/awrrpt.sql
+
+
+
+
+
+
+ps -ef|grep LOCAL=NO
+
+
+
+alter database tempfile '/PIMXXXX0/temp01/temp_ts_1_01.dbf' resize 20G;
+
+
+
+
+Commands for Hanganalyze & Userstate
+===============================================
+
+Single Instance Non-RAC Database:
+
+Hanganalyze
+sqlplus '/ as sysdba'
+oradebug setmypid
+oradebug unlimit
+oradebug hanganalyze 3
+-- Wait one minute before getting the second hanganalyze
+oradebug hanganalyze 3
+oradebug tracefile_name
+exit
+
+Userstate
+sqlplus '/ as sysdba'
+oradebug setmypid
+oradebug unlimit
+oradebug dump Userstate 266
+oradebug dump Userstate 266
+oradebug tracefile_name
+exit
+
+RAC Database
+
+There are 2 bugs affecting RAC that without the relevant patches being applied on your User, make using level 266 or 267 very costly. Therefore without these fixes in place it highly unadvisable to use these level.
+
+RAC Hanganalyze and Userstate with fixes for bug 11800959 and 11827088
+sqlplus '/ as sysdba'
+oradebug setorapname reco
+oradebug  unlimit
+oradebug -g all hanganalyze 3
+oradebug -g all hanganalyze 3
+oradebug -g all dump Userstate 266
+oradebug -g all dump Userstate 266
+exit
+
+RAC Hanganalyze and Userstate without fixes for bug 11800959 and 11827088
+sqlplus '/ as sysdba'
+oradebug setorapname reco
+oradebug unlimit
+oradebug -g all hanganalyze 3
+oradebug -g all hanganalyze 3
+oradebug -g all dump Userstate 258
+oradebug -g all dump Userstate 258
+exit
+
+
+what operation is being done in asm
+=====================================================
+select * from v$asm_operation;
+
+
+
+
+
+
+
+
+
+Oracle Profile
+=====================================================
+
+export PATH=/opt/app/oracle/product/10.2.0/db_1/bin:$PATH
+export ORACLE_HOME=/opt/app/oracle/product/11.2.0.3/client_1
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib
+
+
+
+Bringing up standalone Database
+=====================================================
+
+SQL> select name, open_mode from v$database;   
+
+NAME      OPEN_MODE
+--------- ----------
+CCMPRD    READ ONLY
+ 
+SQL> shu immediate;
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+SQL> startup nomount;
+ORACLE instance started.
+
+Total User Global Area 6442450944 bytes
+Fixed Size                  2087192 bytes
+Variable Size            2080376552 bytes
+Database Buffers         4328521728 bytes
+Redo Buffers               31465472 bytes
+SQL> alter database mount standby database;
+
+Database altered.
+ 
+SQL> alter database recover managed standby database disconnect from session;
+
+Database altered.
+
+SQL> select name, open_mode from v$database;
+
+NAME      OPEN_MODE
+--------- ----------
+CCMPRD    MOUNTED
+
+SQL> select process, status, sequence# from v$managed_standby;
+
+PROCESS   STATUS        SEQUENCE#
+--------- ------------ ----------
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+MRP0      WAIT_FOR_GAP      60373
+RFS       IDLE                  0
+RFS       IDLE              60373
+RFS       IDLE                  0
+RFS       IDLE                  0
+
+11 rows selected.
+
+
+http://www.choudhari.net/downloads/Certifications/11g/1Z0-052/OCA%20Oracle%20Database%2011gAdministration%20I%20Exam%20Guide%20(Exam%201Z0-052).pdf <http://www.choudhari.net/downloads/Certifications/11g/1Z0-052/OCA%20Oracle%20Database%2011gAdministration%20I%20Exam%20Guide%20%28Exam%201Z0-052%29.pdf>  
+
+http://www.choudhari.net/downloads/Certifications/11g/1Z0-051/Oracle%2011g-%20SQL%20Fundamental%20Exam%20Guide%20(Exam%201Z0-051).pdf <http://www.choudhari.net/downloads/Certifications/11g/1Z0-051/Oracle%2011g-%20SQL%20Fundamental%20Exam%20Guide%20%28Exam%201Z0-051%29.pdf> 
+
+
+
+archive generated per ser
+=-===================================
+
+select to_char(COMPLETION_TIME,'DD/MON/YYYY') ser,
+     sum(blocks*block_size)/1048576/1024 "Size(GB)",
+     count(sequence#) "Total Archives" 
+     from (select distinct sequence#,
+                  thread#,
+                  COMPLETION_TIME,
+                  blocks,
+                  block_size 
+           from v$archived_log 
+           where completion_time>=sysdate-90)
+     group by to_char(COMPLETION_TIME,'DD/MON/YYYY')
+     order by 1;
+
+script to disable constrainss
+
+begin
+for i in (select constraint_name, table_name from user_constraints) LOOP
+execute immediate 'alter table '||i.table_name||' disable constraint '||i.constraint_name||'';
+end loop;
+end;
+/
+
+
+
+singaravelan.cs.ap@company,com
+Singar1981
+
+
+
+oracle  12c
+
+sysman
+dban1elsen
+
+
+
+Info required:
+•	Please provide session details sid,serial#,username
+•	OS username
+•	what does the job do?
+•	what are the usual run times for the job?
+•	Is the first time this job is running?
+•	are you running this job at the time its supposed to? 
+•	When did the job last complete its run?
+•	What were the timings on the previous run?
+•	Is this the first time you are experiencing this problem?
+•	If it's the first time, what is the change?
+•	Is the volume of data the same if the job ran previously?
+•	Are the stats up-to-date for the involved tables?
+
+
+
+purging developed by Travis it would purge all trace files that are older than 90 sers
+I just changed it to purge eveyrthing that is older than 10 sers
+========================================================================================
+serrheorau003:
+/opt/app/oracle/admin/scripts/logfile_maintenance_job_11g.ksh
+
+
+
+
+
+
+
+generating runbook in CCM
+
+
+SET MARKUP HTML ON ENTMAP ON SPOOL ON PREFORMAT OFF ;
+set linesize 500
+set pagesize 1000
+alter session set nls_date_format = 'mm/dd/yyyy hh24:mi:ss';
+spool 'D:\new_run.xls'
+select *
+  from ccm_company_inst1_v1r2.view_tickets_region_oracle
+where "Ticket Logged Date" between
+       to_date('10/01/2012 00:00:00', 'mm/dd/yyyy hh24:mi:ss') and
+       to_date(SYSDATE, 'mm/dd/yyyy hh24:mi:ss') and "Status"<>'Closed' and "Status"<>'Resolved' and "Status"<>'TransferredClosed' order by "Ticket No";
+spool off;
+exit
+

@@ -1,0 +1,78 @@
+
+check the status of the active triggers :
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+set line 300;
+col OBJECT_NAME form a30;
+select object_name,object_type,owner,status from dba_objects where object_type='TRIGGER' and owner='SYS';
+
+
+create table for the logon trigger to keep the details
+-------------------------------------------------------
+
+  CREATE TABLE User.USER_LOGIN_HISTORY
+   (    "USERNAME" VARCHAR2(30),
+        "OSUSER" VARCHAR2(30),
+        "MACHINE" VARCHAR2(64),
+        "LOGIN_COUNT" NUMBER,
+        "LAST_LOGIN" DATE
+   ) PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING
+  STORAGE(INITIAL 81920 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "SYSAUX"
+/
+
+
+
+
+DBMS_METADATA.GET_DDL('TRIGGER','AFT_LOGON_USERLOG_TRG','SYS')
+--------------------------------------------------------------------------------
+
+  CREATE OR REPLACE TRIGGER "SYS"."AFT_LOGON_USERLOG_TRG" AFTER LOGON ON DATABASE
+DECLARE
+  v_cnt number;
+  v_username sys.v$session.username%TYPE;
+  v_osuser   sys.v$session.osuser%TYPE;
+  v_machine  sys.v$session.machine%TYPE;
+BEGIN
+  --I ( USER NOT IN ('SYS','User','ORACLE','CTXSYS','SNAPADMIN','PERFSTAT','TEXTUSER','ORAADMIN','SYSMAN','DBSNMP') ) THEN
+BEGIN
+      SELECT decode(SYS_CONTEXT('USERENV','SESSION_USER'),null,'NULL',SYS_CONTEXT('USERENV','SESSION_USER')),
+             decode(SYS_CONTEXT('USERENV','OS_USER')     ,null,'NULL',SYS_CONTEXT('USERENV','OS_USER')),
+             decode(SYS_CONTEXT('USERENV','HOST')        ,null,'NULL',SYS_CONTEXT('USERENV','HOST'))
+        INTO v_username, v_osuser, v_machine FROM DUAL;
+      SELECT COUNT (*) INTO v_cnt FROM User.user_login_history
+        WHERE username = v_username
+        AND   osuser   = v_osuser
+        AND   machine  = v_machine;
+      IF v_cnt > 0 THEN
+        UPDATE User.user_login_history SET login_count=login_count+1,last_login=sysdate
+          WHERE username = v_username
+          AND   osuser   = v_osuser
+          AND   machine  = v_machine;
+      ELSE
+        INSERT INTO User.user_login_history(username, osuser, machine, login_count, last_login)
+          VALUES(v_username, v_osuser, v_machine, 1, sysdate);
+      END IF;
+      --COMMIT;
+    END;
+  --END IF;
+END;
+/
+
+check the status of the triggers which is very important:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+select object_name,object_type,owner,status from dba_objects where object_type='TRIGGER' and owner='SYS';
+
+
+ALTER TRIGGER "SYS"."AFT_LOGON_USERLOG_TRG" ENABLE
+
+
+
+
+ceck the captured details :
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+set line 300;
+col USERNAME form a20;
+col MACHINE form a25 trunc;
+select * from User.USER_LOGIN_HISTORY;

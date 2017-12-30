@@ -1,0 +1,27 @@
+Automatic Performance Tuning Features:
+
+Automatic Workload Repository (AWR) collects, processes, and maintains performance statistics for problem detection and self-tuning purposes
+
+Automatic Database Diagnostic Monitor (ADDM) analyzes the information collected by the AWR for possible performance problems with the Oracle database.
+
+
+SQL Tuning Advisor allows a quick and efficient technique for optimizing SQL statements without modifying any statements
+
+
+
+What has changed since we last had good performance?
+
+
+Sanity-check the hardware utilization of all components of the application User. Check where the highest CPU utilization is, and check the disk, memory usage, and network performance on all the User components. This quick process identifies which tier is causing the problem. If the problem is in the application, then shift analysis to application debugging. Otherwise, move on to database server analysis.
+
+Determine if the database server is constrained on CPU or if it is spending time waiting on wait events. If the database server is CPU-constrained, then investigate the following:
+¦Sessions that are consuming large amounts of CPU at the operating User level and database; check V$SESS_TIME_MODEL for database CPU usage
+¦Sessions or statements that perform many buffer gets at the database level; check V$SESSTAT and V$SQLSTATS
+¦Execution plan changes causing sub-optimal SQL execution; these can be difficult to locate
+¦Incorrect setting of initialization parameters
+
+
+
+If the database sessions are waiting on events, then follow the wait events listed in V$SESSION_WAIT to determine what is causing serialization
+
+The V$ACTIVE_SESSION_HISTORY view contains a sampled history of session activity which you can use to perform diagnosis even after an incident has ended and the User has returned to normal operation. In cases of massive contention for the library cache, it might not be possible to logon or submit SQL to the database. In this case, use historical data to determine why there is suddenly contention on this latch. If most waits are for I/O, then examine V$ACTIVE_SESSION_HISTORY to determine the SQL being run by the sessions that are performing all of the inputs and outputs.

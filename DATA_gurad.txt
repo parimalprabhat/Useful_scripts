@@ -1,0 +1,230 @@
+http://www.oracle-base.com/articles/11g/data-guard-setup-11gr2.php
+=======================================================================
+
+Primary Server Setup
+=====================
+
+SELECT log_mode FROM v$database;
+
+*********************************
+If it is noarchivelog mode, switch is to archivelog mode.
+
+SHUTDOWN IMMEDIATE;
+STARTUP MOUNT;
+ALTER DATABASE ARCHIVELOG;
+ALTER DATABASE OPEN;
+*********************************
+
+Enabled forced logging by issuing the following command:
+========================================================
+
+ALTER DATABASE FORCE LOGGING;
+
+
+
+
+In Primary check for db_name and db_unique_name
+=================================================
+
+show parameter db_name;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+db_name                              string      NVCQ01PR
+
+show parameter db_unique_name;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+db_unique_name                       string      NVCQ01PR
+
+
+InStandby
+===========
+
+SQL> show parameter db_name;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+db_name                              string      NVCQ01PR
+SQL> show parameter db_unique_name;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+db_unique_name                       string      NVCQ01PRSB1
+
+
+The DB_NAME of the standby database will be the same as that of the primary, but it must have a different DB_UNIQUE_NAME value. The DB_UNIQUE_NAME values of the primary and standby database should be used in the DG_CONFIG setting of the LOG_ARCHIVE_CONFIG parameter
+
+
+Setting of the LOG_ARCHIVE_CONFIG parameter
+===============================================
+
+
+ALTER User SET LOG_ARCHIVE_CONFIG='DG_CONFIG=(NVCQ01PR,NVCQ01PRSB1)';
+
+
+show parameter log;
+**********************************************************************************
+log_archive_config                   string      dg_config=(NVCQ01PR,NVCQ01PRSB1)
+**********************************************************************************
+
+
+
+Set suitable remote archive log destinations
+=================================================
+
+
+ALTER User SET LOG_ARCHIVE_DEST_2='service="NVCQ01PRSB1" LGWR ASYNC NOAFFIRM delay=0 optional compression=disable max_failure=0 max_connections=1 reopen=300 db_unique_name="NVCQ01PRSB1" net_timeout=30 valid_for=(all_logfiles,primary_role)';
+
+
+ALTER User SET LOG_ARCHIVE_DEST_2='SERVICE=NVCQ01PRSB1 NOAFFIRM ASYNC VALID_FOR=(ALL_LOGFILES,PRIMARY_ROLE) DB_UNIQUE_NAME=NVCQ01PRSB1';
+
+
+ALTER User SET LOG_ARCHIVE_DEST_STATE_2=ENABLE;
+
+
+
+ALTER User SET LOG_ARCHIVE_FORMAT='%t_%s_%r.arc' SCOPE=SPFILE;
+ALTER User SET LOG_ARCHIVE_MAX_PROCESSES=30;
+ALTER User SET REMOTE_LOGIN_PASSWORDFILE=EXCLUSIVE SCOPE=SPFILE;
+
+
+It is recommended to make sure the primary is ready to switch roles to become a standby
+========================================================================================
+
+ALTER User SET FAL_SERVER=DB11G_STBY;
+--ALTER User SET DB_FILE_NAME_CONVERT='DB11G_STBY','DB11G' SCOPE=SPFILE;
+--ALTER User SET LOG_FILE_NAME_CONVERT='DB11G_STBY','DB11G'  SCOPE=SPFILE;
+ALTER User SET STANDBY_FILE_MANAGEMENT=AUTO;
+
+
+pfile entry
+====================================
+*.fal_client='NVTL01PR'
+*.fal_server='NVTL01PRSB1'
+
+
+Entries for the primary and standby databases are needed in the "$ORACLE_HOME/network/admin/tnsnames.ora" files on both servers
+=================================================================================================================================
+
+NVCQ01PR  =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = serrhenetp006.servernet.org)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = NVCQ01PR)
+    )
+  )
+
+
+NVCQ01PRSB1  =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = serrhenetp007.servernet.org)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = NVCQ01PRSB1)
+    )
+  )
+
+
+
+Backup the Primary database
+==============================
+
+RMAN> BACKUP DATABASE PLUS ARCHIVELOG;
+
+and also Create Standby Controlfile and PFILE
+
+ALTER DATABASE CREATE STANDBY CONTROLFILE AS '/tmp/NVCQ01PRSB1.ctl';
+CREATE PFILE='/tmp/initNVCQ01PRSB1.ora' FROM SPFILE;
+
+or we can back it up while taking the rman backup
+
+
+
+
+*.db_name='NVCQ01PR'
+*.db_unique_name='NVCQ01PRSB1'
+*.fal_client='NVCQ01PRSB1'
+*.fal_server='NVCQ01PR'
+*.log_archive_dest_2='service="NVCQ01PR" LGWR ASYNC NOAFFIRM delay=0 optional compression=disable max_failure=0 max_connections=1 reopen=300 db_unique_name="NVCQ01PRSB1" net_timeout=30 valid_for=(all_logfiles,primary_role)'
+
+
+
+
+
+COPY the below files to standby
+================================
+
+Backup pieces, 
+Archivelog and 
+controlfile for standby
+Parameter file
+Remote login password file    ----/*$ORACLE_HOME/dbs*\
+
+
+
+Start listner in standby
+================================
+lsnrctl start
+
+Create the SPFILE form the amended PFILE.
+
+
+*.DB_FILE_NAME_CONVERT = '+DATA/nvcq01pr/','+DATA/nvcq01prsb1/
+*.LOG_FILE_NAME_CONVERT = '+DATA/nvcq01pr/','+DATA/nvcq01prsb1/'
+
+CREATE SPFILE FROM PFILE='/tmp/initDB11G_stby.ora';
+
+
+Restore the backup files using RMAN
+======================================
+run
+{
+allocate channel ch1 device type DISK;
+allocate channel ch2 device type DISK;
+allocate channel ch3 device type DISK;
+allocate channel ch4 device type DISK;
+allocate channel ch5 device type DISK;
+allocate channel ch6 device type DISK;
+restore database;
+recover database;
+}
+
+
+
+
+SQL> create spfile from pfile;
+
+File created.
+
+
+SQL> startup nomount;
+ORACLE instance started.
+
+Total User Global Area 4.2758E+10 bytes
+Fixed Size                  2237776 bytes
+Variable Size            2.2012E+10 bytes
+Database Buffers         2.0670E+10 bytes
+Redo Buffers               74444800 bytes
+SQL> alter database mount standby database;
+
+Database altered.
+
+SQL> alter database recover managed standby database disconnect from session;
+
+Database altered.
+
+SQL> select process, status, sequence# from v$managed_standby;
+
+
+The Sequence# should be same in both primary and standby
+
+
+SQL> select max(sequence#) from v$log;
+
+MAX(SEQUENCE#)
+--------------
+         14510
+

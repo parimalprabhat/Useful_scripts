@@ -1,0 +1,243 @@
+parimal prabhat
+
+Checking the tablespace utilization 
+=========================================================
+SELECT Total.name "Tablespace Name",
+       nvl(Free_space, 0) Free_space,
+       nvl(total_space-Free_space, 0) Used_space, 
+       total_space
+FROM
+  (select tablespace_name, sum(bytes/1024/1024) Free_Space
+     from sys.dba_free_space
+    group by tablespace_name
+  ) Free,
+  (select b.name,  sum(bytes/1024/1024) TOTAL_SPACE
+     from sys.v_$datafile a, sys.v_$tablespace B
+    where a.ts# = b.ts#
+    group by b.name
+  ) Total
+WHERE Free.Tablespace_name(+) = Total.name
+ORDER BY Total.name;
+
+
+
+Checking for session progress.
+=======================================================
+select event,p1,p2,p3,wait_time,seconds_in_wait from v$session_wait where sid = '&sid';
+
+
+
+find blocking sessions using v$lock
+=======================================================
+SELECT 
+   l1.sid || ' is blocking ' || l2.sid blocking_sessions
+FROM 
+   v$lock l1, v$lock l2
+WHERE
+   l1.block = 1 AND
+   l2.request > 0 AND
+   l1.id1 = l2.id1 AND
+   l1.id2 = l2.id2
+
+
+
+blocking sessions with all available information
+=======================================================
+SELECT s1.username || '@' || s1.machine
+    || ' ( SID=' || s1.sid || ' )  is blocking '
+    || s2.username || '@' || s2.machine || ' ( SID=' || s2.sid || ' ) ' AS blocking_status
+    FROM v$lock l1, v$session s1, v$lock l2, v$session s2
+    WHERE s1.sid=l1.sid AND s2.sid=l2.sid
+    AND l1.BLOCK=1 AND l2.request > 0
+    AND l1.id1 = l2.id1
+    AND l2.id2 = l2.id2 ;
+
+
+
+
+identifying blocked objects
+=======================================================
+
+SELECT sid, id1 FROM v$lock WHERE TYPE='TM';
+
+SELECT object_name FROM dba_objects WHERE object_id='&id1';
+
+
+
+
+Finding the table name for an index
+========================================================
+select table_name from dba_indexes where index_name ='&index' and owner ='RRS';
+
+
+
+
+Finding Stale stats
+========================================================
+select table_name, stale_stats, last_analyzed 
+from dba_tab_statistics 
+where owner= '&owner_name' and stale_stats='YES'
+order by last_analyzed desc;
+
+
+
+
+Checking the last_analyzed for table and partition
+=========================================================
+select table_name,partitioned,last_analyzed,num_rows from dba_tables where table_name='&table_name' and owner ='&owner';
+
+select table_name,partitioned,last_analyzed,num_rows from dba_tab_partitions where table_name='&table_name' and owner ='RRS';
+
+
+
+Finding the number of CRUD operation in tables
+=========================================================
+select TABLE_NAME,PARTITION_NAME,INSERTS,UPDATES,DELETES,TIMESTAMP,TRUNCATED from dba_tab_modifications where table_name in
+ (
+ 'table_name1',
+ 'table_name2',
+ 'table_name3') and table_owner ='owner_name' order by 1 ;
+
+
+
+Running Stat gather
+========================================================
+exec dbms_stats.gather_schema_stats('&owner_name');
+
+Stats gather for table
+--------------------------------------------------------
+exec dbms_stats.gather_table_stats(ownname=>'RRS',tabname=>'RA_RAW',cascade=>TRUE,DEGREE=>4,no_invalidate=>false);
+
+Stats gather for partition 
+--------------------------------------------------------
+exec dbms_stats.gather_table_stats(ownname=>'RRS',tabname=>'RA_RAW',partname=>'P20201403'granularity=>partition,cascade=>TRUE,DEGREE=>4,no_invalidate=>false);
+
+Stats gather for Index
+--------------------------------------------------------
+execute dbms_stats.gather_index_stats(ownname => 'RRS', indname =>'XRA_RAW_STORE_1', estimate_percent => DBMS_STATS.AUTO_SAMPLE_SIZE);
+
+
+
+Determining the execution plan
+========================================================
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE';
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE' and sid='&sid';
+
+
+
+getting the execution plan
+=============================
+SELECT * FROM table (DBMS_XPLAN.DISPLAY_CURSOR('&sql_id', 0));
+
+SELECT * FROM table(DBMS_XPLAN.DISPLAY_AWR('&sql_id'));
+
+
+
+select plan_hash_value from v$sql where sql_id ='&sql_id';
+
+
+PLAN_HASH_VALUE
+---------------
+       !@#$$#$#$
+
+
+select sql_id,plan_hash_value,snap_id,rows_processed_total,elapsed_time_total/(60*1000*1000) from dba_hist_sqlstat where sql_id='&sql_id';
+select SNAP_ID,BEGIN_INTERVAL_TIME,END_INTERVAL_TIME from dba_hist_snapshot where SNAP_ID='&snap_id';
+
+
+Determine the all the execution plan for a sql_id
+========================================================
+
+select sql_id,plan_hash_value,snap_id,rows_processed_total,elapsed_time_total/(60*1000*1000) from dba_hist_sqlstat where sql_id='&sql_id';
+select plan_hash_value,count(1),sum(elapsed_time_delta),sum(executions_delta),sum(elapsed_time_delta)/sum(executions_delta)/1000000 from dba_hist_sqlstat where sql_id ='&sql_id' and plan_hash_value <>0 group by plan_hash_value;
+
+
+
+
+
+determine the last execution plan for the sql_id
+========================================================
+select sql_id,snap_id,PLAN_HASH_VALUE from dba_hist_sqlstat where sql_id='&sql_id' order by 2;
+
+
+
+flushing shared pool
+========================================================
+alter User flush shared_pool;
+
+
+run sql tuneup script
+========================================================
+cd $ORACLE_HOME/rdbms/admin
+
+@sqltrpt.sql
+
+
+
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE';
+
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE' and sid='&sid';
+
+select plan_hash_value from v$sql where sql_id ='&sql_id';
+
+
+
+
+cursor issue:
+================
+
+ORA-01000 maximum open cursors exceeded
+
+is a typical issue in those applications where connection pools are being used.
+ 
+The open_cursors is a session level limit.
+In those applications where we are using connection pools, the connection pool has pre-connected sessions to the database. 
+When an application sessions wants to connect to the database, it gets hold off to one such pre-connected session.
+Once the application session completes its work, the application session might log off but the database connection is not logged off. The connection is released back to the connection pool.
+ 
+So the ideal fix for this is to review the application and ensure that we close all the cursors that we open.
+ 
+Even if we increase the open_cursors parameter in the database without a proper review of the application, we would be delaying the onset of the problem but not resolving it i.e., the ORA-01000 which is now being reported once we exceed 300, would get reported once we breach the limit of 1000
+
+
+bump up the open_cursors parameter 
+==========================================
+alter User set open_cursors = 1000 scope=both;
+
+
+Also it is not recommended to blindly bump up the value of the open_cursors parameter since it would have some detrimental effect on the database performance as well
+
+
+show parameter cursor;
+
+
+
+
+Find the value of open_cursore for a perticular session
+==========================================================
+
+select a.value, s.username, s.sid, s.serial#
+from v$sesstat a, v$statname b, v$session s
+where a.statistic# = b.statistic#  and s.sid=a.sid
+and b.name = 'opened cursors current' order by s.username;
+
+
+Find the value of open_cursore for a perticular session greater than the limit
+================================================================================
+ select a.value, s.username, s.sid, s.serial#
+from v$sesstat a, v$statname b, v$session s
+where a.statistic# = b.statistic#  and s.sid=a.sid
+and b.name = 'opened cursors current' and a.value > '&limit' order by s.username;
+
+max number of cursors per database to be 300 from the following query
+================================================================================
+
+select max(a.value) as highest_open_cur, p.value as max_open_cur
+  from v$sesstat a, v$statname b, v$parameter p
+  where a.statistic# = b.statistic#
+  and b.name = 'opened cursors current'
+  and p.name= 'open_cursors'
+  group by p.value; 
+
+
+

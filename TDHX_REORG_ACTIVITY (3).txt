@@ -1,0 +1,183 @@
+Dear Team,
+
+
+Activity Details:
+
+Tables reorg for the database TDHX in server phx29p3.
+We are performing this activity to avoid performance issues in TDHX database.
+Tables involving in this activity:
+
+CLIENT_STORE_DELIVERY
+CLIENT_RETAIL_SYNC_DELIVERY
+MSTR_RETAIL_SYNC_DIM
+MSTR_STORE_DIM
+
+Steps Involved In Activity:
+ 
+1.Take a snap of /oradata mount space before you are starting the activity.
+  With this re org activity along with the performance we will reclaim some space.
+  We have to project the space relaimed details after the activity completed.
+
+Ex:
+
+==> hostname
+phx29p3
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg/B
+==> df -g /oradata
+FileUser    GB blocks      Free %Used    Iused %Iused Mounted on
+
+/dev/lv02c      4096.00    654.38   85%    89264     1% /oradata
+
+
+2.RMAN hot backup for entire DB before activity
+
+Once the deliverables of phoenix team completed Apps team will purge huge amounts from their important table.
+We need a backup before team proceeding with data purge.
+Apps team will request us to take RMAN hot backup.
+
+Login into phx29p3 and crontab -l|grep TDHX ....>We will get the jobs scheduled for TDHX.
+Use Weekly RMAN full hot backup and trigger it in background.
+Make sure we have more than 400 GB free space in /remotebu mountpoint before u r triggering it.
+
+Job to be triggered:
+
+00 00 * * 6 /u01/app/oracle/admin/TDHX/scripts/rman/BACKUP_HOT.ksh > /u01/app/oracle/admin/TDHX/scripts/rman/logs/BACKUP_HOT.log 2>&1
+
+nohup sh /u01/app/oracle/admin/TDHX/scripts/rman/BACKUP_HOT.ksh &
+
+Monitor the backup job and update APPS team once it completed.Double crosscheck the logs once backup completed and send a confirmation to APPS team for data purge.
+
+
+3.Resizing Datafiles.
+
+Once the purge activity(usually it will take 12 hours for them) completed APPS team will give us a go ahead to proceed with RE -ORG. 
+
+Tables Involved in this activity:
+
+CLIENT_STORE_DELIVERY
+CLIENT_RETAIL_SYNC_DELIVERY
+MSTR_RETAIL_SYNC_DIM
+MSTR_STORE_DIM
+
+We are moving these tables from tablespaces A to B vice versa every month.
+If tables are already present in tablespace A then we have to perform re org activity from A to B.
+
+Find out the tables where they are located now....
+
+SQL> set line 300
+SQL> set pagesize 300
+SQL> col "Table Name" form a35;
+SQL>  select distinct owner "Table Owner",segment_name "Table Name", tablespace_name "Table Currently Resides In" from dba_segments where segment_name in ('CLIENT_STORE_DELIVERY','CLIENT_RETAIL_SYNC_DELIVERY','MSTR_RETAIL_SYNC_DIM','MSTR_STORE_DIM');
+
+Table Owner                    Table Name                                                                        Table Currently Resides In
+------------------------------ --------------------------------------------------------------------------------- ------------------------------
+TDH                            MSTR_STORE_DIM                                                                    MSTR_STORE_DIM_TAB_B
+TDH                            CLIENT_RETAIL_SYNC_DELIVERY                                                       CLIENT_RETAIL_SYNC_DEL_TAB_B
+TDH                            MSTR_RETAIL_SYNC_DIM                                                              MSTR_RETAIL_SYNC_DIM_TAB_B
+TDH                            CLIENT_STORE_DELIVERY                                                             CLIENT_STORE_DEL_TAB_B
+
+All the tables are present in tablespace B.
+So we have to perform re org from B to A(We have to move all these tables from B taablespaces to A).
+
+Re org is from B------->A this case go to the directory /home/oracle/tdhx_reorg/A --->use all the scripts under this directory.
+
+If the re ord from A----->B go to /home/oracle/tdhx_reorg/B
+
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg/A
+==> ls -lrt
+total 96
+-rw-r--r--    1 oracle   oinstall       3694 Aug 31 2011  tablespace_A.sql
+-rwxr-xr-x    1 oracle   oinstall        141 Sep  2 2011  tbs_resize.sh
+drwxr-xr-x    2 oracle   oinstall       4096 Nov 25 2011  table
+drwxr-xr-x    2 oracle   oinstall       4096 Nov 25 2011  index
+
+
+Before performing this re org activity we have to manually allocate the space(resize datafiles to 20 GB,10 GB) to datafiles of particular tablespaces.
+
+For this just Run  --->PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg/A/tablespace_A.sql
+
+4.Tables Reorg
+
+We have to move all tables from tablespace_B to tablespace_A.
+For this go to the directory /home/oracle/tdhx_reorg/A/table
+And run all these shell scripts parallely in 4 sessions.
+
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg/A/table
+==> ls -lrt|grep .sh
+-rwxrwxr-x    1 oracle   oinstall        160 May 27 2011  CLIENT_STORE_DELIVERY_tab.sh
+-rwxrwxr-x    1 oracle   oinstall        172 May 27 2011  CLIENT_RETAIL_SYNC_DELIVERY_tab.sh
+-rwxrwxr-x    1 oracle   oinstall        158 May 27 2011  MSTR_RETAIL_SYNC_DIM_tab.sh
+-rwxrwxr-x    1 oracle   oinstall        146 May 27 2011  MSTR_STORE_DIM_tab.sh
+
+Run them in background.
+
+5.Index Reorg
+
+
+select INDEX_NAME,owner,tablespace_name from all_indexes  where owner = 'TDH' and tablespace_name like '%_A';
+
+Once we moved tables to new tablespaces indexes on tables will become INVALID.
+We have to rebuild all the indexes on these tables in new tablespace.
+For this run following shell scripts paralelly.
+
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg/A/index
+==> ls -alrt|grep .sh
+-rwxr-xr-x    1 oracle   oinstall        160 May 27 2011  CLIENT_STORE_DELIVERY_ind.sh
+-rwxr-xr-x    1 oracle   oinstall        172 May 27 2011  CLIENT_RETAIL_SYNC_DELIVERY_ind.sh
+-rwxr-xr-x    1 oracle   oinstall        146 May 27 2011  MSTR_STORE_DIM_ind.sh
+-rwxr-xr-x    1 oracle   oinstall        158 May 30 2011  MSTR_RETAIL_SYNC_DIM_ind.sh
+
+DONT MISS ANY Shell script..:)
+
+5.Maintenance of Parallelism
+
+Once the indexes are created we have to maintaine no parallelism in indexes.
+In reorg home directory(/home/oracle/tdhx_reorg) we have a script to complete it.
+
+Run this script.
+
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg
+==> ls -lrt|grep chng.sql
+-rw-r--r--    1 oracle   oinstall       1239 Jul  4 2011  noparallel_chng.sql
+
+6.Post Verification:
+
+Verify the tables where they are located:
+
+select distinct owner "Table Owner",segment_name "Table Name", tablespace_name "Table Currently Resides In" from dba_segments where segment_name in ('CLIENT_STORE_DELIVERY','CLIENT_RETAIL_SYNC_DELIVERY','MSTR_RETAIL_SYNC_DIM','MSTR_STORE_DIM');
+
+select b.INDEX_NAME,b.owner,b.tablespace_name from all_indexes b,dba_segments a  where b.owner = 'TDH' and  a.segment_name in ('CLIENT_STORE_DELIVERY','CLIENT_RETAIL_SYNC_DELIVERY','MSTR_RETAIL_SYNC_DIM','MSTR_STORE_DIM');
+
+7.Shrinking the Datafiles
+
+Re org of tables completed.
+we have to shrink the space we already allocated for the tablespace's_A in step 3.
+Run maxshrink.sql in reorg home directory.
+
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg
+==> ls -lrt|grep ink.sql
+-rw-r--r--    1 oracle   oinstall       1314 Jul  4 2011  maxshrink.sql
+
+
+8.RMAN hot backup for entire DB after activity
+
+Once all the activity completed take RMAN hot backup of the database.
+Refer step2.
+ 
+
+9.We have to gather the statistics for all the tables involved in this activity.
+
+PROD:[TDHX]oracle@phx29p3:/home/oracle/tdhx_reorg
+==> ls -lrt|grep her.sql
+-rw-r--r--    1 oracle   oinstall        874 May 30 2011  stats_gather.sql
+
+10.Once all the activies completed APPS team will request us to bounce the database TDHX(Some times DCVX also).
+Bounce the DB.
+
+Take /oradata mountpoint space usage details ... Refer step1.
+
+Share the space relaimation detils with apps team.
+
+Follow up without delay.Update APPS team on each step starting/Completion.
+It will avoid escalations.
+

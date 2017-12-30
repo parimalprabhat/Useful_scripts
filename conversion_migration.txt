@@ -1,0 +1,138 @@
+Pre Cut Over activity – 6/25/2014
+Take a backup of following tables from DWNLDR_PROD/NAUD01PR database on 6/25/2014.
+OLA_OMS_MSG_STORE
+OLA_OMS_MSG_STORE_ENTITY
+
+Cut Over activity – 6/27/2014  11.00 PM
+1.	Truncate following tables before taking full backup
+OLA_OMS_MSG_STORE
+OLA_OMS_MSG_STORE_ENTITY
+
+2.	Take a full backup DWNLDR_PROD/NAUD01PR database
+
+
+
+TRUNCATE TABLE  DWNLDR_PROD.OLA_OMS_MSG_STORE;
+TRUNCATE TABLE  DWNLDR_PROD.OLA_OMS_MSG_STORE_ENTITY;
+
+
+SQL> select count(*) from DWNLDR_PROD.OLA_OMS_MSG_STORE_ENTITY;
+
+  COUNT(*)
+----------
+   4668290
+
+SQL> select count(*) from DWNLDR_PROD.OLA_OMS_MSG_STORE;
+
+  COUNT(*)
+----------
+   1195079
+
+
+
+SQL> select count(*) from DWNLDR_PROD.OLA_OMS_MSG_STORE_ENTITY;
+
+  COUNT(*)
+----------
+         0
+
+SQL> select count(*) from DWNLDR_PROD.OLA_OMS_MSG_STORE;
+
+  COUNT(*)
+----------
+         0
+
+
+
+
+
+
+
+expdp directory=PUMP dumpfile=CR59488_DWNLDR_PROD.dmp logfile=CR59488_DWNLDR_PROD.log SCHEMAS=DWNLDR_PROD
+
+
+/oraexp/serrhenaop001/NAUD01PR
+
+
+ CR59488_DWNLDR_PROD.dmp
+ CR59488_DWNLDR_PROD.log
+
+
+
+select dbms_metadata.get_ddl('USER', 'DWNLDR_PROD') from dual;
+
+
+ CREATE USER "DWNLDR_PROD" IDENTIFIED BY VALUES 'D93306AB8DDEE5EE'
+      DEFAULT TABLESPACE "AT_DWNLDR_MEDIUM"
+      TEMPORARY TABLESPACE "TEMP"
+
+
+
+SQL> alter user DWNLDR_PROD IDENTIFIED BY DWNLDR_PROD123;
+
+User altered.
+*****************************************************************************
+
+
+alter user DWNLDR_PROD IDENTIFIED BY VALUES 'D93306AB8DDEE5EE';
+
+
+ls -ltr mig*
+
+-------------------------------------
+--File Name: db_details.sql
+-------------------------------------
+DEFINE DATABASE_NAME=NAUD01PR
+DEFINE SCHEMA_DWNLDR=DWNLDR_PROD
+column migrate_ts new_value migrate_ts 
+SELECT to_char(sysdate,'yyyymmddhh24miss') migrate_ts 
+FROM dual ; 
+WHENEVER SQLERROR EXIT ROLLBACK 
+WHENEVER OSERROR EXIT ROLLBACK 
+
+
+logs in /opt/app/home/oracle/CR59464/OLA3_2_DB_Script_Part1
+
+
+==============================================================================
+Password reverted
+==============================================================================
+
+
+SQL> select dbms_metadata.get_ddl('USER', 'DWNLDR_PROD') from dual;
+
+DBMS_METADATA.GET_DDL('USER','DWNLDR_PROD')
+--------------------------------------------------------------------------------
+
+   CREATE USER "DWNLDR_PROD" IDENTIFIED BY VALUES '96E26141596056CB'
+      DEFAULT TABLESPACE "AT_DWNLDR_MEDIUM"
+      TEMPORARY TABLESPACE "TEMP"
+
+
+
+SQL> alter user DWNLDR_PROD IDENTIFIED BY VALUES 'D93306AB8DDEE5EE';
+
+User altered.
+
+SQL> select dbms_metadata.get_ddl('USER', 'DWNLDR_PROD') from dual;
+
+DBMS_METADATA.GET_DDL('USER','DWNLDR_PROD')
+--------------------------------------------------------------------------------
+
+   CREATE USER "DWNLDR_PROD" IDENTIFIED BY VALUES 'D93306AB8DDEE5EE'
+      DEFAULT TABLESPACE "AT_DWNLDR_MEDIUM"
+      TEMPORARY TABLESPACE "TEMP"
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,30 @@
+BEGIN 
+DBMS_AUTO_TASK_ADMIN.DISABLE( 
+client_name => 'auto optimizer stats collection', 
+operation => NULL, 
+window_name => NULL); 
+END; 
+/
+
+
+This can be verified with:
+
+SQL> select client_name,status from Dba_Autotask_Client; 
+
+CLIENT_NAME                        STATUS
+---------------------------------- --------
+auto optimizer stats collection    DISABLED
+auto space advisor                 ENABLED
+sql tuning advisor                 ENABLED
+
+
+to re-enable again: 
+
+
+BEGIN
+DBMS_AUTO_TASK_ADMIN.ENABLE(
+client_name => 'auto optimizer stats collection',
+operation => NULL,
+window_name => NULL);
+END;
+/

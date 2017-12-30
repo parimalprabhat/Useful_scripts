@@ -1,0 +1,43 @@
+Moving a datafile added in FileUser to ASM
+----------------------------------------------
+
+1.Take the tablespace offline, you may take offline a single datafile from a multifile tablespace if required
+
+ALTER TABLESPACE TRTST OFFLINE;
+
+2. Check where are your datafiles located on ASM
+
+SELECT FILE_NAME FROM DBA_DATA_FILES;
+
+3. Log out from sqlplus, start an RMAN session and execute the copy command
+
+RMAN> copy datafile '/u01/oradata/racdb/trtst01.dbf' to '+DATA';
+
+tarting backup at 19-JUN-07
+using channel ORA_DISK_1
+channel ORA_DISK_1: starting datafile copy
+input datafile fno=00006 name=/u01/oradata/racdb/trtst01.dbf
+output filename=+DATADG/racdb/datafile/trtst.263.625644857 tag=TAG20070619T061416 recid=1 stamp=625644858
+channel ORA_DISK_1: datafile copy complete, elapsed time: 00:00:04
+
+
+
+RMAN> switch datafile ' /u01/oradata/racdb/trtst01.dbf' to copy;
+
+or 
+
+Start an sqlplus session, rename the old file to the new ASM file
+
+alter database rename file '/u01/oradata/racdb/trtst01.dbf' to '+DATADG/racdb/datafile/trtst.263.625644857';
+
+
+4. Bring the tablespace online
+
+alter tablespace trtst online;
+
+
+5. Remove the old file
+
+rm /u01/oradata/racdb/trtst01.dbf
+
+ref : https://blogs.oracle.com/AlejandroVargas/entry/moving_a_datafile_from_file_sy

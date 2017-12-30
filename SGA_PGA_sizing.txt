@@ -1,0 +1,572 @@
+==============================================
+SIZING AND TUNING ORACLE 9i/10g SGA STRUCTURES
+============================================== 
+
+Content: 
+
+ 1. ACTUAL SGA AND PARAMETERS
+ 2. SIZING THE SHARED POOL
+ 3. SIZING THE BUFFER CACHE
+ 4. SIZING THE REDO LOG BUFFER
+ 5. TUNING ROLLBACK SEGMENTS
+ 6. OPTIMIZING SORT OPERATIONS
+ 7. CONTENTION FOR LATCHES
+ 8. DATA FILE I/O STATISTICS
+ 9. PROCESSES MEMORY USAGE
+10. ORACLE SHARED SERVER
+
+
+----------------------------
+1. ACTUAL SGA AND PARAMETERS
+----------------------------
+
+* Checking the actual size of the SGA structures:
+
+	show sga;
+
+	select * from v$sgastat;
+
+	select	pool, m_bytes from (
+	select 	pool, to_char( trunc(sum(bytes)/1024/1024,2), '99999.99' ) as M_bytes
+	from 	v$sgastat
+	where 	pool is not null
+	group 	by pool
+	union
+	select 	name as pool, to_char( trunc(bytes/1024/1024,3), '99999.99' ) as M_bytes
+	from 	v$sgastat
+	where	pool is null
+	order 	by 2 desc
+	) UNION ALL
+	select	'TOTAL' as pool, to_char( trunc(sum(bytes)/1024/1024,3), '99999.99' ) from v$sgastat;
+
+* Check the actual value of the initialization parameters and spfile parameters.
+
+	show parameter;
+	
+	column DESCRIPTION 	format a150;
+	column UPDATE_COMMENT 	format a50;
+	column value 		format a40;
+	column display_value 	format a40;
+	select * from v$parameter;
+	column DESCRIPTION 	clear;
+	column UPDATE_COMMENT 	clear;
+	column value 		clear;
+	column display_value 	clear;
+	
+	column sid 		format a5;
+	column value 		format a40;
+	column display_value 	format a40;
+	column UPDATE_COMMENT 	format a50;
+	select * from v$spparameter;
+	column DESCRIPTION 	clear;
+	column UPDATE_COMMENT 	clear;
+	column value 		clear;
+	column display_value 	clear;
+
+
+-------------------------
+2. SIZING THE SHARED POOL
+-------------------------
+
+* Tuning the shared pool is priority than tuning database buffer cache.
+* Concentrate tuning on the library cache than dictionary cache.
+
+* Initialization parameter SHARED_POOL_SIZE:
+
+	select value from v$parameter where name = 'shared_pool_size';
+
+
+LIBRARY CACHE SPACE
+
+* The Library Cache GET HIT RATIO should be greater than 0.9 (> 90%).
+  If it is less than 0.9 consider increase SHARED_POOL_SIZE init parameter.
+
+	select 	gethits, gets, trunc(gethitratio,4) as gethitratio
+	from 	v$librarycache
+	where 	namespace = 'SQL AREA';
+
+* The Library Cache Reloads should be less than 1% of the pins.
+  If it is greater than 0.1 consider increase SHARED_POOL_SIZE init parameter.
+
+	select	sum(pins) as Executions, sum(reloads) as Cache_Misses,
+		trunc(sum(reloads)/sum(pins),4) as reload_pin_hitratio
+	from	v$librarycache;
+
+* The number of times objects of the namespace were marked invalid, causing reloads:
+
+	select	namespace, pins, reloads, invalidations
+	from	v$librarycache
+	where	invalidations > 0;
+
+
+LIBRARY CACHE RESERVED SPACE
+
+* Initialization parameter SHARED_POOL_RESERVED_SIZE.
+  Set the initial value to 10% of the SHARED_POOL_SIZE.
+
+	select value from v$parameter where name = 'shared_pool_reserved_size';
+
+* pct_free_memory should be greater than 0.5 (> 50%);
+  pct_req_misses should be zero or near zero and not increasing;
+  request_failures shoud be zero.
+  If the above conditions not match, consider increase SHARED_POOL_RESERVED_SIZE and SHARED_POOL_SIZE.
+
+	select	free_space, trunc(free_space/to_number(p.value),4) as pct_free_space,
+		request_misses, requests, trunc(request_misses/requests,4) as pct_req_misses,
+		request_failures
+	from	v$parameter p, v$shared_pool_reserved
+	where	p.name = 'shared_pool_reserved_size';
+
+
+OTHER PARAMETER AFFECTING THE LIBRARY CACHE
+
+* Initialization parameter OPEN_CURSORS.
+  Default value is 50.
+
+	select value from v$parameter where name = 'open_cursors';
+
+* Initialization parameter CURSOR_SPACE_FOR_TIME.
+  Do not set to TRUE if the RELOADS of v$librarycache (select above) is greater than zero.
+
+	select value from v$parameter where name = 'cursor_space_for_time';
+
+* Initialization parameter CURSOR_SHARING.
+  Possible values: EXACT, SIMILAR, FORCE.
+
+DICTIONARY CACHE
+
+* The Dictionary Cache percent misses should be less than 0.15 (< 15%).
+  If it is greater than 0.15 consider increase SHARED_POOL_SIZE init parameter.
+  Take this value some time after startup, not first time after startup.
+
+	select	sum(getmisses) as getmisses, sum(gets) as gets,
+		trunc(sum(getmisses)/sum(gets),4) as miss_ratio
+	from	v$rowcache;
+
+
+UGA INSIDE SHARED POOL (when using Oracle Shared Servers)
+
+* UGA space used and max space by all Oracle Shared Server users:
+  Consider increase this memory size value in the SHARED_POOL_SIZE init parameter.
+
+	select	v.name, to_number(sum(value)) as Total_memory_in_Bytes
+	from	v$sesstat st, v$statname v
+	where	v.name in ('session uga memory', 'session uga memory max')
+	and	st.statistic# = v.statistic#
+	group	by v.name;
+
+
+--------------------------
+3. SIZING THE BUFFER CACHE
+--------------------------
+
+* Initialization parameter DB_CACHE_SIZE.
+  Initialization parameter DB_KEEP_CACHE_SIZE.
+  Initialization parameter DB_RECYCLE_CACHE_SIZE.
+
+	select name, value from v$parameter where name in ('db_cache_size', 'db_keep_cache_size', 'db_recycle_cache_size') order by name;
+
+* Check the database cache advice:
+
+	select name, value from v$parameter where name = 'db_cache_advice';
+
+	select * from v$db_cache_advice;
+
+* The Cache Hit Ratio should be graeter than 0.9 (> 90%).
+  If it is less than 0.9 and the shared pool hit ratio is good consider increase DB_CACHE_SIZE init parameter.
+
+	select 	trunc( 1 - (phy.value - lob.value - dir.value)/ses.value ,4) as cache_hit_ratio
+	from	v$sysstat ses, v$sysstat lob, v$sysstat dir, v$sysstat phy
+	where	ses.name = 'session logical reads'
+	and	dir.name = 'physical reads direct'
+	and	lob.name = 'physical reads direct (lob)'
+	and	phy.name = 'physical reads';
+
+	select 	name, trunc( 1 - (physical_reads / (db_block_gets + consistent_gets)) ,4) as hit_ratio
+	from	v$buffer_pool_statistics
+	where	db_block_gets + consistent_gets > 0;
+
+* Initialization parameter DB_CACHE_ADVICE.
+  Allowed values: ON, OFF, READY.
+
+	select value from v$parameter where name = 'db_cache_advice';
+
+	select * from v$db_cache_advice;
+
+* Consider increase the buffer cache size if there are high or increasing values for the statistic that shows the number of buffers skipped to find a free buffer.
+
+	select 	name, value
+	from	v$sysstat
+	where	name = 'free buffer inspected';
+
+* Check wait in some buffers in the buffer cache that multiple processes are attemping to access concurrently:
+
+	select	event, total_waits, time_waited
+	from	v$User_event
+	where	event in ('buffer busy waits');
+
+	* if the contention is on 'data block' check for:
+		SQL statements using unselective indexes.
+		Consider using automatic segment-space management or increase free-lists.
+	* if the contention is on 'undo header' consider using automatic segment-space management or add more rollback segments.
+	* if the contention is on 'undo block' consider using automatic segment-space management or make rollback segment sizes larger.
+
+	select	class, count, time
+	from 	v$waitstat
+	where	class in ('data block', 'undo header', 'undo block', 'segment header');
+
+	* if the contention is on 'segment header' look for the segment and consider increase free-lists.
+
+	select 	s.segment_name, s.segment_type, s.freelists, w.wait_time, w.seconds_in_wait, w.state
+	from	dba_segments s, v$session_wait w
+	where	w.event = 'buffer busy waits'
+	and	w.p1 = s.header_file
+	and	w.p2 = s.header_block;
+
+* Check for waits to find a free buffer in the buffer cache:
+  Check if the I/O User is slow.
+  Consider increase the size of the buffer cache if it is so small.
+  Consider increase the number of DBWR process if the buffer cache is properly sized.
+
+	select	event, total_waits, time_waited
+	from	v$User_event
+	where	event in ('free buffer waits');
+
+
+-----------------------------
+4. SIZING THE REDO LOG BUFFER
+-----------------------------
+
+* There should be no Log Buffer Space waits.
+  Consider making the log buffer bigger if it is small.
+  Consider moving the log files to faster disks such as striped disks.
+
+	column 	event format a40
+	select	event, total_waits, total_timeouts, time_waited, average_wait
+	from	v$User_event
+	where	event = 'log buffer space';
+
+	select	sid, event, seconds_in_wait, state
+	from	v$session_wait
+	where	event = 'log buffer space';
+
+	column 	name format a40
+	select	name, value
+	from 	v$sysstat
+	where	name in ('redo log space requests');
+
+* The pct_buff_alloc_retries should be zero or less than 0.01 (< 1%).
+  If it is greater consider making the log buffer bigger if it is small.
+  If it is greater consider moving the log files to faster disks such as striped disks.
+
+	select	v1.value as redo_buff_alloc_retries, v2.value as redo_entries,
+		trunc(v1.value/v2.value,4) as pct_buff_alloc_retries
+	from 	v$sysstat v1, v$sysstat v2
+	where	v1.name = 'redo buffer allocation retries'
+	and	v2.name = 'redo entries';
+
+* If there are log file switch waits because of log switches, it indicates disk I/O contention.
+  Check that the redo log files are stored on separated and fast devices.
+  Consider increase the size of the redo log files.
+
+	select 	event, total_waits, time_waited, average_wait
+	from	v$User_event
+	where	event like 'log file switch completion';
+
+* Check the number of checkpoints incompleted.
+  Check the frequency of checkpoints in LOG_CHECKPOINT_INTERVAL, LOG_CHECKPOINT_TIMEOUT, FAST_START_MTTR_TARGET.
+  Check the size, number and location of the redo log groups.
+
+	grep "CHECKPOINT NOT COMPLETED" alert.log
+
+	select 	event, total_waits, time_waited, average_wait
+	from	v$User_event
+	where	event like 'log file switch (checkpoint incomplete)';
+
+* If log buffer switches waits for archive processos:
+  Consider move archived log to faster devices.
+  Consider the use of multiple archiver processos with LOG_ARCHIVE_MAX_PROCESSES initialization parameter.
+
+	select 	event, total_waits, time_waited, average_wait
+	from	v$User_event
+	where	event like 'log file switch (archiving needed)';
+
+* DB_BLOCK_CHECKSUM is seted to TRUE adds performance overhead.
+
+	select value from v$parameter where name = 'db_block_checksum';
+
+
+---------------------------
+5. TUNING ROLLBACK SEGMENTS
+---------------------------
+
+Transactions should never wait for access to rollback segments.
+Rollback segments should not be extended during normal running. Avoid dynamic space management.
+
+* The sum of waits shoud be less than 0.01 (< 1%).
+  Consdier increase the number of rollback segments.
+
+	select	sum(waits) as waits, sum(gets) as gets,
+		trunc(sum(waits)/sum(gets),4) as ratio
+	from 	v$rollstat;
+
+* There should be no waits for transaction slots on rollback segment headers.
+  Consdier increase the number of rollback segments.
+
+	select	event, total_waits, time_waited
+	from	v$User_event
+	where	event in ('undo segment tx slot');
+
+* There should be no waits on header blocks and data blocks of rollback segment headers or the wait ratio should be less than 0.01 (< 1%).
+  Check if this values is lower and not increasing.
+  Consdier increase the number of rollback segments.
+
+	select	ws.class, ws.count as waits, ws.time as wait_time, ss.gets, trunc(ws.count/ss.gets,4) as wait_ratio
+	from 	v$waitstat ws,
+		(select	sum(value) as gets
+		from 	v$sysstat
+		where	name in ('db block gets', 'consistent gets')) ss
+	where	ws.class in ('undo header', 'undo block');
+	
+
+-----------------------------
+6. OPTIMIZING SORT OPERATIONS
+-----------------------------
+
+* The number of disk sorts to memory sorts should be less than 0.05 (< 5%).
+
+	select	d.value as disk_sorts, m.value as mem_sorts,
+		trunc(d.value/m.value,4) as ratio
+	from	v$sysstat m, v$sysstat d
+	where	m.name = 'sorts (memory)'
+	and	d.name = 'sorts (disk)';
+
+  Consider increase the vaule of SORT_AREA_SIZE initialization parameter.
+  The default value of SORT_AREA_RETAINED_SIZE initialization parameter is equal to SORT_AREA_SIZE.
+  Using Oracle Shared Server the value of SORT_AREA_RETAINED_SIZE should initialy set to 10% of SORT_AREA_SIZE.
+
+  Consider set the WORKAREA_SIZE_POLICY initialization parameter to AUTO;
+    Set the PGA_AGGREGATE_TARGET initialization parameter to the total memory destinated to Server Processes in MB.
+
+  Check the application SQL statements to avoid sort operations.
+
+
+-------------------------
+7. CONTENTION FOR LATCHES
+-------------------------
+
+* Generally, the DBA should not attempt to tune latches. 
+  The following steps are useful:
+  - Investigate further, depending on the latch thait is contention
+  - Consider tuning the application if the contentio is maily for shared pool and library cache.
+  - if further investigation suggests it, size shared pool and buffer cache appropriately.
+
+* For 'cache buffers chains' the misses_ratio and immed_misses_ratio shoud be less than 0.03 (< 3%). If not, consider increase buffer cache.
+  For 'cache buffers lru chain' the misses_ratio and immed_misses_ratio shoud be less than 0.03 (< 3%). If not, consider increase DBWRn Processes.
+  For 'library cache' a high value in misses_ratio and immed_misses_ratio indicate that is possible to tuning Shared Pool or create a Large Pool for Orache Shared Server.
+  The wait_time column express the number of milliseconds waited after willing-to-wait request.
+
+	column name format a40
+	select 	latch#, name, misses, gets, trunc(misses/gets,4) as misses_ratio,
+		immediate_misses, immediate_gets, trunc(immediate_misses/immediate_gets,4) as immed_misses_ratio, 
+		wait_time as wait_time_ms, sleeps, spin_gets
+	from	v$latch
+	where	gets > 0
+	and	immediate_gets > 0
+	and	(  lower(name) like '%shared%'
+		or lower(name) like '%library%'
+		or lower(name) like '%chain%'
+		or lower(name) like '%redo%' )
+	order 	by name;
+
+* If high value of misses are found to Library Cache, try to identify similar SQL statementas 
+  that could be shared if literals were replaced with bind variables:
+
+	column sqlarea format a30
+	select	'ENTRIES WITH 1 EXECUTION' as SqlArea, count(1) as Qtd,	
+		'<-- A goal for this value should be less than 10% of Total Entries.' as Tip
+	from	v$sqlarea
+	where	executions = 1
+	UNION ALL
+	select	'TOTAL OF ENTRIES IN SQLAREA' as SqlArea, count(1) as qtd, null
+	from	v$sqlarea;
+	column sqlarea clear
+
+	set lines 1500
+	set pages 9999
+	spool c:\shared-pool-frag-yyyymmdd.txt
+	column  texto_hid noprint
+	select	qtde, texto_hid, sql_text
+	from    (select	substr(sql_text,1,50) as texto_hid, count(1) as qtde
+		from	v$sqlarea
+		where	executions = 1
+		group by substr(sql_text,1,50)
+		having count(1) > 5
+		order 	by 2 ) res,
+		v$sqlarea sa
+	where 	sa.sql_text like res.texto_hid || '%'
+	order 	by 1 desc, 2, 3;
+	column  texto_hid print
+	spool off
+
+	set lines 999
+	select	v.HASH_VALUE, vt.sql_text as text_command
+	from	v$sqltext vt, v$sqlarea v
+	where	v.executions = 1
+	and	vt.hash_value = v.hash_value
+	order 	by upper(v.sql_text), hash_value, vt.piece;
+
+
+---------------------------
+8. DATA FILE I/O STATISTICS
+---------------------------
+
+* A bif difference between phyrds and phyblkrd implies table scan are going on.
+  Check the aplication SQL statements.
+  I/O shoud be spread evenly across drives.
+
+	column tablespace format a20
+	column file_name format a50
+	select	d.tablespace_name as Tablespace, d.file_name, f.phyrds,
+		f.phyblkrd, f.readtim, f.phywrts, f.phyblkwrt, f.writetim
+	from	v$filestat f, dba_data_files d
+	where	f.file# = d.file_id
+	order	by tablespace_name, file_name;
+
+* Check for full table scan operations.
+  Investigate the need for full table scans.
+  Consider specify the DB_FILE_MULTIBLOCK_READ_COUNT initialization parameter.
+
+	select	name, value
+	from	v$sysstat
+	where	name like '%table scan%';
+
+* Monitor long-running full table scans.
+
+	select 	SID, ELAPSED_SECONDS as el_sec,
+		lpad( to_char( trunc(TIME_REMAINING/60) ) ,4,' ') || 'm '
+			|| lpad( '(' || to_char(TIME_REMAINING), 6, ' ') || 's)'
+			as TIME_REMAINING,
+		substr( MESSAGE,1,85 ) as message,
+		substr( USERNAME,1,10 ) as username,
+		START_TIME, SOFAR, TOTALWORK,
+		substr( OPNAME||' '||TARGET||' '||TARGET_DESC,1,40) as oper,
+		substr(UNITS,1,10) as units
+	from 	v$session_longops vl
+	where 	totalwork > sofar
+	and 	exists( select 1 from v$session s where sid = vl.sid
+			and (select spid from v$process where addr = s.paddr) is not null )
+	order 	by 3 desc, 1;
+
+
+-------------------------
+9. PROCESSES MEMORY USAGE
+-------------------------
+
+* Check for the entiry memory processes usage.
+
+	select 	count(1) as qt_proc,
+		trunc(min(decode(pga_alloc_mem,0,999999999,pga_alloc_mem))/1024/1024,3) as min_pga_proc_mb,
+		trunc(max(pga_alloc_mem)/1024/1024,3) as max_pga_proc_mb,
+		trunc(avg(pga_alloc_mem)/1024/1024,3) as avg_pga_proc_mb,
+		trunc(sum(pga_alloc_mem)/1024/1024,3) as alloc_pga_mb,
+		trunc(sum(pga_max_mem)/1024/1024,3) as total_high_pga_mb
+	from 	v$process;
+
+* Check for the 20 top processes of memory usage.
+
+	column user_info format a55
+	select	* from (
+	select 	s.sid, 
+		s.username || ' / ' || osuser || ' / ' || p.PROGRAM ||
+		decode(USERENV('SESSIONID'),audsid,' (**current**)', '') as user_info,
+		trunc(PGA_ALLOC_MEM/1024/1024,3) as PGA_ALLOC_MEM, 
+		trunc(PGA_USED_MEM/1024/1024,3) as PGA_USED_MEM, 
+		trunc(PGA_MAX_MEM/1024/1024,3) as PGA_MAX_MEM
+	from 	v$session s, v$process p
+	where	s.paddr = p.addr
+	order	by pga_alloc_mem desc
+	) where rownum <= 20;
+
+* Check for the number of objects and the memory usage for java.
+
+	select * from v$java_library_cache_memory;
+
+* Check the value for the initialization parameter PGA_AGGREGATE_TARGET if WORKAREA_SIZE_POLICY is TRUE;
+  The PGA_AGGREGATE_TARGET should be defined with a value to keep ESTD_PGA_CACHE_HIT_PERCENTAGE grather than 95%.
+
+	select value from v$parameter where name = 'pga_aggregate_target';
+	select value from v$parameter where name = 'workarea_size_policy';
+
+	select 	'ACTUAL' as state, trunc( min( pga_target_for_estimate )/1024/1024,2) as SYZE_MB
+	from	v$pga_target_advice
+	where	pga_target_factor = 1
+	UNION ALL
+	select 	'MINIMUN' as state, trunc( min( pga_target_for_estimate )/1024/1024,2) as SYZE_MB
+	from	v$pga_target_advice
+	where	estd_pga_cache_hit_percentage >= 95
+	UNION ALL
+	select 	'DESIRED' as state, trunc( min( pga_target_for_estimate )/1024/1024,2) as SYZE_MB
+	from	v$pga_target_advice
+	where	estd_pga_cache_hit_percentage > 95;
+
+
+------------------------
+10. ORACLE SHARED SERVER
+------------------------
+
+* Oracle Shared Server initialization parameters:
+
+	alter User set SHARED_SERVERS = nn;
+	alter User set MAX_SHARED_SERVERS = nn;
+	alter User set DISPATCHERS = '(PROTOCOL=TCP) (DISPATCHERS=nn)';
+	alter User set MAX_DISPATCHERS = nn;
+	alter User set CIRCUITS = nn;
+	alter User set SHARED_SERVER_SESSIONS = nn;
+
+* Check the usage for dispatcher processes. 
+  Some high busy_rate possible indicate contention for dispatcher. Consider increasing the number of dispatcher.
+
+	column protocol format a60;
+	select	network as protocol, status, sum(owned) as clients, 
+		trunc(sum(busy)/(sum(busy)+sum(idle)),3) as busy_rate
+	from	v$dispatcher
+	group	by network, status;
+
+* Check the values of dispatchers to analyze contention. 
+  If CUR values are close or equal to the MAX values, consdier increasing the number of dispatchers.
+
+	select 	NAME,PADDR,CUR_LOOP_RATE,CUR_EVENT_RATE,CUR_EVENTS_PER_LOOP,CUR_MSG_RATE,
+		CUR_SVR_BUF_RATE,CUR_SVR_BYTE_RATE,CUR_SVR_BYTE_PER_BUF,CUR_CLT_BUF_RATE,
+		CUR_CLT_BYTE_RATE,CUR_CLT_BYTE_PER_BUF,CUR_BUF_RATE,CUR_BYTE_RATE,CUR_BYTE_PER_BUF,
+		CUR_IN_CONNECT_RATE,CUR_OUT_CONNECT_RATE,CUR_RECONNECT_RATE
+	from	v$dispatcher_rate;
+	
+	select 	NAME,PADDR,MAX_LOOP_RATE,MAX_EVENT_RATE,MAX_EVENTS_PER_LOOP,MAX_MSG_RATE,
+		MAX_SVR_BUF_RATE,MAX_SVR_BYTE_RATE,MAX_SVR_BYTE_PER_BUF,MAX_CLT_BUF_RATE,
+		MAX_CLT_BYTE_RATE,MAX_CLT_BYTE_PER_BUF,MAX_BUF_RATE,MAX_BYTE_RATE,MAX_BYTE_PER_BUF,
+		MAX_IN_CONNECT_RATE,MAX_OUT_CONNECT_RATE,MAX_RECONNECT_RATE
+	from	v$dispatcher_rate;
+
+* Check the average wait time (expressed in hundreadths of a seconds).
+  With a increasing value consider increase the number of dispatchers.
+
+	select 	decode(sum(totalq),0,'No Responses', trunc( sum(wait)/sum(totalq),3) ) as average_wait_time
+	from	v$queue q, v$dispatcher d
+	where	q.type = 'DISPATCHER'
+	and	q.paddr = d.paddr;
+
+* Check the current status of shared servers.
+  With high pct_busy consider increase the number of shared servers.
+
+	select 	name, requests, busy*100/(busy+idle) as pct_busy, status
+	from	v$shared_server
+	where	status != 'QUIT';
+
+* Check the average wait time per requests in hundredths of seconds.
+  With high wait time consider increase the number of shared servers.
+
+	select 	decode(totalq, 0, 'No Requests', trunc( wait/totalq,3) ) as average_wait_time_hund_secs
+	from	v$queue q
+	where	q.type = 'COMMON';
+

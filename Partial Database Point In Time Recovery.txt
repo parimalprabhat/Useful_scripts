@@ -1,0 +1,143 @@
+Partial Database Point In Time Recovery (DBPITR)
+======================================================
+Sometimes you may need to restore not whole database but just a part of it in case a few tables are accidentally deleted that you cannot flashback query or truncated. Below I present a way to restore a database partially up to a point in time.(NOTE that i do not use any catalog database during this procedure)
+
+First of all you should get a parameter file. There are several ways for it. You can restore from a backup, copy from source User or just rewrite it from scratch with the parameters you need. 
+
+
+copy it from source User for this scenario.
+======================================================
+
+    scp source:/u01/app/oracle/dbs/initorcl.ora /tmp/pfile
+
+Startup the auxiliary instance with this new pfile.
+======================================================
+    SQL>
+    STARTUP PFILE=/’tmp/pfile’ NOMOUNT
+    
+Now you need a controlfile. Also there several ways to do it. You can create a backup from source immediately or just restore it from a previous backup. I will restore it from a previous backup.
+
+    RMAN>
+    run{
+    restore controlfile from
+    ‘/u01/app/oracle/oradata/orcl/FRA/ORCL/backupset/2011_02_12/o1_mf_ncnnf_TAG20110212T104254_6odl0q2p_.bkp’;
+    }
+
+After controlfile restore, mount database.
+======================================================
+    SQL>
+    alter database mount;
+    
+Now decide on the datafiles you want to restore. I want to get TS1 tablespace. But do not forget there are obligatory tablespaces for recovery which are User,SYSAUX and UNDO tablespaceS (You know there may be more than one =) )
+     
+    SQL>
+    select ts.name ts_name,df.file# file_id,df.name df_name
+    from v$tablespace ts, v$datafile df
+    where ts.ts#=df.ts#
+    order by 2;
+
+    TS_NAME  FILE_ID DF_NAME
+    -------- ------- ---------------------------------------------------
+    User         1 /u01/app/oracle/oradata/orcl/datafile/User01.dbf
+    SYSAUX         2 /u01/app/oracle/oradata/orcl/datafile/sysaux01.dbf
+    UNDOTBS1       3 /u01/app/oracle/oradata/orcl/datafile/undotbs01.dbf
+    USERS          4 /u01/app/oracle/oradata/orcl/datafile/users.dbf
+    TS1            5 /u01/app/oracle/oradata/orcl/datafile/ts1.dbf
+
+
+Decide on a point in time until when recovery will be done. I will recover until SCN 539400 which in boundary of archivelog sequence 23.
+
+    SQL>
+    select sequence# seq, first_change# scn1,
+    next_change# scn2
+    from v$archived_log
+    order by 1
+    SEQ  SCN1    SCN2
+    —  ——  ——-
+    14  536751  536826
+    15  536826  536953
+    16  536953  537085
+    17  537085  537220
+    18  537220  537342
+    19  537342  538924
+    19  537342  538924
+    20  538924  539012
+    21  539012  539341
+    22  539341  539379
+    22  539341  539379
+    23  539379  539520
+    24  539520  539642
+    25  539642  555557
+   
+Restore datafiles you need for recovery.
+===================================================
+
+    RMAN>
+    run{
+    SET UNTIL SCN 539400;
+    RESTORE datafile 1,2,3,5;
+    }
+
+Restore all the archivelogs needed for recovery.
+===================================================
+
+    RMAN>
+    run {
+    RESTORE ARCHIVELOG SEQUENCE BETWEEN 18 AND 24;
+    }
+
+Backup your control file to a trace file.
+===================================================
+
+    SQL>
+    alter database backup controlfile to trace as ‘/tmp/controlfile_dump’;
+    Shutdown database
+    SQL>
+    SHUTDOWN IMMEDIATE
+
+Create a new control file with trace file you created on step 9. It is a long file but we need only CREATE CONTROLFILE section of this file. Do not forget to comment out the files you do not want to recover.
+
+    SQL>
+    STARTUP NOMOUNT 
+
+    SQL>
+    CREATE CONTROLFILE REUSE DATABASE “ORCL” RESETLOGS  ARCHIVELOG
+    MAXLOGFILES 16
+    MAXLOGMEMBERS 3
+    MAXDATAFILES 100
+    MAXINSTANCES 8
+    MAXLOGHISTORY 292
+    LOGFILE
+    GROUP 1 ‘/u01/app/oracle/oradata/orcl/onlinelog/redo01.log’  SIZE 50M,
+    GROUP 2 ‘/u01/app/oracle/oradata/orcl/onlinelog/redo02.log’  SIZE 50M,
+    GROUP 3 ‘/u01/app/oracle/oradata/orcl/onlinelog/redo03.log’  SIZE 50M
+    /* STANDBY LOGFILE*/
+    DATAFILE
+    ‘/u01/app/oracle/oradata/orcl/datafile/User01.dbf’,
+    ‘/u01/app/oracle/oradata/orcl/datafile/sysaux01.dbf’,
+    ‘/u01/app/oracle/oradata/orcl/datafile/undotbs01.dbf’,
+     /* ‘/u01/app/oracle/oradata/orcl/datafile/users01.dbf’, */
+    ‘/u01/app/oracle/oradata/orcl/datafile/ts1.dbf’
+    CHARACTER SET WE8MSWIN1252
+    ;
+
+Now catalog your archivelogs you restored.
+===================================================
+
+    RMAN>
+    catalog start with '/u01/app/oracle/oradata/orcl/FRA/ORCL/archivelog';
+
+Recover database until point you decided on.
+===================================================
+    RMAN>
+    run{
+    SET UNTIL SCN 539400;
+    RECOVER DATABASE;
+    }
+
+Now your database is ready to open.
+===================================================
+    SQL>
+    alter database open resetlogs; 
+
+    Database altered.

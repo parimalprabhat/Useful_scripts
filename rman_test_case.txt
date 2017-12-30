@@ -1,0 +1,553 @@
+cal;;zum
+f00sball
+
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+backup current controlfile format '/opt/app/home/oracle/dba/parimal/TESTDB_control_pre_%d_%s_%p_%t';
+backup as compressed backupset database format '/opt/app/home/oracle/dba/parimal/TESTDB_cold_%d_%s_%p_%t'plus  archivelog format '/opt/app/home/oracle/dba/parimal/TESTDBarch_%d_%s_%p_%t';
+backup current controlfile format '/opt/app/home/oracle/dba/parimal/TESTDB_control_post_%d_%s_%p_%t';
+release channel d1;
+release channel d2;
+release channel d3;
+}
+
+
+SQL> show parameter pfile;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+spfile                               string      +DATA/testdb/spfiletestdb.ora
+SQL> create pfile='/opt/app/home/oracle/dba/parimal/initTESTDB.ora' from spfile;
+
+File created.
+
+SQL> !pwd
+/opt/app/home/oracle/dba/parimal
+
+SQL> !ls -ltr
+total 527540
+-rw-r--r-- 1 oracle dba       573 Jul 28 20:12 rman_backup.cmd
+-rw-r----- 1 oracle dba   7110656 Jul 28 20:13 TESTDB_control_pre_TESTDB_7_1_854136802
+-rw-r----- 1 oracle dba 104928768 Jul 28 20:13 TESTDBarch_TESTDB_10_1_854136805
+-rw-r----- 1 oracle dba 146683904 Jul 28 20:13 TESTDBarch_TESTDB_8_1_854136805
+-rw-r----- 1 oracle dba 146011648 Jul 28 20:13 TESTDBarch_TESTDB_9_1_854136805
+-rw-r----- 1 oracle dba   1097728 Jul 28 20:13 TESTDB_cold_TESTDB_13_1_854136832
+-rw-r----- 1 oracle dba     98304 Jul 28 20:13 TESTDB_cold_TESTDB_14_1_854136833
+-rw-r----- 1 oracle dba  36208640 Jul 28 20:14 TESTDB_cold_TESTDB_11_1_854136832
+-rw-r----- 1 oracle dba  90341376 Jul 28 20:14 TESTDB_cold_TESTDB_12_1_854136832
+-rw-r----- 1 oracle dba      8704 Jul 28 20:14 TESTDBarch_TESTDB_15_1_854136850
+-rw-r----- 1 oracle dba   7110656 Jul 28 20:14 TESTDB_control_post_TESTDB_16_1_854136852
+-rw-r--r-- 1 oracle dba      7446 Jul 28 20:14 rman_backup.log
+-rw-r--r-- 1 oracle dba      1066 Jul 28 20:16 initTESTDB.ora
+
+
+
+
+
+==> cat initTESTDB.ora
+TESTDB.__db_cache_size=4043309056
+TESTDB.__java_pool_size=16777216
+TESTDB.__large_pool_size=16777216
+TESTDB.__shared_pool_size=889192448
+TESTDB.__streams_pool_size=0
+*.audit_file_dest='/opt/app/oracle/admin/TESTDB/adump'
+*.background_dump_dest='/opt/app/oracle/admin/TESTDB/bdump'
+*.compatible='10.2.0.1.0'
+*.control_files='/opt/app/oracle/admin/TESTDB/control01.ctl'#Restore Controlfile
+*.core_dump_dest='/opt/app/oracle/admin/TESTDB/cdump'
+*.db_block_size=8192
+*.db_create_file_dest='+DATA'
+*.db_domain=''
+*.db_file_multiblock_read_count=16
+*.db_name='TESTDB'
+*.db_recovery_file_dest_size=2147483648
+*.db_recovery_file_dest='+DATA'
+*.dispatchers='(PROTOCOL=TCP) (SERVICE=TESTDBXDB)'
+*.job_queue_processes=10
+*.log_archive_dest_1='LOCATION=+DATA/TESTDB/'
+*.log_archive_format='%t_%s_%r.dbf'
+*.open_cursors=300
+*.pga_aggregate_target=1658847232
+*.processes=150
+*.remote_login_passwordfile='EXCLUSIVE'
+*.sga_target=4982833152
+*.undo_management='AUTO'
+*.undo_tablespace='UNDOTBS1'
+*.user_dump_dest='/opt/app/oracle/admin/TESTDB/udump'
+
+
+
+
+
+connect to rman and drop the old database
+=============================================
+
+
+STARTUP FORCE MOUNT
+
+
+
+SQL 'ALTER User ENABLE RESTRICTED SESSION';
+
+
+DROP DATABASE;
+
+
+
+
+bring up the db in nomount using the modified pfile
+======================================================
+
+
+SQL> startup nomount pfile=/opt/app/home/oracle/dba/parimal/initTESTDB.ora;
+ORACLE instance started.
+
+Total User Global Area 4982833152 bytes
+Fixed Size                  2103088 bytes
+Variable Size             922749136 bytes
+Database Buffers         4043309056 bytes
+Redo Buffers               14671872 bytes
+SQL> exit
+Disconnected from Oracle Database 10g Enterprise Edition Release 10.2.0.5.0 - 64bit Production
+With the Partitioning, OLAP, Data Mining and Real Application Testing options
+PROD:[TESTDB]oracle@serrheqmsd001:/opt/app/home/oracle/dba/parimal
+==> rman target /
+
+Recovery Manager: Release 10.2.0.5.0 - Production on Mon Jul 28 20:34:14 2014
+
+Copyright (c) 1982, 2007, Oracle.  All rights reserved.
+
+connected to target database: TESTDB (not mounted)
+
+RMAN> restore controlfile from '/opt/app/home/oracle/dba/parimal/TESTDB_control_post_TESTDB_16_1_854136852';
+
+Starting restore at 28-JUL-14
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: sid=156 devtype=DISK
+
+channel ORA_DISK_1: restoring control file
+channel ORA_DISK_1: restore complete, elapsed time: 00:00:01
+output filename=/opt/app/oracle/admin/TESTDB/control01.ctl
+Finished restore at 28-JUL-14
+
+RMAN> shutdown immediate;
+
+database dismounted
+Oracle instance shut down
+
+RMAN> exit
+
+
+Recovery Manager complete.
+PROD:[TESTDB]oracle@serrheqmsd001:/opt/app/home/oracle/dba/parimal
+==> sqlplus '/as sysdba'
+
+SQL*Plus: Release 10.2.0.5.0 - Production on Mon Jul 28 20:38:59 2014
+
+Copyright (c) 1982, 2010, Oracle.  All Rights Reserved.
+
+Connected to an idle instance.
+
+SQL> startup mount pfile='/opt/app/home/oracle/dba/parimal/initTESTDB.ora';
+ORACLE instance started.
+
+Total User Global Area 4982833152 bytes
+Fixed Size                  2103088 bytes
+Variable Size             922749136 bytes
+Database Buffers         4043309056 bytes
+Redo Buffers               14671872 bytes
+Database mounted.
+
+
+connect to rman 
+
+==> rman target /
+
+Recovery Manager: Release 10.2.0.5.0 - Production on Mon Jul 28 20:42:46 2014
+
+Copyright (c) 1982, 2007, Oracle.  All rights reserved.
+
+connected to target database: TESTDB (DBID=2628355828, not open)
+
+RMAN> CATALOG START WITH '/opt/app/home/oracle/dba/parimal';
+
+Starting implicit crosscheck backup at 28-JUL-14
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: sid=156 devtype=DISK
+Crosschecked 15 objects
+Finished implicit crosscheck backup at 28-JUL-14
+
+Starting implicit crosscheck copy at 28-JUL-14
+using channel ORA_DISK_1
+Finished implicit crosscheck copy at 28-JUL-14
+
+searching for all files in the recovery area
+cataloging files...
+cataloging done
+
+List of Cataloged Files
+=======================
+File Name: +data/TESTDB/1_2_845027702.dbf
+File Name: +data/TESTDB/1_39_845027702.dbf
+File Name: +data/TESTDB/1_40_845027702.dbf
+File Name: +data/TESTDB/1_41_845027702.dbf
+File Name: +data/TESTDB/1_42_845027702.dbf
+File Name: +data/TESTDB/1_43_845027702.dbf
+File Name: +data/TESTDB/1_44_845027702.dbf
+File Name: +data/TESTDB/1_45_845027702.dbf
+File Name: +data/TESTDB/1_46_845027702.dbf
+File Name: +data/TESTDB/1_47_845027702.dbf
+File Name: +data/TESTDB/1_48_845027702.dbf
+File Name: +data/TESTDB/1_49_845027702.dbf
+File Name: +data/TESTDB/1_50_845027702.dbf
+File Name: +data/TESTDB/1_51_845027702.dbf
+File Name: +data/TESTDB/1_52_845027702.dbf
+File Name: +data/TESTDB/1_53_845027702.dbf
+File Name: +data/TESTDB/1_54_845027702.dbf
+File Name: +data/TESTDB/1_55_845027702.dbf
+File Name: +data/TESTDB/1_56_845027702.dbf
+File Name: +data/TESTDB/1_57_845027702.dbf
+File Name: +data/TESTDB/1_58_845027702.dbf
+File Name: +data/TESTDB/1_59_845027702.dbf
+File Name: +data/TESTDB/1_60_845027702.dbf
+File Name: +data/TESTDB/1_61_845027702.dbf
+File Name: +data/TESTDB/1_62_845027702.dbf
+File Name: +data/TESTDB/1_63_845027702.dbf
+File Name: +data/TESTDB/1_64_845027702.dbf
+File Name: +data/TESTDB/1_65_845027702.dbf
+File Name: +data/TESTDB/1_66_845027702.dbf
+File Name: +data/TESTDB/1_67_845027702.dbf
+File Name: +data/TESTDB/1_68_845027702.dbf
+File Name: +data/TESTDB/1_69_845027702.dbf
+File Name: +data/TESTDB/1_70_845027702.dbf
+File Name: +data/TESTDB/1_71_845027702.dbf
+File Name: +data/TESTDB/1_72_845027702.dbf
+File Name: +data/TESTDB/1_73_845027702.dbf
+File Name: +data/TESTDB/1_74_845027702.dbf
+File Name: +data/TESTDB/1_75_845027702.dbf
+File Name: +data/TESTDB/1_76_845027702.dbf
+File Name: +data/TESTDB/1_77_845027702.dbf
+File Name: +data/TESTDB/1_78_845027702.dbf
+File Name: +data/TESTDB/1_79_845027702.dbf
+File Name: +data/TESTDB/1_80_845027702.dbf
+File Name: +data/TESTDB/1_81_845027702.dbf
+File Name: +data/TESTDB/1_82_845027702.dbf
+File Name: +data/TESTDB/1_83_845027702.dbf
+File Name: +data/TESTDB/1_84_845027702.dbf
+File Name: +data/TESTDB/1_85_845027702.dbf
+File Name: +data/TESTDB/1_86_845027702.dbf
+File Name: +data/TESTDB/1_87_845027702.dbf
+File Name: +data/TESTDB/1_88_845027702.dbf
+File Name: +data/TESTDB/1_89_845027702.dbf
+File Name: +data/TESTDB/1_90_845027702.dbf
+File Name: +data/TESTDB/1_91_845027702.dbf
+File Name: +data/TESTDB/1_92_845027702.dbf
+File Name: +data/TESTDB/1_93_845027702.dbf
+File Name: +data/TESTDB/1_94_845027702.dbf
+File Name: +data/TESTDB/1_95_845027702.dbf
+File Name: +data/TESTDB/1_96_845027702.dbf
+File Name: +data/TESTDB/1_97_845027702.dbf
+File Name: +data/TESTDB/1_98_845027702.dbf
+File Name: +data/TESTDB/1_99_845027702.dbf
+File Name: +data/TESTDB/1_100_845027702.dbf
+File Name: +data/TESTDB/1_101_845027702.dbf
+File Name: +data/TESTDB/1_102_845027702.dbf
+File Name: +data/TESTDB/1_103_845027702.dbf
+File Name: +data/TESTDB/1_104_845027702.dbf
+File Name: +data/TESTDB/1_105_845027702.dbf
+File Name: +data/TESTDB/1_106_845027702.dbf
+File Name: +data/TESTDB/1_107_845027702.dbf
+File Name: +data/TESTDB/1_108_845027702.dbf
+File Name: +data/TESTDB/1_109_845027702.dbf
+File Name: +data/TESTDB/1_110_845027702.dbf
+File Name: +data/TESTDB/1_111_845027702.dbf
+File Name: +data/TESTDB/1_112_845027702.dbf
+File Name: +data/TESTDB/1_113_845027702.dbf
+File Name: +data/TESTDB/1_114_845027702.dbf
+File Name: +data/TESTDB/1_115_845027702.dbf
+File Name: +data/TESTDB/1_116_845027702.dbf
+File Name: +data/TESTDB/1_117_845027702.dbf
+File Name: +data/TESTDB/1_118_845027702.dbf
+File Name: +data/TESTDB/1_119_845027702.dbf
+File Name: +data/TESTDB/1_120_845027702.dbf
+File Name: +data/TESTDB/1_121_845027702.dbf
+File Name: +data/TESTDB/1_122_845027702.dbf
+File Name: +data/TESTDB/1_123_845027702.dbf
+File Name: +data/TESTDB/1_124_845027702.dbf
+File Name: +data/TESTDB/1_125_845027702.dbf
+File Name: +data/TESTDB/1_126_845027702.dbf
+File Name: +data/TESTDB/1_127_845027702.dbf
+File Name: +data/TESTDB/1_128_845027702.dbf
+File Name: +data/TESTDB/1_129_845027702.dbf
+File Name: +data/TESTDB/1_130_845027702.dbf
+File Name: +data/TESTDB/1_131_845027702.dbf
+File Name: +data/TESTDB/1_132_845027702.dbf
+File Name: +data/TESTDB/1_133_845027702.dbf
+File Name: +data/TESTDB/1_134_845027702.dbf
+File Name: +data/TESTDB/1_135_845027702.dbf
+File Name: +data/TESTDB/1_136_845027702.dbf
+File Name: +data/TESTDB/1_137_845027702.dbf
+File Name: +data/TESTDB/1_138_845027702.dbf
+File Name: +data/TESTDB/1_139_845027702.dbf
+File Name: +data/TESTDB/1_140_845027702.dbf
+File Name: +data/TESTDB/1_141_845027702.dbf
+File Name: +data/TESTDB/1_142_845027702.dbf
+File Name: +data/TESTDB/1_143_845027702.dbf
+File Name: +data/TESTDB/1_144_845027702.dbf
+File Name: +data/TESTDB/1_145_845027702.dbf
+File Name: +data/TESTDB/1_146_845027702.dbf
+File Name: +data/TESTDB/1_147_845027702.dbf
+File Name: +data/TESTDB/1_148_845027702.dbf
+File Name: +data/TESTDB/1_149_845027702.dbf
+File Name: +data/TESTDB/1_150_845027702.dbf
+File Name: +data/TESTDB/1_151_845027702.dbf
+File Name: +data/TESTDB/1_152_845027702.dbf
+File Name: +data/TESTDB/1_153_845027702.dbf
+File Name: +data/TESTDB/1_154_845027702.dbf
+File Name: +data/TESTDB/1_155_845027702.dbf
+File Name: +data/TESTDB/1_156_845027702.dbf
+File Name: +data/TESTDB/1_157_845027702.dbf
+File Name: +data/TESTDB/1_158_845027702.dbf
+File Name: +data/TESTDB/1_159_845027702.dbf
+File Name: +data/TESTDB/1_160_845027702.dbf
+File Name: +data/TESTDB/1_161_845027702.dbf
+
+searching for all files that match the pattern /opt/app/home/oracle/dba/parimal
+
+List of Files Unknown to the Database
+=====================================
+File Name: /opt/app/home/oracle/dba/parimal/TESTDB_control_post_TESTDB_16_1_854136852
+File Name: /opt/app/home/oracle/dba/parimal/rman_backup.cmd
+File Name: /opt/app/home/oracle/dba/parimal/initTESTDB.ora
+File Name: /opt/app/home/oracle/dba/parimal/initTESTDB.ora_orgnal
+File Name: /opt/app/home/oracle/dba/parimal/rman_backup.log
+
+Do you really want to catalog the above files (enter YES or NO)? yes
+cataloging files...
+cataloging done
+
+List of Cataloged Files
+=======================
+File Name: /opt/app/home/oracle/dba/parimal/TESTDB_control_post_TESTDB_16_1_854136852
+
+List of Files Which Where Not Cataloged
+=======================================
+File Name: /opt/app/home/oracle/dba/parimal/rman_backup.cmd
+  RMAN-07517: Reason: The file header is corrupted
+File Name: /opt/app/home/oracle/dba/parimal/initTESTDB.ora
+  RMAN-07517: Reason: The file header is corrupted
+File Name: /opt/app/home/oracle/dba/parimal/initTESTDB.ora_orgnal
+  RMAN-07517: Reason: The file header is corrupted
+File Name: /opt/app/home/oracle/dba/parimal/rman_backup.log
+  RMAN-07517: Reason: The file header is corrupted
+
+RMAN> crosscheck backup;
+
+using channel ORA_DISK_1
+crosschecked backup piece: found to be 'EXPIRED'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_control_pre_01pei54r_1_1 recid=1 stamp=854135963
+crosschecked backup piece: found to be 'EXPIRED'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_04pei54t_1_1 recid=2 stamp=854135965
+crosschecked backup piece: found to be 'EXPIRED'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_05pei54u_1_1 recid=3 stamp=854135967
+crosschecked backup piece: found to be 'EXPIRED'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_02pei54t_1_1 recid=4 stamp=854135965
+crosschecked backup piece: found to be 'EXPIRED'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_03pei54t_1_1 recid=5 stamp=854135965
+crosschecked backup piece: found to be 'EXPIRED'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_control_post_06pei55f_1_1 recid=6 stamp=854135983
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_control_pre_TESTDB_7_1_854136802 recid=7 stamp=854136803
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDBarch_TESTDB_10_1_854136805 recid=8 stamp=854136806
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDBarch_TESTDB_8_1_854136805 recid=9 stamp=854136806
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDBarch_TESTDB_9_1_854136805 recid=10 stamp=854136806
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_TESTDB_13_1_854136832 recid=11 stamp=854136832
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_TESTDB_14_1_854136833 recid=12 stamp=854136834
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_TESTDB_11_1_854136832 recid=13 stamp=854136832
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_cold_TESTDB_12_1_854136832 recid=14 stamp=854136832
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDBarch_TESTDB_15_1_854136850 recid=15 stamp=854136851
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=/opt/app/home/oracle/dba/parimal/TESTDB_control_post_TESTDB_16_1_854136852 recid=16 stamp=854138629
+Crosschecked 16 objects
+
+
+RMAN> list backup of database;
+
+
+List of Backup Sets
+===================
+
+BS Key  Type LV Size       Device Type Elapsed Time Completion Time
+------- ---- -- ---------- ----------- ------------ ---------------
+4       Full    34.20M     DISK        00:00:07     28-JUL-14
+        BP Key: 4   Status: EXPIRED  Compressed: YES  Tag: TAG20140728T195924
+        Piece Name: /opt/app/home/oracle/dba/parimal/TESTDB_cold_02pei54t_1_1
+  List of Datafiles in backup set 4
+  File LV Type Ckp SCN    Ckp Time  Name
+  ---- -- ---- ---------- --------- ----
+  2       Full 6185968    28-JUL-14 +DATA/testdb/datafile/undotbs1.310.845027641
+  3       Full 6185968    28-JUL-14 +DATA/testdb/datafile/sysaux.309.845027639
+
+BS Key  Type LV Size       Device Type Elapsed Time Completion Time
+------- ---- -- ---------- ----------- ------------ ---------------
+5       Full    86.15M     DISK        00:00:16     28-JUL-14
+        BP Key: 5   Status: EXPIRED  Compressed: YES  Tag: TAG20140728T195924
+        Piece Name: /opt/app/home/oracle/dba/parimal/TESTDB_cold_03pei54t_1_1
+  List of Datafiles in backup set 5
+  File LV Type Ckp SCN    Ckp Time  Name
+  ---- -- ---- ---------- --------- ----
+  1       Full 6185969    28-JUL-14 +DATA/testdb/datafile/User.308.845027639
+  4       Full 6185969    28-JUL-14 +DATA/testdb/datafile/users.311.845027641
+
+BS Key  Type LV Size       Device Type Elapsed Time Completion Time
+------- ---- -- ---------- ----------- ------------ ---------------
+13      Full    34.52M     DISK        00:00:08     28-JUL-14
+        BP Key: 13   Status: AVAILABLE  Compressed: YES  Tag: TAG20140728T201352
+        Piece Name: /opt/app/home/oracle/dba/parimal/TESTDB_cold_TESTDB_11_1_854136832
+  List of Datafiles in backup set 13
+  File LV Type Ckp SCN    Ckp Time  Name
+  ---- -- ---- ---------- --------- ----
+  2       Full 6186820    28-JUL-14 +DATA/testdb/datafile/undotbs1.310.845027641
+  3       Full 6186820    28-JUL-14 +DATA/testdb/datafile/sysaux.309.845027639
+
+BS Key  Type LV Size       Device Type Elapsed Time Completion Time
+------- ---- -- ---------- ----------- ------------ ---------------
+14      Full    86.15M     DISK        00:00:16     28-JUL-14
+        BP Key: 14   Status: AVAILABLE  Compressed: YES  Tag: TAG20140728T201352
+        Piece Name: /opt/app/home/oracle/dba/parimal/TESTDB_cold_TESTDB_12_1_854136832
+  List of Datafiles in backup set 14
+  File LV Type Ckp SCN    Ckp Time  Name
+  ---- -- ---- ---------- --------- ----
+  1       Full 6186821    28-JUL-14 +DATA/testdb/datafile/User.308.845027639
+  4       Full 6186821    28-JUL-14 +DATA/testdb/datafile/users.311.845027641
+
+RMAN>
+
+
+
+
+
+*****************************************************************************
+run {
+restore controlfile ;
+mount database ;
+restore database ;
+recover database until time <NEXT_TIME of last archived log backed up> ;
+alter database open resetlogs ;
+}
+
+
+
+Changed the redo log file locations ..
+you need to change the redo log file location like below ..
+
+add new redo log file groups  in /u01
+
+drop the old INACTIVE redo log groups 
+
+Rename the ACTIVE/CURRENT redo log groups of +DATA by using the below command
+
+alter database rename file '+data/redolog' to '/u01/redo';
+
+it's just example 
+
+*****************************************************************************
+
+
+
+
+
+run
+{
+allocate channel c1 type disk;
+allocate channel c2 type disk;
+allocate channel c3 type disk;
+restore database;
+switch datafile all;
+recover database;
+release channel c1;
+release channel c2;
+release channel c3;
+}
+exit
+
+
+or 
+
+restore database from tag 'HD5879741_full_database';
+
+
+
+********************************************************************
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of recover command at 07/28/2014 20:51:04
+RMAN-06054: media recovery requesting unknown log: thread 1 seq 190 lowscn 6186830
+
+
+
+********************************************************************
+
+
+
+
+
+
+RMAN> alter database open resetlogs;
+
+using target database control file instead of recovery catalog
+database opened
+
+RMAN> exit
+
+
+
+SQL> create spfile from pfile='/opt/app/home/oracle/dba/parimal/initTESTDB.ora';
+
+File created.
+
+
+
+
+*.control_files='+DATA/testdb/controlfile/current.310.854140795','+DATA/testdb/controlfile/current.308.854140795'
+
+
+
+
+
+
+
+rename the database
+
+
+
+1.bring down the database
+2.startup mount.
+3.alter database backup control to trace
+4.create new controlfile
+
+
+
+
+
+
+
+
+
+
+

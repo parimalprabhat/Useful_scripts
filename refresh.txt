@@ -1,0 +1,567 @@
+impdp REMAP_SCHEMA=SPYDER_QA1:SPYDER_QA1_BK directory=DUMP_DIR dumpfile=SPYDER_QA118oct.dmp logfile=imp_SPYDER_QA1_TABLES_18oct.log 
+
+
+expdp directory=BACKUP_REQUESTED dumpfile=ODI_REP04_MASTER.dmp logfile=ODI_REP04_MASTER.log SCHEMAS=ODI_REP04_MASTER
+
+expdp directory=BACKUP_REQUESTED dumpfile=ODI_REP04_WORK_nov_4.dmp logfile=ODI_REP04_WORK_nov_4.log SCHEMAS=ODI_REP04_WORK
+
+expdp dumpfile=MV_NOCR_nov_3.dmp logfile=MV_NOCR_nov_3.log directory=EXPDP schemas=MV_NOCR
+
+
+ODI_REP04_MASTER, ODI_REP04_WORK
+
+
+
+
+
+
+
+
+
+expdp directory=EXPDP1 dumpfile=SEGMREF_HD5510345.dmp logfile=SEGMREF_HD5510345.log SCHEMAS=SEGMREF EXCLUDE=STATISTICS
+
+impdp REMAP_TABLESPACE=SEGMREF:CVGKSEGREFP directory=PUMP dumpfile=SEGMREF_HD5510345.dmp logfile=imp_SEGMREF_HD5510345.log TABLE_EXISTS_ACTION=REPLACE
+
+
+impdp REMAP_SCHEMA=SEGMREF:CVGKSEGREFP directory=PUMP dumpfile=SEGMREF_HD5510345.dmp logfile=imp_SEGMREF_HD5510345.log TABLE_EXISTS_ACTION=REPLACE
+
+CREATE TABLESPACE "SEGMREF" DATAFILE
+  '+DATA/APPanscp/datafile/segmref_01.dbf' SIZE 10485760
+  AUTOEXTEND ON NEXT 8192 MAXSIZE 32767M
+  LOGGING ONLINE PERMANENT BLOCKSIZE 8192
+  EXTENT MANAGEMENT LOCAL AUTOALLOCATE DEFAULT
+ NOCOMPRESS  SEGMENT SPACE MANAGEMENT AUTO
+
+BACKUP
+
+PUMP
+
+PUMP
+
+********************************************************
+expdp directory=PUMP dumpfile=PERIOD_HD5511063.dmp logfile=PERIOD_HD5511063.log SCHEMAS=PERIOD EXCLUDE=STATISTICS
+
+impdp REMAP_SCHEMA=PERIOD:LTYPERIODU directory=BACKUP dumpfile=PERIOD_HD5511063.dmp logfile=IMP_PERIOD_HD5511063.log TABLE_EXISTS_ACTION=REPLACE
+
+
+expdp directory=BACKUP dumpfile=LTYPERIODU_HD5511063.dmp logfile=LTYPERIODU_HD5511063.log SCHEMAS=LTYPERIODU EXCLUDE=STATISTICS
+
+
+********************************************************
+
+expdp directory=BACKUP_EXP dumpfile=ME_RFRSH_CNTXT_table%U.dmp logfile=ME_RFRSH_CNTXT_table.log TABLES=ADV.ME_RFRSH_CNTXT parallel=4
+
+
+
+expdp directory=BACKUP_EXP dumpfile=BI_QF_CONTEXT_CARRY_table%U.dmp logfile=BI_QF_CONTEXT_CARRY_table.log TABLES=ADV.BI_QF_CONTEXT_CARRY parallel=4 EXCLUDE=TABLE_STATISTICS,INDEX_STATISTICS,INDEX
+
+
+'BI_QF_CONTEXT_CARRY' and owner='ADV') group by segment_name;
+
+EXCLUDE=TABLE_STATISTICS,INDEX_STATISTICS,INDEX
+
+
+**********************************************************
+
+
+expdp directory=PUMP dumpfile=PERIOD_PRD_CUME_KEY_HD5508831.dmp logfile=PERIOD_PRD_CUME_KEY_HD5508831.log TABLEs=PERIOD.PRD_CUME_KEY
+SCHEMAS=SEGMREF EXCLUDE=STATISTICS
+
+
+
+
+impdp REMAP_SCHEMA=PERIOD:CVGKPERIODP directory=PUMP dumpfile=PERIOD_PRD_CUME_KEY_HD5508831.dmp logfile=imp_PERIOD_PRD_CUME_KEY_HD5508831.log TABLE_EXISTS_ACTION=REPLACE
+
+
+expdp directory=PUMP dumpfile=CVGKPERIODP_HD5508831.dmp logfile=CVGKPERIODP_HD5508831.log schemas=CVGKPERIODP EXCLUDE=STATISTICS
+CVGKPERIODP 
+
+
+REMAP_TABLE=
+
+
+
+
+
+
+expdp directory=DUMP_EXP dumpfile=SPYDER18oct.dmp logfile=stg_favourite_json.log Tables=AWAFODISTAGINGP.stg_favourite_json
+
+drop sche
+
+
+
+impdp REMAP_SCHEMA=SPYDER:SPYDER_QA1 directory=DUMP_EXP dumpfile=SPYDER18oct.dmp logfile=imp_SPYDER_qa1_TABLES_final18oct.log 
+
+
+delete from AWAFODISTAGINGP.stg_favourite_json;
+
+SQL> delete from AWAFODISTAGINGP.stg_favourite_json;
+
+18141 rows deleted.
+
+delete from AWAFODISTAGINGP.stg_saved_sel_json;
+delete from AWAFODISTAGINGP.stg_job_json;
+
+
+
+
+select distinct tablespace_name from dba_segments\
+
+
+SELECT DBMS_METADATA.GET_DDL('TABLESPACE','SPYDER') FROM dual;
+
+  CREATE TABLESPACE "SPYDER" DATAFILE
+  SIZE 10485760
+  AUTOEXTEND ON NEXT 107
+
+
+CREATE DIRECTORY admin AS 'oracle/admin';
+
+select 
+
+
+
+SQL> delete from AWAFODISTAGINGP.stg_favourite_json;
+
+18141 rows deleted.
+
+SQL> delete from AWAFODISTAGINGP.stg_saved_sel_json;
+
+8149 rows deleted.
+
+SQL> delete from AWAFODISTAGINGP.stg_job_json;
+
+600 rows deleted.
+
+
+
+
+PUMP
+
+
+expdp directory=PUMP dumpfile=CMO280D_HD5232544.dmp logfile=CMO280D_HD5232544.log SCHEMAS=CMO_PUBLISH,CMO_STG,CMOAPP
+
+
+'CMI','CMIAPP','CMO_PUBLISH','CMO_STG','CMOAPP')
+
+
+
+
+expdp directory=PUMP dumpfile=CMI280D_BACKUP_old_schema_HD5232544.dmp logfile=CMI280D_BACKUP_old_schema_HD5232544.log SCHEMAS=CMI_DMR2,CMIAPP_DMR2;
+
+
+
+CMI_DMR2
+CMIAPP_DMR2
+CMO_PUBLISH_DMR2
+CMO_STG_DMR2
+CMOAPP_DMR2
+
+
+
+impdp 
+
+
+CMI:CMI_DMR2
+,CMIAPP:CMIAPP_DMR2
+CMO_PUBLISH:CMO_PUBLISH_DMR2
+CMO_STG:CMO_STG_DMR2
+CMOAPP:CMOAPP_DMR2
+
+"SYS_IMPORT_FULL_01"
+
+
+impdp REMAP_SCHEMA=CMO_PUBLISH:CMO_PUBLISH_DMR2,CMO_STG:CMO_STG_DMR2,CMOAPP:CMOAPP_DMR2 directory=PUMP TABLE_EXISTS_ACTION=REPLACE dumpfile=SPYDER18oct.dmp logfile=imp_SPYDER_qa1_TABLES_final18oct.log
+
+
+. . imported "CMO_STG_DMR2"."BI_FE_DS_FCTS_CHRS_SS":"P_850"."SP850_41"  8.040 MB  101381 rows
+. . imported "CMO_STG_DMR2"."BI_FE_DS_FCTS_CHRS_SS":"P_850"."SP850_42"  8.040 MB  101381 rows
+. . imported "CMO_STG_DMR2"."BI_FE_DS_FCTS_CHRS_SS":"P_850"."SP850_43"  8.040 MB  101381 rows
+ORA-39171: Job is experiencing a resumable wait.
+ORA-01658: unable to create INITIAL extent for segment in tablespace CMO_STG_DATA
+. . imported "CMO_STG_DMR2"."BI_FE_DS_FCTS_CHRS_SS":"P_850"."SP850_44"  8.040 MB  101381 rows
+. . imported "CMO_STG_DMR2"."BI_FE_DS_FCTS_CHRS_SS":"P_850"."SP850_45"  8.040 MB  101381 rows
+
+
+
+
+impdp REMAP_SCHEMA=CMI:CMI_DMR2,CMIAPP:CMIAPP_DMR2 directory=PUMP TABLE_EXISTS_ACTION=REPLACE dumpfile=CMO280D_HD5232544.dmp logfile=imp_CMO280D_HD5232544.log
+
+SQL> select count(*) , owner from all_objects where owner in ('CMO_PUBLISH','CMO_PUBLISH_DMR2','CMO_STG','CMO_STG_DMR2','CMOAPP','CMOAPP_DMR2') GROUP BY OWNER;
+
+  COUNT(*) OWNER
+---------- ------------------------------
+      1207 CMO_STG
+      1251 CMO_STG_DMR2
+        61 CMOAPP
+        61 CMOAPP_DMR2
+       345 CMO_PUBLISH
+       347 CMO_PUBLISH_DMR2
+
+6 rows selected.
+
+
+impdp REMAP_SCHEMA=CMI:CMI_DMR2 directory=PUMP TABLE_EXISTS_ACTION=REPLACE dumpfile=CMI280D_CMI_HD5232544.dmp logfile=imp_CMI280D_CMI_HD5232544.log
+
+
+impdp REMAP_SCHEMA=CMIAPP:CMIAPP_DMR2 directory=PUMP TABLE_EXISTS_ACTION=REPLACE dumpfile=CMI280D_CMIAPP_HD5232544.dmp logfile=imp_CMI280D_CMIAPP_HD5232544.log
+
+
+
+select count(*) , owner from all_objects where owner in ('CMI','CMI_DMR2','CMIAPP','CMIAPP_DMR2') GROUP BY OWNER;
+
+  COUNT(*) OWNER
+---------- ------------------------------
+      1904 CMI
+       335 CMIAPP
+      1397 CMI_DMR2
+       346 CMIAPP_DMR2
+
+
+ COUNT(*) OWNER
+---------- ------------------------------
+      1904 CMI
+       335 CMIAPP
+      2041 CMI_DMR2
+       346 CMIAPP_DMR2
+
+
+
+
+select count(*) , owner from all_objects where owner in ('ODI_REP02_MASTER','ODI_REP02_WORK') GROUP BY OWNER;
+
+
+  COUNT(*) OWNER
+---------- ------------------------------
+
+
+
+
+COLUMN object_name FORMAT A30
+SELECT owner,
+       object_type,
+       object_name,
+       status
+FROM   dba_objects
+WHERE  status = 'INVALID' and owner in ('CMO_PUBLISH','CMO_PUBLISH_DMR2','CMO_STG','CMO_STG_DMR2','CMOAPP','CMOAPP_DMR2') ORDER BY owner, object_type, object_name;
+
+
+
+impdp REMAP_SCHEMA=CMI:CMI_DMR2 TABLE_EXISTS_ACTION=REPLACE dumpfile=/APP_orap_dumps/serrheorad001/BACKUP/CMI280D_CMI_HD5232544.dmp logfile=imp_CMI280D_CMI_HD5232544.log
+
+
+
+
+
+expdp directory=BACKUP_REQUESTED dumpfile=ODI_REP02.dmp logfile=ODI_REP02.log SCHEMAS=ODI_REP02_MASTER,ODI_REP02_WORK;
+
+SQL> select count(*) , owner from all_objects where owner in ('ODI_REP02_MASTER','ODI_REP02_WORK') GROUP BY OWNER;
+
+  COUNT(*) OWNER
+---------- ------------------------------
+       403 ODI_REP02_WORK
+       205 ODI_REP02_MASTER
+
+
+impdp REMAP_SCHEMA=ODI_REP02_WORK:ODI_REP02_WORK_DEC04,ODI_REP02_MASTER:ODI_REP02_MASTER_DEC04 directory=BACKUP_REQUESTED TABLE_EXISTS_ACTION=REPLACE dumpfile=ODI_REP02.dmp logfile=imp_ODI_REP02.log
+
+
+SQL> select count(*) , owner from all_objects where owner in ('ODI_REP02_MASTER','ODI_REP02_WORK','ODI_REP02_WORK_DEC04','ODI_REP02_MASTER_DEC04') GROUP BY OWNER;
+
+  COUNT(*) OWNER
+---------- ------------------------------
+       403 ODI_REP02_WORK
+       403 ODI_REP02_WORK_DEC04
+       205 ODI_REP02_MASTER
+       205 ODI_REP02_MASTER_DEC04
+
+
+
+
+
+expdp directory=EXPDP_DIR dumpfile=ISTAP_SC_TREND%U.dmp logfile=ISTAP_SC_TREND.log TABLES=RRS.ISTAP_SC_TREND parallel=2
+
+ISTAP_SC_TREND
+
+
+
+select owner,segment_name,segment_type from dba_segments where tablespace_name='SC_04';
+ select table_name,table_owner,partition_name,tablespace_name from dba_tab_partitions where table_name='SC_BANDEDPACKITEM' and tablespace_name='SC_04';
+
+
+
+
+SQL> select NAME, TOTAL_MB/1024, FREE_MB/1024 from v$asm_diskgroup;
+
+NAME                           TOTAL_MB/1024 FREE_MB/1024
+------------------------------ ------------- ------------
+DATA                                    1600   .092773438
+FLASH                                   1000   999.594727
+
+
+
+
+
+expdp directory=DUMP dumpfile=APPCMICP_BE%U.dmp logfile=APPCMICP_BE.log SCHEMAS=CMIPLN,CMIPLN_RO,CMISTGPLN parallel=2
+
+expdp directory=BACKUP dumpfile=APPCMOCP_FE.dmp logfile=APPCMOCP_FE.log SCHEMAS=CMOSTGPLN_RO
+
+
+CREATE DIRECTORY DUMP AS '/APP_orap_dumps';
+
+
+
+expdp directory=BACKUP_EXP dumpfile=APPANSP%U.dmp logfile=APPANSP.log SCHEMAS=MFRMSMCMOSTGP_RO,MFRMSMCMOSTGP parallel=2
+
+
+
+
+impdp REMAP_SCHEMA=CMT:CMTUAT directory=EXPDIR dumpfile=5261449.dmp logfile=5261449.log TABLE_EXISTS_ACTION=REPLACE
+
+
+
+
+SQL> select count(*) from all_objects where owner='CMTUAT';
+
+  COUNT(*)
+----------
+      1131
+
+
+
+select dbms_metadata.GET_DDL(RRS.object_type,u.object_name,'SAPSR3')
+
+
+
+weekly 13
+monthly 3
+bimonthly
+
+
+
+
+expdp directory=DATAPUMP dumpfile=CKA_HD5425754.dmp logfile=CKA_HD5425754.log Tables=CKA.PRODUCT,CKA.MARKET,CKA.MARKET_TYP_DEF,CKA.POD_CHR_VL_AP_MV  
+
+DATAPUMP
+
+
+
+MFRAPPCONFIGP.SYN_EXTRACT_PKG"
+
+
+
+ALTER PACKAGE MFRAPPCONFIGP.SYN_EXTRACT_PKG COMPILE BODY; 
+
+
+
+
+
+select 'alter '||object_type||' '||owner||'.'||object_name||' compile ; ' from all_objects where owner='MFRAPPCONFIGP' and status='INVALID';
+
+
+SELECT DBMS_METADATA.GET_DDL(FUNCTION, QUERY_FORMATION_CLOB, MFRAPPCONFIGP)  FROM dual;
+
+
+
+select dbms_metadata.get_ddl(FUNCTION, QUERY_FORMATION_CLOB,owner) from dba_tablespaces where owner like 'MFRAPPCONFIGP';
+
+
+
+
+expdp directory=DATAPUMP_SCHEMA_DATA dumpfile=BRPE_SIM_SCR168764.dmp logfile=BRPE_SIM_SCR168764.log SCHEMAS=BRPE_SIM EXCLUDE=STATISTICS 
+
+
+expdp directory=DATAPUMP_SCHEMA_DATA dumpfile=SCR168764.dmp logfile=SCR168764.log parfile=tables.par
+
+DATAPUMP_SCHEMA_DATA
+
+EXP_DIR
+
+
+
+
+
+
+impdp REMAP_SCHEMA=SPYDER:SPYDER_QA1 directory=DUMP_EXP dumpfile=SPYDER18oct.dmp logfile=imp_SPYDER_qa1_TABLES_final18oct.log 
+
+
+
+
+expdp tablespaces=ADEX_DATA directory=EXPORT dumpfile=ADEX_DATA_tbs.dmp logfile=ADEX_DATA_tbs.log
+
+
+
+
+*****************************************
+####################################
+
+expdp directory=DATAPUMP dumpfile=HD5657747_CVGKPGATP_data.dmp logfile=HD5657747_CVGKPGATP_data.log parfile=table_hd5657747.par content=data_only 
+
+table.par
+
+table= {
+'ND_CHARACTERISTICS', 
+'PG_FOLDERS', 
+'PRODUCT_GROUPS ',
+'SEGMENT_SUBTOTAL', 
+'SEGMENT 
+'WEB_APP_LOG 
+'DB_WEB_APP_RLTD 
+'WEB_APP' 
+'DATABASES' 
+'SUBTOTALS' 
+'SBTTL_TYPE' 
+
+tables=(
+CVGKPGATP.ND_CHARACTERISTICS, 
+CVGKPGATP.PG_FOLDERS, 
+CVGKPGATP.PRODUCT_GROUPS, 
+CVGKPGATP.SEGMENT_SUBTOTAL, 
+CVGKPGATP.SEGMENT, 
+CVGKPGATP.WEB_APP_LOG,
+CVGKPGATP.DB_WEB_APP_RLTD, 
+CVGKPGATP.WEB_APP, 
+CVGKPGATP.DATABASES, 
+CVGKPGATP.SUBTOTALS, 
+CVGKPGATP.SBTTL_TYPE 
+)
+
+
+
+expdp directory=DATAPUMP dumpfile=HD5657747_pgat_prod_backup_data.dmp logfile=HD5657747_pgat_prod_backup_data parfile=table_hd5657747_bk.par content=data_only
+
+
+tables=(
+PGAT_PROD.ND_CHARACTERISTICS, 
+PGAT_PROD.PG_FOLDERS, 
+PGAT_PROD.PRODUCT_GROUPS, 
+PGAT_PROD.SEGMENT_SUBTOTAL, 
+PGAT_PROD.SEGMENT, 
+PGAT_PROD.WEB_APP_LOG,
+PGAT_PROD.DB_WEB_APP_RLTD, 
+PGAT_PROD.WEB_APP, 
+PGAT_PROD.DATABASES, 
+PGAT_PROD.SUBTOTALS, 
+PGAT_PROD.SBTTL_TYPE 
+)
+
+
+
+impdp REMAP_SCHEMA=CVGKPGATP:PGAT_PROD directory=DATAPUMP dumpfile=HD5657747_CVGKPGATP_data.dmp logfile=imp_HD5657747_CVGKPGATP_data.log TABLE_EXISTS_ACTION=REPLACE
+
+
+
+
+impdp REMAP_SCHEMA=CVGKPGATP:PGAT_PROD directory=DATAPUMP dumpfile=HD5657747_CVGKPGATP_data.dmp logfile=imp_HD5657747_CVGKPGATP_data.log  content=data_only
+
+
+impdp REMAP_TABLE=CVGKPGATP.SUBTOTALS:PGAT_PROD.SUBTOTALS directory=DATAPUMP dumpfile=HD5657747_CVGKPGATP_data.dmp logfile=imp_tabHD5657747_CVGKPGATP_data.log 
+
+impdp REMAP_SCHEMA=CVGKPGATP:PGAT_PROD directory=DATAPUMP dumpfile=HD5657747_CVGKPGATP_data.dmp logfile=imp_impHD5657747_CVGKPGATP_data.log
+
+
+in case of any issue reported 
+================================
+first take a backup of talbe if this a prod....
+
+create table test_bkp as select * From test;
+
+then truncate the current table by issuing 
+
+truncate table scott.emp;
+
+and them use the import cmd again...
+
+expdp directory=DATAPUMP dumpfile=HD5657747_prod_backup_data.dmp logfile=HD5657747_prod_backup_data parfile=table_hd5657747_bk.par content=data_only
+
+truncate table CVGKPGATP.ND_CHARACTERISTICS;
+truncate table CVGKPGATP.PG_FOLDERS;
+truncate table CVGKPGATP.PRODUCT_GROUPS;
+truncate table CVGKPGATP.SEGMENT_SUBTOTAL;
+truncate table CVGKPGATP.SEGMENT;
+truncate table CVGKPGATP.WEB_APP_LOG;
+truncate table CVGKPGATP.DB_WEB_APP_RLTD; 
+truncate table CVGKPGATP.WEB_APP;
+truncate table CVGKPGATP.DATABASES; 
+truncate table CVGKPGATP.SUBTOTALS;
+truncate table CVGKPGATP.SBTTL_TYPE;
+
+
+impdp directory=DATAPUMP dumpfile=HD5657747_CVGKPGATP_data.dmp logfile=imp_correctHD5657747_CVGKPGATP_data.log
+
+
+
+*********************************************************************************************************************************
+
+
+2:31 AM 6/2/2014
+
+
+*************************************************************************************************************************************
+
+
+expdp directory=DATAPUMP dumpfile=HD5755227_CVGKSEGREFP.dmp logfile=HD5755227_CVGKSEGREFP.log schemas=CVGKSEGREFP EXCLUDE=STATISTICS;
+
+
+expdp directory=EXPDP1 dumpfile=HD5755227_SEGMREF.dmp logfile=HD5755227_SEGMREF.log schemas=SEGMREF EXCLUDE=STATISTICS,DB_LINK
+
+
+impdp REMAP_SCHEMA=SEGMREF:CVGKSEGREFP directory=DATAPUMP dumpfile=HD5755227_SEGMREF.dmp logfile=imp_HD5755227_SEGMREF.log TABLE_EXISTS_ACTION=REPLACE
+
+expdp directory=EXP_NEW3 dumpfile=MCH_ONLINE%u.dmp logfile=MCH_ONLINE.log schemas=MCH_ONLINEAU_PROMPT,MCH_ONLINEBR_PROMPT,MCH_ONLINENZ_PROMPT parallel=4
+
+
+impdp REMAP_SCHEMA=MCH_ONLINEAU_PROMPT:MCH_ONLINEAU_PROMPT,MCH_ONLINEBR_PROMPT:MCH_ONLINEBR_PROMPT,MCH_ONLINENZ_PROMPT:MCH_ONLINENZ_PROMPT REMAP_TABLESPACE=MCH_DIGITALAUFT_PROMPT_TBSP:MCH_DIGITALAU_PROMPT,MCH_DIGITAL_PROMPT_DATA:MCH_DIGITAL_PROMPT_DATA,MCH_ONLINEBR_PROMPT_DATA:MCH_ONLINEBR_PROMPT_DATA directory=EXP_NEW3 dumpfile=MCH_ONLINE%u.dmp logfile=imp_MCH_ONLINE.log TABLE_EXISTS_ACTION=REPLACE
+
+dv
+USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE
+------------------------------ ------------------------------ ------------------------------
+MCH_ONLINEAU_PROMPT            MCH_DIGITALAUFT_PROMPT_TBSP    TEMP
+MCH_ONLINENZ_PROMPT            MCH_DIGITAL_PROMPT_DATA        TEMP
+MCH_ONLINEBR_PROMPT            MCH_ONLINEBR_PROMPT_DATA       TEMP
+
+
+pr
+USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE
+------------------------------ ------------------------------ ------------------------------
+MCH_ONLINEBR_PROMPT            MCH_ONLINEBR_PROMPT_DATA       TEMP
+MCH_ONLINENZ_PROMPT            MCH_DIGITAL_PROMPT_DATA        TEMP
+MCH_ONLINEAU_PROMPT            MCH_DIGITALAU_PROMPT           TEMP
+
+
+
+expdp directory=EXP_NEW3 dumpfile=MCH_ONLINE_PROD%u.dmp logfile=MCH_ONLINE_PROD.log schemas=MCH_ONLINEAU_PROMPT,MCH_ONLINEBR_PROMPT,MCH_ONLINENZ_PROMPT parallel=4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+expdp directory=EXT_DIR_NVAU dumpfile=PADE_CQ_DEV_DATA_INC00067778.dmp logfile=PADE_CQ_DEV_DATA_INC00067778.log SCHEMAS=PADE_CQ_DEV_DATA EXCLUDE=STATISTICS
+
+
+
+expdp directory=EXPDP_DIR dumpfile=PADE_INC00067778.dmp logfile=PADE_INC00067778.log SCHEMAS=PADE EXCLUDE=STATISTICS COMPRESS=Y
+
+
+impdp directory=EXT_DIR_NVAU REMAP_SCHEMA=PADE:PADE_CQ_DEV REMAP_TABLESPACE=PAPROD:PADE_CQ_DEV_DATA dumpfile=PADE_INC00067778.dmp logfile=imp_PADE_INC00067778.log TABLE_EXISTS_ACTION=REPLACE
+
+
+directory=EXT_DIR_NVAU
+
+
+
+expdp directory=DATAPUMP_DIR dumpfile=MV_LTAM_RITM0033251.dmp logfile=MV_LTAM_RITM0033251.log SCHEMAS=MV_LTAM,MV_PROMPT_LTAM,MEDIA_VIEW EXCLUDE=STATISTICS
+
+
+
+
+

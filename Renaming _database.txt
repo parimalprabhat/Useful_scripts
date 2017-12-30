@@ -1,0 +1,94 @@
+********************************************************************************************
+
+Renaming a database
+=======================================
+
+
+Bring the database to mount stage.
+-----------------------------------
+shutdown;
+
+startup mount;
+
+
+Take the control file backup to trace
+---------------------------------------
+
+alter database backup controlfile to trace;
+
+
+bring down the database
+---------------------------------------
+shutdown;
+
+
+Modify (and optionally rename) the created trace file
+--------------------------------------------------------
+Vi /tmp/rename_db
+
+STARTUP NOMOUNT
+CREATE CONTROLFILE SET DATABASE "new_db_name" RESETLOGS  NOARCHIVELOG
+--  SET STANDBY TO MAXIMIZE PERFORMANCE
+    MAXLOGFILES 16
+    MAXLOGMEMBERS 2
+    MAXDATAFILES 30
+    MAXINSTANCES 1
+    MAXLOGHISTORY 454
+LOGFILE
+  GROUP 1 '/home/oracle/databases/cat/redo1.ora'  SIZE 100M,
+  GROUP 2 '/home/oracle/databases/cat/redo2.ora'  SIZE 100M,
+  GROUP 3 '/home/oracle/databases/cat/redo3.ora'  SIZE 100M
+-- STANDBY LOGFILE
+DATAFILE
+  '/home/oracle/databases/cat/User.dbf',
+  '/home/oracle/databases/cat/undo.dbf',
+  '/home/oracle/databases/cat/data.dbf'
+CHARACTER SET WE8ISO8859P1
+;
+ALTER DATABASE OPEN RESETLOGS;
+ALTER TABLESPACE TEMP ADD TEMPFILE '/home/oracle/OraHome1/databases/ora9/temp.dbf'
+     SIZE 104857600  REUSE AUTOEXTEND OFF;
+
+
+
+move the controlfile otherwise it will get corrupt 
+----------------------------------------------------
+
+$ mv ctl_1.ora ctl_1.ora.moved
+
+
+
+
+The database name must be entered (changed) in the pfile:
+-----------------------------------------------------------------
+
+db_name = CAT
+
+
+
+connect to the sqlplus and create the new controlfile
+---------------------------------------------------------------
+
+sqlplus "/ as sysdba"
+
+SQL> @/tmp/rename_db
+
+
+SQL> select name from v$database;
+
+NAME
+---------
+CAT
+
+
+********************************************************************************************
+
+
+
+
+
+
+
+
+
+http://oracle-base.com/articles/9i/dbnewid.php

@@ -1,0 +1,32 @@
+
+    Installation of Oracle
+    Database creation
+    Performing up-gradation of database as well oracle software
+    Starting and shutdown database
+    Manage database storage , users and database security
+    Managing schema objects, such as tables, indexes, and views
+    Health check of the Database.
+    Viewing the Alert log file to analyze the ORA errors if any.
+    Monitoring Backups.
+    Tablespace Utilization.
+    Rebuilding of Indexes, if bulk load of data is inserted.
+    Monitor temporary files /tablespace
+    User Management.
+    Backing up the archive log files.
+    Monitoring the log files, database space usage and the use of User resources.
+    Monitor storage space for database
+    Monitoring Tablespace Segments
+    Monitoring Production Database Performance
+    Take a COLD/RMAN backups at night time. 
+    Manage Alert log files
+    Perform recovery whenever required
+    Proactively monitoring Oracle best practice
+    Monitoring and tuning performance
+    Monitor Database Growth
+    Perform backup
+    Index Rebuild
+    Tablespace Reorganization
+    Patching
+    Database Reorganization
+    Standby database implementation
+    Standby switchover

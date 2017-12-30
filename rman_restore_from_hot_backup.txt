@@ -1,0 +1,414 @@
+cal;;zum
+f00sball
+
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+allocate channel d4 device type disk;
+allocate channel d5 device type disk;
+allocate channel d6 device type disk;
+backup current controlfile format '/outbound/rman_cold_5july/INTPL_control_pre_%U';
+backup as compressed backupset database format '/outbound/rman_cold_5july/INTPL_cold_%U';
+backup current controlfile format '/outbound/rman_cold_5july/INTPL_control_post_%U';
+release channel d1;
+release channel d2;
+release channel d3;
+release channel d4;
+release channel d5;
+release channel d6;
+}
+
+
+/outbound/rman_cold_5july/INTPL
+
+
+
+
+-bash-3.2$ cat init_plcdb01p.ora_bak
+PLCDB01P2.__db_cache_size=33957085184
+PLCDB01P1.__db_cache_size=32346472448
+PLCDB01P2.__java_pool_size=805306368
+PLCDB01P1.__java_pool_size=805306368
+PLCDB01P2.__large_pool_size=536870912
+PLCDB01P1.__large_pool_size=536870912
+PLCDB01P1.__oracle_base='/opt/app/oracle'#ORACLE_BASE set from environment
+PLCDB01P2.__oracle_base='/opt/app/oracle'#ORACLE_BASE set from environment
+PLCDB01P2.__pga_aggregate_target=27514634240
+PLCDB01P1.__pga_aggregate_target=28856811520
+PLCDB01P2.__sga_target=41204842496
+PLCDB01P1.__sga_target=39862665216
+PLCDB01P2.__shared_io_pool_size=0
+PLCDB01P1.__shared_io_pool_size=0
+PLCDB01P2.__shared_pool_size=5234491392
+PLCDB01P1.__shared_pool_size=5502926848
+PLCDB01P2.__streams_pool_size=268435456
+PLCDB01P1.__streams_pool_size=268435456
+*.audit_file_dest='/opt/app/oracle/admin/PLCDB01P/adump'
+*.audit_trail='NONE'
+*.backup_tape_io_slaves=TRUE
+*.cluster_database=true
+*.compatible='11.2.0.1.0'
+*.control_file_record_keep_time=90
+*.control_files='+DATA/plcdb01p/controlfile/control01.ctl'
+*.db_block_size=8192
+*.db_create_file_dest='+DATA'
+*.db_domain=''
+*.db_files=1000
+*.db_name='PLCDB01P'
+*.db_recovery_file_dest='+FRA'
+*.db_recovery_file_dest_size=322122547200
+*.diagnostic_dest='/opt/app/oracle'
+*.dispatchers='(PROTOCOL=TCP) (SERVICE=PLCDB01PXDB)'
+*.event=''
+PLCDB01P1.instance_name='PLCDB01P1'
+PLCDB01P2.instance_name='PLCDB01P2'
+PLCDB01P1.instance_number=1
+PLCDB01P2.instance_number=2
+*.job_queue_processes=1000
+*.log_archive_dest_1='LOCATION=USE_DB_RECOVERY_FILE_DEST'
+*.log_archive_format='PLCDB01P_%t_%s_%r.arc'
+*.memory_max_target=68719476736
+*.memory_target=68719476736
+*.open_cursors=300
+*.processes=1000
+*.remote_listener='oraplcdb01pscan:1521'
+*.remote_login_passwordfile='EXCLUSIVE'
+*.sec_case_sensitive_logon=FALSE
+*.sessions=1536
+PLCDB01P1.thread=1
+PLCDB01P2.thread=2
+*.undo_retention=3600
+PLCDB01P1.undo_tablespace='UNDOTBS1'
+PLCDB01P2.undo_tablespace='UNDOTBS2'
+
+
+
+
+
+
+
+INTPL.__oracle_base='/u01/app/oracle'#ORACLE_BASE set from environment
+*.audit_file_dest='/u01/app/oracle/admin/INTPL/adump'
+*.audit_trail='none'
+*.compatible='11.2.0.1.0'
+*.control_files='/u01/oradata/intpl/controlfile/control01.ctl'#Restore Controlfile
+*.db_block_size=8192
+*.db_create_file_dest='/u01/oradata/intpl'
+*.db_files=1000
+*.db_name='PLCDB01P'
+*.diagnostic_dest='/u01/app/oracle'
+*.job_queue_processes=1000
+*.memory_max_target=5g
+*.memory_target=5g
+*.open_cursors=300
+*.processes=1000
+*.undo_tablespace='UNDOTBS1'
+*.undo_retention=3600
+
+
+
+connect to rman and drop the old database
+=============================================
+
+
+STARTUP FORCE MOUNT
+
+
+
+SQL 'ALTER User ENABLE RESTRICTED SESSION';
+
+
+DROP DATABASE;
+
+
+
+
+bring up the db in nomount using the modified pfile
+======================================================
+
+
+
+startup nomount pfile=/u01/app/oracle/product/11.2.0/dbhome_1/dbs/initPLCDB01P_INTPL.ora
+
+restore controlfile from '/outbound/db_PLCDB01P_control_postbkp.bkp';
+
+
+CATALOG BACKUPPIECE  '
+
+Archive:
+
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rupcgt9d';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rtpcgt9d';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rspcgt9c';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rvpcgt9e';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rppcgt9a';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s4pcgtnf';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s1pcgtkc';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s3pcgtmu';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rrpcgt9b';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_rqpcgt9a';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s7pcgtrh';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s0pcgtk8';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s2pcgtme';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s8pcgtri';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s6pcgtrf';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_s5pcgtrd';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_shpch0qc';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_arch_sgpch0qc';
+
+Backup pieces:
+
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_sbpcgu7r';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_s9pcgu7q';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_scpcgu7r';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_sfpcgu7s';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_sepcgu7r';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_sapcgu7q';
+CATALOG BACKUPPIECE  '/outbound/db_PLCDB01P_full_sdpcgu7r';
+
+
+
+**************************************************************
+CATALOG START WITH '/tmp/arch_logs'
+**************************************************************
+
+
+
+
+
+
+run {
+restore controlfile ;
+mount database ;
+restore database ;
+recover database until time <NEXT_TIME of last archived log backed up> ;
+alter database open resetlogs ;
+}
+
+
+*****************************************************************************
+Changed the redo log file locations ..
+you need to change the redo log file location like below ..
+
+add new redo log file groups  in /u01
+
+drop the old INACTIVE redo log groups 
+
+Rename the ACTIVE/CURRENT redo log groups of +DATA by using the below command
+
+alter database rename file '+data/redolog' to '/u01/redo';
+
+it's just example 
+
+*****************************************************************************
+
+
+
+
+
+run
+{
+allocate channel c1 type disk;
+allocate channel c2 type disk;
+allocate channel c3 type disk;
+allocate channel c4 type disk;
+allocate channel c5 type disk;
+allocate channel c6 type disk;
+allocate channel c7 type disk;
+set newname for datafile 1 to '/u01/oradata/intpl/datafiles/User01.dbf' ;
+set newname for datafile 2 to '/u01/oradata/intpl/datafiles/undotbs01.dbf' ;
+set newname for datafile 3 to '/u01/oradata/intpl/datafiles/sysaux01.dbf' ;
+set newname for datafile 4 to '/u01/oradata/intpl/datafiles/users01.dbf' ;
+set newname for datafile 5 to '/u01/oradata/intpl/datafiles/geocode201300.dbf' ;
+set newname for datafile 6 to '/u01/oradata/intpl/datafiles/consbuy201300.dbf' ;
+set newname for datafile 7 to '/u01/oradata/intpl/datafiles/fclout201300.dbf' ;
+set newname for datafile 8 to '/u01/oradata/intpl/datafiles/ipanw201300.dbf' ;
+set newname for datafile 9 to '/u01/oradata/intpl/datafiles/prizmne201300.dbf' ;
+set newname for datafile 10 to '/u01/oradata/intpl/datafiles/connexionne201300.dbf' ;
+set newname for datafile 11 to '/u01/oradata/intpl/datafiles/bizfacts201312.409.844648893' ;
+set newname for datafile 12 to '/u01/oradata/intpl/datafiles/iclout201300.dbf' ;
+set newname for datafile 13 to '/u01/oradata/intpl/datafiles/webster.dbf' ;
+set newname for datafile 14 to '/u01/oradata/intpl/datafiles/psyclene201300.dbf' ;
+set newname for datafile 15 to '/u01/oradata/intpl/datafiles/bankbr201300.dbf' ;
+set newname for datafile 16 to '/u01/oradata/intpl/datafiles/rmp201300.dbf' ;
+set newname for datafile 17 to '/u01/oradata/intpl/datafiles/cp201300.dbf' ;
+set newname for datafile 18 to '/u01/oradata/intpl/datafiles/trafcnt201303.dbf' ;
+set newname for datafile 19 to '/u01/oradata/intpl/datafiles/bizfacts201303.dbf' ;
+set newname for datafile 20 to '/u01/oradata/intpl/datafiles/bankbr201400.258.844649001' ;
+set newname for datafile 21 to '/u01/oradata/intpl/datafiles/cp201400.304.844649167' ;
+set newname for datafile 22 to '/u01/oradata/intpl/datafiles/cable201300.dbf' ;
+set newname for datafile 23 to '/u01/oradata/intpl/datafiles/telco201300.dbf' ;
+set newname for datafile 24 to '/u01/oradata/intpl/datafiles/shpctr201309.354.844649257' ;
+set newname for datafile 25 to '/u01/oradata/intpl/datafiles/true_value.dbf' ;
+set newname for datafile 26 to '/u01/oradata/intpl/datafiles/intpl.dbf' ;
+set newname for datafile 27 to '/u01/oradata/intpl/datafiles/primelocation.dbf' ;
+set newname for datafile 28 to '/u01/oradata/intpl/datafiles/primelocation_custom.dbf' ;
+set newname for datafile 29 to '/u01/oradata/intpl/datafiles/work.dbf' ;
+set newname for datafile 30 to '/u01/oradata/intpl/datafiles/true_value_custom.dbf' ;
+set newname for datafile 31 to '/u01/oradata/intpl/datafiles/bok.dbf' ;
+set newname for datafile 32 to '/u01/oradata/intpl/datafiles/fsg_demo.dbf' ;
+set newname for datafile 33 to '/u01/oradata/intpl/datafiles/fsg_demo_custom.dbf' ;
+set newname for datafile 34 to '/u01/oradata/intpl/datafiles/bok_custom.dbf' ;
+set newname for datafile 35 to '/u01/oradata/intpl/datafiles/gannett.dbf' ;
+set newname for datafile 36 to '/u01/oradata/intpl/datafiles/gannett_custom.dbf' ;
+set newname for datafile 37 to '/u01/oradata/intpl/datafiles/haverty.dbf' ;
+set newname for datafile 38 to '/u01/oradata/intpl/datafiles/webster_custom.dbf' ;
+set newname for datafile 39 to '/u01/oradata/intpl/datafiles/osl_primelocation.dbf' ;
+set newname for datafile 40 to '/u01/oradata/intpl/datafiles/osl_primelocation_custom.dbf' ;
+set newname for datafile 41 to '/u01/oradata/intpl/datafiles/thd1.dbf' ;
+set newname for datafile 42 to '/u01/oradata/intpl/datafiles/thd1_custom.dbf' ;
+set newname for datafile 43 to '/u01/oradata/intpl/datafiles/rite_aid1.dbf' ;
+set newname for datafile 44 to '/u01/oradata/intpl/datafiles/rite_aid1_custom.dbf' ;
+set newname for datafile 45 to '/u01/oradata/intpl/datafiles/metro_pcs.dbf' ;
+set newname for datafile 46 to '/u01/oradata/intpl/datafiles/retail.dbf' ;
+set newname for datafile 47 to '/u01/oradata/intpl/datafiles/retail_custom.dbf' ;
+set newname for datafile 48 to '/u01/oradata/intpl/datafiles/nat_heritage.dbf' ;
+set newname for datafile 49 to '/u01/oradata/intpl/datafiles/metro_pcs_custom.dbf' ;
+set newname for datafile 50 to '/u01/oradata/intpl/datafiles/haverty_custom.dbf' ;
+set newname for datafile 51 to '/u01/oradata/intpl/datafiles/gtechca.dbf' ;
+set newname for datafile 52 to '/u01/oradata/intpl/datafiles/gtechfl.dbf' ;
+set newname for datafile 53 to '/u01/oradata/intpl/datafiles/gtechfl_custom.dbf' ;
+set newname for datafile 54 to '/u01/oradata/intpl/datafiles/att.dbf' ;
+set newname for datafile 55 to '/u01/oradata/intpl/datafiles/att_custom.dbf' ;
+set newname for datafile 56 to '/u01/oradata/intpl/datafiles/jpmchase.dbf' ;
+set newname for datafile 57 to '/u01/oradata/intpl/datafiles/jpmchase_custom.dbf' ;
+set newname for datafile 58 to '/u01/oradata/intpl/datafiles/hrblock.dbf' ;
+set newname for datafile 59 to '/u01/oradata/intpl/datafiles/hrblock_custom.dbf' ;
+set newname for datafile 60 to '/u01/oradata/intpl/datafiles/viamedia.dbf' ;
+set newname for datafile 61 to '/u01/oradata/intpl/datafiles/viamedia_custom.dbf' ;
+set newname for datafile 62 to '/u01/oradata/intpl/datafiles/block201400.282.838332681' ;
+set newname for datafile 63 to '/u01/oradata/intpl/datafiles/boundary201400.268.838332681' ;
+set newname for datafile 64 to '/u01/oradata/intpl/datafiles/hallmark.dbf' ;
+set newname for datafile 65 to '/u01/oradata/intpl/datafiles/hallmark_custom.dbf' ;
+set newname for datafile 66 to '/u01/oradata/intpl/datafiles/popfacts201400.373.838332683' ;
+set newname for datafile 67 to '/u01/oradata/intpl/datafiles/gtechca_custom.dbf' ;
+set newname for datafile 68 to '/u01/oradata/intpl/datafiles/aveda_pl.dbf' ;
+set newname for datafile 69 to '/u01/oradata/intpl/datafiles/aveda_pl_custom.dbf' ;
+set newname for datafile 70 to '/u01/oradata/intpl/datafiles/consbuy201400.274.838332685' ;
+set newname for datafile 71 to '/u01/oradata/intpl/datafiles/geocode201400.319.838332685' ;
+set newname for datafile 72 to '/u01/oradata/intpl/datafiles/iclout201400.273.838332687' ;
+set newname for datafile 73 to '/u01/oradata/intpl/datafiles/xref201400.344.838332687' ;
+set newname for datafile 74 to '/u01/oradata/intpl/datafiles/rmp201400.281.838332687' ;
+set newname for datafile 75 to '/u01/oradata/intpl/datafiles/fclout201400.337.838332689' ;
+set newname for datafile 76 to '/u01/oradata/intpl/datafiles/trafcnt201400.287.838332691' ;
+set newname for datafile 77 to '/u01/oradata/intpl/datafiles/perf_test.dbf' ;
+set newname for datafile 78 to '/u01/oradata/intpl/datafiles/prizmne201400.342.838332691' ;
+set newname for datafile 79 to '/u01/oradata/intpl/datafiles/connexionne201400.306.838332693' ;
+set newname for datafile 80 to '/u01/oradata/intpl/datafiles/psyclene201400.329.838332693' ;
+set newname for datafile 81 to '/u01/oradata/intpl/datafiles/gtechny.dbf' ;
+set newname for datafile 82 to '/u01/oradata/intpl/datafiles/ipanw201400.336.838332695' ;
+set newname for datafile 83 to '/u01/oradata/intpl/datafiles/gtechny_custom.dbf' ;
+set newname for datafile 84 to '/u01/oradata/intpl/datafiles/telco201400.355.838332695' ;
+set newname for datafile 85 to '/u01/oradata/intpl/datafiles/cable201400.288.838332697' ;
+set newname for datafile 86 to '/u01/oradata/intpl/datafiles/gtechri_pl.dbf' ;
+set newname for datafile 87 to '/u01/oradata/intpl/datafiles/gtechri_pl_custom.dbf' ;
+set newname for datafile 88 to '/u01/oradata/intpl/datafiles/gtechtx1.dbf' ;
+set newname for datafile 89 to '/u01/oradata/intpl/datafiles/gtechtx1_custom.dbf' ;
+set newname for datafile 90 to '/u01/oradata/intpl/datafiles/gtechtx2.dbf' ;
+set newname for datafile 91 to '/u01/oradata/intpl/datafiles/gtechtx2_custom.dbf' ;
+set newname for datafile 92 to '/u01/oradata/intpl/datafiles/gtechwa.dbf' ;
+set newname for datafile 93 to '/u01/oradata/intpl/datafiles/gtechwa_custom.dbf' ;
+set newname for datafile 94 to '/u01/oradata/intpl/datafiles/gtechmo.dbf' ;
+set newname for datafile 95 to '/u01/oradata/intpl/datafiles/gtechmo_custom.dbf' ;
+set newname for datafile 96 to '/u01/oradata/intpl/datafiles/dicom.dbf' ;
+set newname for datafile 97 to '/u01/oradata/intpl/datafiles/dicom_custom.dbf' ;
+set newname for datafile 98 to '/u01/oradata/intpl/datafiles/csm_team.dbf' ;
+set newname for datafile 99 to '/u01/oradata/intpl/datafiles/csm_team_custom.dbf' ;
+set newname for datafile 100 to '/u01/oradata/intpl/datafiles/test_01.dbf' ;
+set newname for datafile 101 to '/u01/oradata/intpl/datafiles/miraclegro.dbf' ;
+set newname for datafile 102 to '/u01/oradata/intpl/datafiles/miraclegro_custom.dbf' ;
+set newname for datafile 103 to '/u01/oradata/intpl/datafiles/windstream.dbf' ;
+set newname for datafile 104 to '/u01/oradata/intpl/datafiles/windstream_custom.dbf' ;
+set newname for datafile 118 to '/u01/oradata/intpl/datafiles/appmonitor.dbf' ;
+set newname for datafile 119 to '/u01/oradata/intpl/datafiles/appmonitor_custom.dbf' ;
+set newname for datafile 120 to '/u01/oradata/intpl/datafiles/perf_test_custom.dbf' ;
+set newname for datafile 147 to '/u01/oradata/intpl/datafiles/coke.dbf' ;
+set newname for datafile 148 to '/u01/oradata/intpl/datafiles/coke_custom.dbf' ;
+set newname for datafile 153 to '/u01/oradata/intpl/datafiles/sysaux02.dbf' ;
+set newname for datafile 154 to '/u01/oradata/intpl/datafiles/sysaux03.dbf' ;
+set newname for datafile 155 to '/u01/oradata/intpl/datafiles/undotbs2.432.825283365' ;
+set newname for datafile 163 to '/u01/oradata/intpl/datafiles/undotbs.dbf' ;
+restore database;
+
+or 
+
+restore database from tag 'HD5879741_full_database';
+
+
+switch datfile all;
+recover database;
+release channel c1;
+release channel c2;
+release channel c3;
+release channel c4;
+release channel c5;
+release channel c6;
+release channel c7;
+}
+exit
+
+nohup rman target / cmdfile=/u01/pluser/dba/ram/restore_plcdb01p_to_intpl.cmd logfile=/u01/pluser/dba/ram/restore_plcdb01p_to_intpl.log &
+
+
+********************************************************************
+Recovery might fail with 
+
+released channel: c7
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of recover command at 07/05/2014 03:26:26
+RMAN-06054: media recovery requesting unknown archived log for thread 1 with sequence 3585 and starting SCN of 996467976319
+
+
+********************************************************************
+
+
+
+alter database open resetlogs;
+
+
+
+
+********************************************************************
+alter database open resetlogs
+*
+ERROR at line 1:
+ORA-19751: could not create the change tracking file
+ORA-19750: change tracking file:
+'+DATA/plcdb01p/changetracking/ctf.292.834700659'
+ORA-17502: ksfdcre:1 Failed to create file
++DATA/plcdb01p/changetracking/ctf.292.834700659
+ORA-17501: logical block size 4294967295 is invali
+ORA-17503: ksfdopn:2 Failed to open file
++DATA/plcdb01p/changetracking/ctf.292.834700659
+ORA-15001: diskgroup "DATA" does not exist or is not mounted
+ORA-15077: could not locate ASM instance serving a required diskgroup
+ORA-29701: unable to connect to Cluster Synchronization Service
+
+
+check with ramesh
+********************************************************************
+
+rename the database
+
+
+
+1.bring down the database
+2.startup mount.
+3.alter database backup control to trace
+4.create new controlfile
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,186 @@
+DECLARE @i int = 0
+WHILE @i < 20 BEGIN
+    SET @i = @i + 1
+print @i
+
+procedure
+
+
+
+BEGIN
+  FOR i IN REVERSE 1..10 LOOP  -- i starts at 10, ends at 1
+   DBMS_OUTPUT.PUT_LINE(selected (i)); -- statements here execute 10 times
+  END LOOP;
+END;
+/
+
+exec p_create_partition.create_partition(<PeriodCode>,<sourceid>,<TableName>)
+
+DECLARE
+  TABLE_NAME   VARCHAR2(30) := 'SC_RAW';
+  PeriodCode_st   NUMBER(10)    := 20141401;
+  PeriodCode_ed   NUMBER(10)    := 20141403;
+  sourceid_st   NUMBER(10)    := 20001;
+  sourceid_en  NUMBER(10)    := 20005;
+BEGIN
+  FOR PeriodCode IN PeriodCode_st..PeriodCode_ed LOOP
+    FOR sourceid IN 20001..20010 LOOP  
+      DBMS_OUTPUT.PUT_LINE('p_create_partition.create_partition('||PeriodCode||','||sourceid||',TABLE_NAME);');
+    END LOOP;
+  END LOOP;
+END;
+/ 
+
+BEGIN
+  FOR j IN 20141401..20141403 LOOP
+    FOR i IN 20001..20010 LOOP  
+      DBMS_OUTPUT.PUT_LINE('p_create_partition.create_partition('||j||','||i||',SC_RAW);');
+    END LOOP;
+  END LOOP;
+END;
+/ 
+
+
+DECLARE 
+
+ var_salary number(6); 
+
+ var_emp_id number(6) = 1116; 
+
+BEGIN
+
+ SELECT salary 
+
+ INTO var_salary 
+
+ FROM employee 
+
+ WHERE emp_id = var_emp_id; 
+
+ dbms_output.put_line(var_salary); 
+
+ dbms_output.put_line('The employee ' 
+
+  	|| var_emp_id || ' has  salary  ' || var_salary); 
+
+END; 
+
+/
+
+
+
+
+
+
+
+  TABLE_NAME   VARCHAR2(30);    := 'SC_RAW'
+  PeriodCode_st   NUMBER(10)    := 20141401;
+  PeriodCode_ed   NUMBER(10)    := 20141403;
+  sourceid_st   NUMBER(10)    := 20001;
+  sourceid_en  NUMBER(10)    := 20005;
+
+DECLARE
+  TABLE_NAME   VARCHAR2(30);
+  PeriodCode_start   NUMBER(10);    
+  PeriodCode_end   NUMBER(10);    
+  sourceid_start   NUMBER(10);    
+  sourceid_end  NUMBER(10);    
+BEGIN
+  FOR PeriodCode IN &PeriodCode_start .. &PeriodCode_end LOOP
+    FOR sourceid IN &sourceid_start .. &sourceid_end LOOP  
+      DBMS_OUTPUT.PUT_LINE('exec p_create_partition.create_partition('||PeriodCode||','||sourceid||',&TABLE_NAME);');
+    END LOOP;
+  END LOOP;
+END;
+/ 
+
+DECLARE
+  TABLE_NAME   VARCHAR2(30):= '&TABLE_NAME';
+  PeriodCode_start   NUMBER(10):= &PeriodCode_start;    
+  PeriodCode_end   NUMBER(10):= &PeriodCode_end;    
+  sourceid_start   NUMBER(10):= &sourceid_start;    
+  sourceid_end  NUMBER(10):= &sourceid_end;    
+BEGIN
+  FOR PeriodCode IN PeriodCode_start .. PeriodCode_end LOOP
+    FOR sourceid IN sourceid_start .. sourceid_end LOOP  
+      DBMS_OUTPUT.PUT_LINE('exec p_create_partition.create_partition('||PeriodCode||','||sourceid||','||TABLE_NAME||');');
+    END LOOP;
+  END LOOP;
+END;
+/ 
+
+CREATE or REPLACE PROCEDURE parimal (TABLE_NAME VARCHAR2,PeriodCode_start NUMBER,PeriodCode_end NUMBER,sourceid_start NUMBER,sourceid_end NUMBER) AS
+BEGIN
+  FOR PeriodCode IN PeriodCode_start .. PeriodCode_end LOOP
+    FOR sourceid IN sourceid_start .. sourceid_end LOOP  
+      DBMS_OUTPUT.PUT_LINE('exec p_create_partition.create_partition('||PeriodCode||','||sourceid||','||TABLE_NAME||');');
+    END LOOP;
+  END LOOP;
+END;
+/ 
+
+exec SYS.PARIMAL('SC_RAW',20141401,20141402,20001,20005);
+
+
+
+
+
+
+
+
+
+
+
+
+********************************************
+
+
+CREATE or REPLACE PROCEDURE parimal1 (TABLE_NAME VARCHAR2,PeriodCode_start NUMBER,PeriodCode_end NUMBER,sourceid_start NUMBER,sourceid_end NUMBER) AS
+v_output UTL_FILE.FILE_TYPE;
+BEGIN
+v_output:=UTL_FILE.FOPEN('/home/oracle','parimal_test.sql','W');
+FOR PeriodCode IN PeriodCode_start .. PeriodCode_end LOOP
+    FOR sourceid IN sourceid_start .. sourceid_end LOOP  
+      UTL_FILE.PUT_LINE('exec p_create_partition.create_partition('||PeriodCode||','||sourceid||','||TABLE_NAME||');');
+    END LOOP;
+  END LOOP;
+UTL_FILE.FCLOSE(v_output);
+END;
+/ 
+********************************************
+
+UTL_FILE.PUT_LINE(v_output,'HI !!!Its Test');
+UTL_FILE.FCLOSE(v_output);
+END test_prc;
+
+
+UTL_FILE.PUT(fHandle, 'This is the first line')
+
+
+
+CREATE or REPLACE PROCEDURE parimal1 (TABLE_NAME VARCHAR2,PeriodCode_start NUMBER,PeriodCode_end NUMBER,sourceid_start NUMBER,sourceid_end NUMBER) AS
+v_output UTL_FILE.FILE_TYPE;
+BEGIN
+v_output:=UTL_FILE.FOPEN('/home/oracle','parimal_test.sql','W');
+FOR PeriodCode IN PeriodCode_start .. PeriodCode_end LOOP
+    FOR sourceid IN sourceid_start .. sourceid_end LOOP  
+      UTL_FILE.PUT(v_output,'exec p_create_partition.create_partition(')
+UTL_FILE.PUT(v_output,PeriodCode)
+UTL_FILE.PUT(v_output,',')
+UTL_FILE.PUT(v_output,sourceid)
+UTL_FILE.PUT(v_output,',')
+UTL_FILE.PUT(v_output,TABLE_NAME);
+UTL_FILE.PUT(v_output,');');
+UTL_FILE.PUT(v_output.'\n');
+    END LOOP;
+  END LOOP;
+UTL_FILE.FCLOSE(v_output);
+END;
+/ 
+
+
+
+
+
+
+3:11 PM 4/21/20143:11 PM 4/21/20143:11 PM 4/21/20143:11 PM 4/21/2014

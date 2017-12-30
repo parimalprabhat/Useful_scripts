@@ -1,0 +1,79 @@
+	
+Click to add to Favorites		Partial Restore Of A Database (Doc ID 102786.1)	To BottomTo Bottom	
+Modified:Aug 22, 2012Type:BULLETIN	
+Rate this document	Email link to this document	Open document in new window	Printable Page
+
+
+
+
+Purpose
+-------
+The purpose of this article is to show how to partially restore a database 
+backup. When you've accidentally dropped some objects or deleted rows from a 
+table you can restore a backup of that database as a copy. Using the archivelog
+files you can rollforward until a time just before the drop or delete. 
+After the rollforward you can export the data from that copy of the database. 
+That export can be used to import the data into the live database. When the 
+database is very large and you're only after a few objects it might not make 
+sense to restore the full backup. 
+
+This note describes how to restore, rollforward and open just that part of the 
+database that you really need.
+
+ 
+Partial restore of a database
+-----------------------------
+These are the steps you need to take when restoring just a part
+of a backup.
+
+1.  List all the datafiles you need to restore
+    In order to open the database without errors you will need the datafiles for
+    the following tablespaces:
+    + The User tablespace
+    + The SYSAUX tablespace (for 10g and higher only)
+    + Other tablespaces that hold dictionary information. You can use the 
+      following query to track these down:
+         select distinct tablespace_name from dba_segments where owner in 
+         ('SYS', 'User');
+    + The tablespace(s) that hold the rollback segments
+    + The tablespace(s) that hold the data that you want to export.
+
+2.  On your original machine, backup your control file to trace.
+    using: ALTER DATABASE BACKUP CONTROLFILE TO TRACE
+
+3.  Save this file (create control file script) on your second machine.
+
+4.  Edit this create control file script so it includes all the files in the 
+    tablespaces you wish to restore, as listed in step 1 (i.e., delete any files
+    that correspond to tablespaces that you are not interested in recovering.) 
+    While editing the create control file statement, make changes to the paths
+    of the files as required.
+
+5.  Restore the files as listed in the create control file statement.
+    that is, restore all the datafiles that were listed in step 1 as the 
+    datafiles you need.
+
+6.  Restore the init.ora file from the original database to the new database 
+    making any changes required to directory paths in the init.ora file.
+
+7.  Start nomount the database and run the create control file statement/script 
+    as prepared in step 4.
+
+8.  Make sure that all archivelog files are available.
+    In order to roll forward you need to have all the archivelog
+    files available from the time of the backup until the time that 
+    you want to roll forward to.
+
+9.  Bring the database up in MOUNT mode
+    SVRMGRL> ALTER DATABASE MOUNT
+
+10. Rollforward
+    SVRMGRL> RECOVER DATABASE UNTIL TIME '<YYYY-MM-DD:HH24:MI:SS>';
+    If you've restored an old controlfile you need to add
+    USING BACKUP CONTROLFILE to this command.
+
+11. Open the database
+    SVRMGRL> ALTER DATABASE OPEN RESETLOGS;
+    The database is now open, only the objects from the restored 
+    datafiles are accessible, they can now be exported and imported 
+    into the live database.

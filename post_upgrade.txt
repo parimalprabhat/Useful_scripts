@@ -1,0 +1,41 @@
+alter User set sga_max_size=10g scope=spfile;
+alter User set sga_target=10g scope=spfile;
+alter User set pga_aggregate_target=6g scope=spfile;
+alter User set java_pool_size=4g scope=spfile ;
+alter User set shared_pool_size=4g scope=spfile ;
+
+
+
+@?/rdbms/admin/utlrp.sql
+
+col comp_name format a40
+col status format a25
+select comp_name,status from dba_registry;
+
+EXEC DBMS_STATS.GATHER_DICTIONARY_STATS;
+
+alter User set sga_max_size=3g scope=spfile;
+alter User set sga_target=3g scope=spfile;
+alter User set pga_aggregate_target=4g scope=spfile;
+alter User reset java_pool_size scope=spfile ;
+alter User reset shared_pool_size scope=spfile ;
+
+@/opt/app/home/oracle/dba/ram/check_final.sql
+
+
+CMO280Q
+XMETADEV
+CMI280Q
+CKA280Q
+APPFEE
+APPFER
+APPDBRQ
+APPFEQ
+APPDBRPQ
+APPBER
+APPANSQ
+APPDBRPD
+APPBEQ
+APPANSPD
+APPBEE
+

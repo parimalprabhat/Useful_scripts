@@ -1,0 +1,61 @@
+ CREATE TABLE "SYS"."KILL_SESSION_AUDIT"
+   (    "DATE_KILLED" DATE,
+         "SID" NUMBER,
+         "SERIAL#" NUMBER,
+         "AUTHORIZED" VARCHAR2(100),
+        "CUR_OSUSER" VARCHAR2(100),
+         "CUR_SCHEMA" VARCHAR2(100),
+         "KILLED_OSUSER" VARCHAR2(100),
+         "KILLED_SCHEMA" VARCHAR2(100)
+   ) PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255
+ NOCOMPRESS LOGGING
+   STORAGE(INITIAL 81920 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+   PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+     BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+   TABLESPACE "SYSAUX"
+ ;
+
+
+
+
+  CREATE OR REPLACE PROCEDURE "SYS"."KILL_SESSION_NRSPPOC" (
+  p_sid in NUMBER,
+  p_serial# in NUMBER)
+IS 
+  v_sql            varchar2(300);
+  v_cur_schema     varchar2(100);
+  v_cur_osuser     varchar2(100);
+  v_killed_schema  varchar2(100);
+  v_killed_osuser  varchar2(100);
+  v_errormsg       varchar2(4000);
+BEGIN 
+  select upper(sys_context('USERENV','OS_USER')),upper(user) into v_cur_osuser, v_cur_schema    from dual;
+  begin 
+    select upper(osuser),upper(username) into v_killed_osuser, v_killed_schema
+    from gv$session where sid = p_sid and serial# = p_serial#;
+  exception
+    when no_data_found then RAISE_APPLICATION_ERROR (-20221,
+      'Session '''||p_sid||','||p_serial#||''' not found in current instance',
+      TRUE);
+  end;
+  -- check to see if user is logged on with the same os account as the user that is to be killed
+  if v_killed_schema in ('NRSPPOCUS')
+  then
+    insert into kill_session_audit
+           (DATE_KILLED,SID,SERIAL#,AUTHORIZED,CUR_OSUSER,CUR_SCHEMA,KILLED_OSUSER,KILLED_SCHEMA)
+    values (sysdate, p_sid, p_serial#, 'Y', v_cur_osuser, v_cur_schema, v_killed_osuser, v_killed_schema);
+    commit;
+    v_sql := 'alter User kill session '''||p_sid||','||p_serial#||''' immediate';
+    execute immediate v_sql;
+  else
+    insert into kill_session_audit
+           (DATE_KILLED,SID,SERIAL#,AUTHORIZED,CUR_OSUSER,CUR_SCHEMA,KILLED_OSUSER,KILLED_SCHEMA)
+    values (sysdate, p_sid, p_serial#, 'N', v_cur_osuser, v_cur_schema, v_killed_osuser, v_killed_schema);
+    commit;
+    RAISE_APPLICATION_ERROR (-20222,v_cur_osuser||'('||v_cur_schema||') not authorized to kill '||v_killed_osuser||'('||v_killed_schema||')',
+      TRUE);
+  end if;
+END;
+
+
+

@@ -1,0 +1,382 @@
+Analysis
+-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+Check the archives generated on Primary for each thread.
+==========================================================
+
+
+select thread#,max(sequence#) from v$archived_log group by thread#;
+
+
+   THREAD# MAX(SEQUENCE#)
+---------- --------------
+         1          69485
+         2          40926
+         3          80288
+
+
+Check the archives applied on Standby for each thread
+=========================================================
+
+
+select thread#,max(sequence#) from v$archived_log where applied='YES' group by thread#;
+
+
+            THREAD#      MAX(SEQUENCE#)
+------------------- -------------------
+                  1               66482
+                  2               39684
+                  3               78363
+
+
+
+Here we can see lot of difference in primary & standby around 3000 of archives for each thread.
+
+We can query from v$archive_gap
+==================================
+
+select * from v$archive_gap;
+
+
+If we have missed only one file But standby is far behind than primary, 
+Instead of copying those archives from primary & standby, 
+Here Rollforward is very quick.
+
+***************************************************************
+example :
+
+Here primary & standby redo difference is around
+
+Thread #1 (50mb logfile * 3000) = 150000 mb
+
+Thread # 2 (50mb logfile *3000) = 150000 mb
+
+Thread # 2 (50mb logfile *3000) = 150000 mb
+
+Its around 400gb of redo data need to apply on standby. 
+****************************************************************
+
+
+If the difference between primary and standby is more & more,
+recommended to take Incremental SCN/roll forward to reduce recovery window.
+
+
+
+Stop the MRP process.
+_______________________
+
+Cancel the Managed Recovery Process on the Standby database.
+
+
+alter database recover managed standby database cancel;
+
+
+
+Capture the CURRENT_SCN from Standby & Primary.
+_________________________________________________
+
+set numformat 99999999999999;
+select db_unique_name,database_role,current_scn from v$database;
+
+DB_UNIQUE_NAME                 DATABASE_ROLE            CURRENT_SCN
+------------------------------ ---------------- -------------------
+CCMPRD                         PHYSICAL STANDBY      10019626011223
+
+DB_UNIQUE_NAME                 DATABASE_ROLE          CURRENT_SCN
+------------------------------ ---------------- -------------------
+CCMPRD                         PRIMARY               10039799531600
+
+
+
+SCN Difference = 10039799531600 – 10019626011223= 20173520377
+
+
+Now take the backup of increments & controlfile.
+=====================================================
+
+From SCN 8276807480 until database.
+
+backup_standby_database.cmd
+
+D:\Oracle\Product\10.2.0\db_1\bin\rman TARGET sys/dr3amw0rk5@ccmprod CMDFILE F:\backup\standby_resync\scripts\backup_standby_database.rman LOG F:\backup\standby_resync\scripts\backup_standby_database.log APPEND
+
+backup_standby_database.rman
+
+run { 
+ allocate channel d1 device type disk; 
+ allocate channel d2 device type disk; 
+ allocate channel d3 device type disk; 
+ allocate channel d4 device type disk;
+ allocate channel d5 device type disk;
+ allocate channel d6 device type disk;
+ allocate channel d7 device type disk;
+ allocate channel d8 device type disk;
+ backup current controlfile format 'F:\backup\standby_resync\CCMPRD_control_pre_%U';
+ backup incremental from scn 10019626011223 database format 'F:\backup\standby_resync\CCMPRD_INCR_%t_%s_%p_%T'; 
+ backup current controlfile format 'F:\backup\standby_resync\CCMPRD_control_post_%U';
+ release channel d1;
+ release channel d2;
+ release channel d3;
+ release channel d4;
+ release channel d5;
+ release channel d6;
+ release channel d7;
+ release channel d8;
+}
+
+
+Backup current control file for standby.
+-------------------------------------------
+
+backup current controlfile for standby format 'F:\backup\standby_resync\CCMPROD_PRIMARY.ctl';
+
+
+Copy the backup’s to standby server.
+-------------------------------------------
+
+
+
+
+Tasks before restore.
+
+1) Bounce instance in “NOMOUNT” status.
+==========================================
+
+
+startup nomount
+
+
+
+2) Remove old control files as per the value of “control_files” in PFILE/SPFILE.
+====================================================================================
+
+[Standby] Check the location of the controlfile:
+--------------------------------------------------
+
+show parameter control_files
+
+
+
+3) We can use either RMAN/SQL to create controlfile, I have been used RMAN , and restored using RMAN.
+=========================================================================================================
+
+
+restore standby controlfile from 'location'
+
+restore standby controlfile from 'H:\standby_resync\CCMPROD_PRIMARY.CTL';
+
+
+4) Mount the standby database.
+=================================
+
+sql 'alter database mount standby database';
+
+
+
+Register backups with new control file.
+------------------------------------------
+
+catelog start with 'loaction';
+
+catalog start with 'H:\standby_resync';
+
+
+
+Perform media recovery from RMAN as below.
+---------------------------------------------
+-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+run
+{
+ allocate channel d1 device type disk; 
+ allocate channel d2 device type disk; 
+ allocate channel d3 device type disk; 
+ allocate channel d4 device type disk;
+ allocate channel d5 device type disk;
+ allocate channel d6 device type disk;
+ allocate channel d7 device type disk;
+ allocate channel d8 device type disk;
+set newname for datafile 1 to '+DATA/ccmprd/datafile/User.324.734303539';
+set newname for datafile 2 to '+DATA/ccmprd/datafile/undotbs1.322.734303541';
+set newname for datafile 3 to '+DATA/ccmprd/datafile/sysaux.323.734303541';
+set newname for datafile 4 to '+DATA/ccmprd/datafile/users.328.734303541';
+set newname for datafile 5 to '+DATA/ccmprd/datafile/undotbs2.333.734303659';
+set newname for datafile 6 to '+DATA/ccmprd/datafile/undotbs3.334.734303661';
+set newname for datafile 7 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_01.dbf';
+set newname for datafile 8 to '+DATA/ccmprd/datafile/ccm_company_cmdb_v1r4_prod_01.dbf';
+set newname for datafile 9 to '+DATA/ccmprd/datafile/ccm_nsc_prod_01.dbf';
+set newname for datafile 10 to '+DATA/ccmprd/datafile/ccm_nsc_mig_v3_01.dbf';
+set newname for datafile 11 to '+DATA/ccmprd/datafile/multi_sequenceno_01.dbf';
+set newname for datafile 12 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_02.dbf';
+set newname for datafile 13 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_03.dbf';
+set newname for datafile 14 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_04.dbf';
+set newname for datafile 15 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_05.dbf';
+set newname for datafile 16 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_06.dbf';
+set newname for datafile 17 to '+DATA/ccmprd/datafile/ccm_nsc_prod_02.dbf';
+set newname for datafile 18 to '+DATA/ccmprd/datafile/ccm_nsc_prod_03.dbf';
+set newname for datafile 19 to '+DATA/ccmprd/datafile/ccm_nsc_prod_04.dbf';
+set newname for datafile 20 to '+DATA/ccmprd/datafile/ccm_nsc_prod_05.dbf';
+set newname for datafile 21 to '+DATA/ccmprd/datafile/ccm_apac_uat.354.734416153';
+set newname for datafile 22 to '+DATA/ccmprd/datafile/ccm_apac_uat.355.734416197';
+set newname for datafile 23 to '+DATA/ccmprd/datafile/ccm_apac_uat.356.734416207';
+set newname for datafile 24 to '+DATA/ccmprd/datafile/ccm_apac_uat.357.734416213';
+set newname for datafile 25 to '+DATA/ccmprd/datafile/ccm_apac_uat.358.734416223';
+set newname for datafile 26 to '+DATA/ccmprd/datafile/ccm_apac_uat.359.734416229';
+set newname for datafile 27 to '+DATA/ccmprd/datafile/ccm_apac_uat.362.734418873';
+set newname for datafile 28 to '+DATA/ccmprd/datafile/ccm_apac_uat.363.734418881';
+set newname for datafile 29 to '+DATA/ccmprd/datafile/ccm_apac_uat.364.734420087';
+set newname for datafile 30 to '+DATA/ccmprd/datafile/ccm_apac_uat.365.734420095';
+set newname for datafile 31 to '+DATA/ccmprd/datafile/ccm_apac_uat.370.734420839';
+set newname for datafile 32 to '+DATA/ccmprd/datafile/ts_ccm_report_user_01.dbf';
+set newname for datafile 33 to '+DATA/ccmprd/datafile/undotbs1.317.753217089';
+set newname for datafile 34 to '+DATA/ccmprd/datafile/undotbs1.316.753217121';
+set newname for datafile 35 to '+DATA/ccmprd/datafile/undotbs1.315.753217239';
+set newname for datafile 36 to '+DATA/ccmprd/datafile/undotbs2.314.753217267';
+set newname for datafile 37 to '+DATA/ccmprd/datafile/undotbs2.326.753217585';
+set newname for datafile 38 to '+DATA/ccmprd/datafile/undotbs2.325.753217675';
+set newname for datafile 39 to '+DATA/ccmprd/datafile/undotbs3.372.753217685';
+set newname for datafile 40 to '+DATA/ccmprd/datafile/undotbs3.373.753217687';
+set newname for datafile 41 to '+DATA/ccmprd/datafile/undotbs3.374.753217691';
+set newname for datafile 42 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_07.dbf';
+set newname for datafile 43 to '+DATA/ccmprd/datafile/ccm_nsc_prod_06.dbf';
+set newname for datafile 44 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_23feb.391.776003881';
+set newname for datafile 45 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_23feb.392.776003901';
+set newname for datafile 46 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_23feb.393.776003907';
+set newname for datafile 47 to '+DATA/ccmprd/datafile/ccm_company_inst1_v1r2_23feb.394.776003915';
+set newname for datafile 48 to '+DATA/ccmprd/datafile/ccm_nsc_prod.405.833589485';
+set newname for datafile 49 to '+DATA/ccmprd/datafile/ccm_nsc_prod.406.842594721';
+recover database noredo;
+ release channel d1;
+ release channel d2;
+ release channel d3;
+ release channel d4;
+ release channel d5;
+ release channel d6;
+ release channel d7;
+ release channel d8;
+}
+
+-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+RMAN> recover database noredo;
+
+Starting recover at 19-JUL-14
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: sid=2165 devtype=DISK
+allocated channel: ORA_DISK_2
+channel ORA_DISK_2: sid=2164 devtype=DISK
+allocated channel: ORA_DISK_3
+channel ORA_DISK_3: sid=2163 devtype=DISK
+allocated channel: ORA_DISK_4
+channel ORA_DISK_4: sid=2162 devtype=DISK
+allocated channel: ORA_DISK_5
+channel ORA_DISK_5: sid=2161 devtype=DISK
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of recover command at 07/19/2014 06:02:04
+RMAN-06094: datafile 1 must be restored
+
+-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+
+
+
+
+
+*************************************************************
+After some time, the recovery fails with the message:
+
+archive log filename=/u01/oradata/1_8008_697108460.dbf thread=1 sequence=8009
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of recover command at 12/18/2009 06:53:02
+RMAN-11003: failure during parse/execution of SQL statement: alter database recover logfile '/u01/oradata/1_8008_697108460.dbf'
+ORA-00310: archived log contains sequence 8008; sequence 8009 required
+ORA-00334: archived log: '/u01/oradata/1_8008_697108460.dbf'
+
+*************************************************************
+
+
+After successful recovery, Start MRP once again
+--------------------------------------------------
+
+alter database recover managed standby database disconnect from session;
+
+
+
+Check the Archive sync in primary & standby databases.
+=============================================================
+
+Primary :
+--------------
+select thread#,max(sequence#) from v$archived_log group by thread#;
+
+
+
+Standby :
+--------------
+select thread#,max(sequence#) from v$archived_log where applied='YES' group by thread#
+
+
+
+
+Gaps :
+--------------
+
+select * from v$archive_gap;
+
+
+
+Useful Views for DataGuard:-
+
+V$managed_standby
+v$archive_dest
+V$dataguard_status                                                         
+v$archive_dest_status
+v$archive_gap                                                                    
+v$database
+v$dataguard_stats                                                            
+v$database_incarnation
+v$archived_log                                                                   
+v$datafilev$dataguard_config                                                          
+v$fs_failover_statsv$logfile                                                                                 
+v$log_history
+v$redo_dest_resp_histogram                                         
+v$standby_log
+
+
+
+Reference Links:-
+
+
+http://arup.blogspot.in/2009/12/resolving-gaps-in-data-guard-apply.html
+
+http://www.oracle-ckpt.com/rman-incremental-backups-to-roll-forward-a-physical-standby-database-2/
+
+
+Steps to perform for Rolling forward a standby database using RMAN incremental backup when primary and standby are in ASM fileUser [ID 836986.1]
+
+10.2: http://download.oracle.com/docs/cd/B19306_01/server.102/b14239/scenarios.htm#CIHIAADC
+
+11.1: http://download.oracle.com/docs/cd/B28359_01/server.111/b28294/rman.htm#SBYDB00759
+
+11.2: http://download.oracle.com/docs/cd/E11882_01/server.112/e17022/rman.htm#CIHIAADC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

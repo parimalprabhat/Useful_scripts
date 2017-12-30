@@ -1,0 +1,1888 @@
+Performance
+~~~~~~~~~~~~~~
+
+Info required:
+•	Please provide session details sid,serial#,username
+•	OS username
+•	what does the job do?
+•	what are the usual run times for the job?
+•	Is the first time this job is running?
+•	are you running this job at the time its supposed to? 
+•	When did the job last complete its run?
+•	What were the timings on the previous run?
+•	Is this the first time you are experiencing this problem?
+•	If it's the first time, what is the change?
+•	Is the volume of data the same if the job ran previously?
+•	Are the stats up-to-date for the involved tables?
+
+
+
+Check alertlog if RAC each node and ASM log for any I/O errors
+
+
+Checking for session progress.
+=======================================================
+Select sid,serial#,username,sql_id,event,machine from gv$session where username='&username';
+select event,p1,p2,p3,wait_time,seconds_in_wait from v$session_wait where sid = '&sid';
+
+select inst_id,sid,sql_id,username,event,machine,logon_time,sql_exec_start from gv$session where type <>'BACKGROUND' and  username not in ('SYS','DBSNMP','HPMONORA')and status ='ACTIVE' order by  sql_exec_start
+
+
+
+getting the running sql
+==========================
+select sql_text from v$sql where HASH_VALUE='&hash_value';
+
+select sql_text from v$sql where sql_id='&sql_id';
+
+
+
+find blocking sessions using v$lock
+=======================================================
+SELECT 
+   l1.sid || ' is blocking ' || l2.sid blocking_sessions
+FROM 
+   gv$lock l1, gv$lock l2
+WHERE
+   l1.block = 1 AND
+   l2.request > 0 AND
+   l1.id1 = l2.id1 AND
+   l1.id2 = l2.id2;
+
+
+
+blocking sessions with all available information
+=======================================================
+SELECT s1.username || '@' || s1.machine
+    || ' ( SID=' || s1.sid || ' )  is blocking '
+    || s2.username || '@' || s2.machine || ' ( SID=' || s2.sid || ' ) ' AS blocking_status
+    FROM gv$lock l1, gv$session s1, gv$lock l2, gv$session s2
+    WHERE s1.sid=l1.sid AND s2.sid=l2.sid
+    AND l1.BLOCK=1 AND l2.request > 0
+    AND l1.id1 = l2.id1
+    AND l2.id2 = l2.id2 ;
+
+
+
+
+identifying blocked objects
+=======================================================
+
+SELECT sid, id1 FROM v$lock WHERE TYPE='TM';
+
+SELECT object_name FROM dba_objects WHERE object_id='&id1';
+
+
+
+
+Finding the table name for an index
+========================================================
+select table_name from dba_indexes where index_name ='&index' and owner ='RRS';
+
+
+
+
+Finding Stale stats
+========================================================
+select table_name, stale_stats, last_analyzed 
+from dba_tab_statistics 
+where owner= '&owner_name' and stale_stats='YES'
+order by last_analyzed desc;
+
+select table_name, stale_stats, last_analyzed,OWNER from dba_tab_statistics where owner='&owner' and stale_stats='YES' order by last_analyzed desc;
+
+
+Checking the last_analyzed for table and partition
+=========================================================
+select table_name,partitioned,last_analyzed,num_rows from dba_tables where table_name='&table_name' and owner ='&owner';
+
+select table_name,partitioned,last_analyzed,num_rows from dba_tab_partitions where table_name='&table_name' and owner ='&owner';
+
+
+
+Finding the number of CRUD operation in tables
+=========================================================
+select TABLE_NAME,PARTITION_NAME,INSERTS,UPDATES,DELETES,TIMESTAMP,TRUNCATED from dba_tab_modifications where table_name in
+ (
+ 'table_name1',
+ 'table_name2',
+ 'table_name3') and table_owner ='owner_name' order by 1 ;
+
+
+
+Running Stat gather gather stat  table
+========================================================
+exec dbms_stats.gather_schema_stats('&owner_name');
+
+Stats gather for table
+--------------------------------------------------------
+exec dbms_stats.gather_table_stats(ownname=>'&owner',tabname=>'&table_name',cascade=>TRUE,DEGREE=>4,no_invalidate=>false);
+
+Stats gather for partition 
+--------------------------------------------------------
+exec dbms_stats.gather_table_stats(ownname=>'RRS',tabname=>'RA_RAW',partname=>'P20201403'granularity=>partition,cascade=>TRUE,DEGREE=>4,no_invalidate=>false);
+
+Stats gather for Index
+--------------------------------------------------------
+execute dbms_stats.gather_index_stats(ownname => 'RRS', indname =>'XRA_RAW_STORE_1', estimate_percent => DBMS_STATS.AUTO_SAMPLE_SIZE);
+
+
+
+Determining the execution plan
+========================================================
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE';
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE' and sid='&sid';
+
+
+
+getting the execution plan
+=============================
+SELECT * FROM table (DBMS_XPLAN.DISPLAY_CURSOR('&sql_id', 0));
+
+SELECT * FROM table(DBMS_XPLAN.DISPLAY_AWR('&sql_id'));
+
+select * from table(dbms_xplan.display_cursor('&sql_id',0));
+
+
+
+We have to check how the datais being fetched from the database if its using a full tablescan we need to check why, and why not indexes are being used.
+
+
+
+
+
+
+select plan_hash_value from v$sql where sql_id ='&sql_id';
+
+
+PLAN_HASH_VALUE
+---------------
+       !@#$$#$#$
+
+
+	
+select SNAP_ID,BEGIN_INTERVAL_TIME,END_INTERVAL_TIME from dba_hist_snapshot where SNAP_ID='&snap_id';
+
+
+Determine the all the execution plan for a sql_id
+========================================================
+
+select sql_id,plan_hash_value,snap_id,rows_processed_total,elapsed_time_total/(60*1000*1000) "elapse time in Mins" from dba_hist_sqlstat where sql_id='&sql_id';
+select plan_hash_value,count(1),sum(elapsed_time_delta),sum(executions_delta),sum(elapsed_time_delta)/sum(executions_delta)/1000000 from dba_hist_sqlstat where sql_id ='&sql_id' and plan_hash_value <>0 group by plan_hash_value;
+
+
+
+
+
+determine the last execution plan for the sql_id
+========================================================
+select sql_id,snap_id,PLAN_HASH_VALUE from dba_hist_sqlstat where sql_id='&sql_id' order by 2;
+
+
+
+flushing shared pool
+========================================================
+alter User flush shared_pool;
+
+
+
+
+alter User flush buffer_cache;
+
+Note:  Flushing the data buffer cache imposes a serious performance overhead, especially on RAC databases.  Using the flush buffer cache was intended only for test User. 
+
+The purpose of "alter User flush buffer cache" is to make all the buffers in the buffer cache free. However a buffer cannot become free if it is "pinned" (i.e. actualy in use) or if it is "dirty" (i.e. needs to be written to disc). There's nothing that Oracle can do about the pinned buffers, but it can write the content of the dirty buffers to disk before freeing them.
+
+
+
+
+run sql tuneup script
+========================================================
+cd $ORACLE_HOME/rdbms/admin
+
+@sqltrpt.sql
+
+
+
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE';
+
+select sid,serial#,sql_hash_value,sql_id from v$session where status='ACTIVE' and sid='&sid';
+
+select plan_hash_value from v$sql where sql_id ='&sql_id';
+
+
+
+
+cursor issue:
+================
+
+ORA-01000 maximum open cursors exceeded
+
+is a typical issue in those applications where connection pools are being used.
+ 
+The open_cursors is a session level limit.
+In those applications where we are using connection pools, the connection pool has pre-connected sessions to the database. 
+When an application sessions wants to connect to the database, it gets hold off to one such pre-connected session.
+Once the application session completes its work, the application session might log off but the database connection is not logged off. The connection is released back to the connection pool.
+ 
+So the ideal fix for this is to review the application and ensure that we close all the cursors that we open.
+ 
+Even if we increase the open_cursors parameter in the database without a proper review of the application, we would be delaying the onset of the problem but not resolving it i.e., the ORA-01000 which is now being reported once we exceed 300, would get reported once we breach the limit of 1000
+
+
+
+
+
+
+
+
+
+bump up the open_cursors parameter 
+==========================================
+alter User set open_cursors = 1000 scope=both;
+
+
+Also it is not recommended to blindly bump up the value of the open_cursors parameter since it would have some detrimental effect on the database performance as well
+
+
+show parameter cursor;
+
+
+
+Which users are currently having these open cursors:
+------------------------------------------------------
+
+select sum(a.value) total_cur, avg(a.value) avg_cur,
+max(a.value) max_cur, s.username, s.machine
+from v$sesstat a, v$statname b, v$session s
+where a.statistic# = b.statistic# and s.sid=a.sid
+and b.name = 'opened cursors current'
+group by s.username, s.machine order by 1 desc;
+
+
+
+
+
+
+
+
+
+Find the value of open_cursore for a perticular session
+==========================================================
+
+select a.value, s.username, s.sid, s.serial#
+from v$sesstat a, v$statname b, v$session s
+where a.statistic# = b.statistic#  and s.sid=a.sid
+and b.name = 'opened cursors current' order by s.username;
+
+
+Find the value of open_cursore for a perticular session greater than the limit
+================================================================================
+ select a.value, s.username, s.sid, s.serial#
+from v$sesstat a, v$statname b, v$session s
+where a.statistic# = b.statistic#  and s.sid=a.sid
+and b.name = 'opened cursors current' and a.value > '&limit' order by s.username;
+
+max number of cursors per database to be 300 from the following query
+================================================================================
+
+select max(a.value) as highest_open_cur, p.value as max_open_cur
+  from v$sesstat a, v$statname b, v$parameter p
+  where a.statistic# = b.statistic#
+  and b.name = 'opened cursors current'
+  and p.name= 'open_cursors'
+  group by p.value; 
+
+
+userwise open cursor details
+=============================
+
+select s.username, max(a.value)
+ from v$sesstat a, v$statname b, v$session s
+where a.statistic# = b.statistic#
+and s.sid (+)= a.sid
+ and b.name = 'opened cursors current'
+ group by s.username;
+
+
+
+ref : http://www.jusuchyne.com/codingforme/database/oracle-ora-01000-maximum-open-cursors-exceeded-exception/
+
+
+
+enable session level tracing 
+==============================
+
+SQL> execute dbms_User.set_sql_trace_in_session(&sid,&serial#,true);
+
+
+10046
+
+
+
+
+
+
+to get the exact sql_id running at a point of time in database
+=================================================================
+select SAMPLE_TIME,SQL_ID,WAIT_TIME from DBA_HIST_ACTIVE_SESS_HISTORY where SAMPLE_TIME like '16-JUN-14 05.26.01.687 PM';
+
+select SAMPLE_TIME,SQL_ID,WAIT_TIME from DBA_HIST_ACTIVE_SESS_HISTORY where SAMPLE_TIME like '16-JUN-14 05.26%';
+
+
+select distinct SQL_ID from DBA_HIST_ACTIVE_SESS_HISTORY where SAMPLE_TIME like '16-JUN-14 05.26%';
+
+
+
+
+
+
+
+
+
+
+
+
+-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+general sql's
+~~~~~~~~~~~~~~~
+
+purging developed by Travis it would purge all trace files that are older than 90 sers
+I just changed it to purge eveyrthing that is older than 10 sers
+========================================================================================
+serrheorau003:
+/opt/app/oracle/admin/scripts/logfile_maintenance_job_11g.ksh
+
+
+
+
+oracle  12c
+=================
+
+sysman
+dban1elsen
+
+
+changing the schema name
+============================= 
+
+ALTER SESSION SET CURRENT_SCHEMA=MV_PROMPT_NOCR
+
+password_file
+================
+/u01/app/oracle/dba/util/cntl
+
+
+
+
+what operation is being done in asm
+=====================================================
+select * from v$asm_operation;
+
+
+
+
+alter rollback segment sysrol online;
+
+
+
+Adding a datafile.
+=============================================================
+------fileUser--------
+
+
+alter tablespace APPLOGPROD_TBSP add datafile '&file_name_with_full_path.dbf' size 10G;
+
+alter tablespace <table_space> add datafile '/full_pah.dbf' size 200M autoextend on;
+
+----ASM :- +DATA/-------
+alter tablespace <table_space> add datafile '+DATA' size 200M autoextend on;
+
+checking for tablespace.
+==============================================================
+	
+select FILE_NAME, BYTES/1024/1024/1024, MAXBYTES/1024/1024/1024, TABLESPACE_NAME, AUTOEXTENSIBLE from dba_data_files where TABLESPACE_NAME ='&tablespace';
+
+
+
+Checking for tablespace more utilized
+==============================================================
+select TABLESPACE_NAME,USED_SPACE,TABLESPACE_SIZE,USED_PERCENT from dba_tablespace_usage_metrics;
+select TABLESPACE_NAME,USED_SPACE,TABLESPACE_SIZE,USED_PERCENT from dba_tablespace_usage_metrics where USED_PERCENT>70;
+
+
+Checking the tablespace utilization 
+=========================================================
+SELECT Total.name "Tablespace Name",
+       nvl(Free_space, 0) Free_space,
+       nvl(total_space-Free_space, 0) Used_space, 
+       total_space
+FROM
+  (select tablespace_name, sum(bytes/1024/1024) Free_Space
+     from sys.dba_free_space
+    group by tablespace_name
+  ) Free,
+  (select b.name,  sum(bytes/1024/1024) TOTAL_SPACE
+     from sys.v_$datafile a, sys.v_$tablespace B
+    where a.ts# = b.ts#
+    group by b.name
+  ) Total
+WHERE Free.Tablespace_name(+) = Total.name
+ORDER BY Total.name;
+
+
+finding the free space in ASM
+=================================
+select NAME, TOTAL_MB/1024, FREE_MB/1024 from v$asm_diskgroup;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TEMPFILES
+===========
+
+Just for your understanding
+---------------------------------
+
+Temp and Undo are common to all the schemas of the database. 
+
+Though each schema could have its own dedicated temporary tablespace.......in most of the configurations we just have one temporary tablespace and this is shared by all the schemas.
+
+There could only be one Undo tablespace per database instance and hence in a standalone configurations we just have one Undo tablespace ( In a cluster configuration each instance would have its own dedicated Undo tablespace )
+
+A session uses these tablespaces when it does some processing/computation ( temp is primarily used during sort operations, joins etc., and undo for storing the past image during modifications ) and once the session has completed its work the space that it consumed in these tablespaces becomes free and it could be reused by other sessions as and when required.
+
+If we size temp and undo properly and if the application is well tuned, we would never be in a situation to extend them.
+
+We should always be cautious before we add more space to these tablespaces because most often it would be a suboptimal application query or not a well-designed process that would lead to space related issues with regards to temp and undo.
+Under such circumstances adding more space would never help us to fix the issue.
+At the same time if your application is a data warehouse or decision support User where lots of large/heavy analytical processing is done, there could be a real need for a very large temporary tablespace.
+That is where we need your help. Since we do not know the real nature of your processing we will not be able to size these tablespace properly without appropriate inputs from you.
+
+
+
+UNDO
+======
+https://dbpost.wordpress.com/tag/calculating-undo_retention-for-given-undo-tabespace/
+
+
+Calculating UNDO_RETENTION for given UNDO Tabespace :
+
+
+
+optimal undo retention= (actual undo size)/(db_block_size * undo_block_per_sec)
+
+Actual Undo Size :
+------------------
+
+SELECT SUM(a.bytes) "UNDO_SIZE"
+ FROM v$datafile a,
+ v$tablespace b,
+ dba_tablespaces c
+ WHERE c.contents = 'UNDO'
+ AND c.status = 'ONLINE'
+ AND b.name = c.tablespace_name
+ AND a.ts# = b.ts#;
+
+Undo Blocks per Second :
+-----------------------
+
+SELECT MAX(undoblks/((end_time-begin_time)*3600*24))
+ "UNDO_BLOCK_PER_SEC"
+ FROM v$undostat;
+
+
+DB Block Size :
+---------------
+
+SELECT TO_NUMBER(value) "DB_BLOCK_SIZE [KByte]"
+ FROM v$parameter
+WHERE name = 'db_block_size';
+
+
+Using Inline Views:
+----------------------
+
+SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
+ SUBSTR(e.value,1,25) "UNDO RETENTION [Sec]",
+ ROUND((d.undo_size / (to_number(f.value) *
+ g.undo_block_per_sec))) "OPTIMAL UNDO RETENTION [Sec]"
+ FROM (
+ SELECT SUM(a.bytes) undo_size
+ FROM v$datafile a,
+ v$tablespace b,
+ dba_tablespaces c
+ WHERE c.contents = 'UNDO'
+ AND c.status = 'ONLINE'
+ AND b.name = c.tablespace_name
+ AND a.ts# = b.ts#
+ ) d,
+ v$parameter e,
+ v$parameter f,
+ (
+ SELECT MAX(undoblks/((end_time-begin_time)*3600*24))
+ undo_block_per_sec
+ FROM v$undostat
+ ) g
+WHERE e.name = 'undo_retention'
+ AND f.name = 'db_block_size'
+/
+ACTUAL UNDO SIZE [MByte]
+------------------------
+1500
+UNDO RETENTION [Sec]
+--------------------
+900
+OPTIMAL UNDO RETENTION [Sec]
+----------------------------
+770
+
+
+
+shrink the Tempfiles
+========================================== 
+set line 300
+col file_name format a77
+select file_name,sum(bytes)/1024/1024/1024 from dba_temp_files group by file_name;
+
+
+select USERNAME,TABLESPACE,SQL_ID,BLOCKS*8192/1024/1024/1024 from gv$sort_usage;
+
+
+SELECT se.username username,
+se.SID sid, se.serial# serial#,
+se.status status, se.sql_hash_value,
+se.prev_hash_value,se.machine machine,
+su.TABLESPACE tablespace,su.segtype,
+su.CONTENTS CONTENTS
+FROM v$session se,
+v$sort_usage su
+WHERE se.saddr=su.session_addr;
+
+
+
+ 
+alter database tempfile '/db10_new/oradata/rfntux/RFNTDATATEMP_QCSC02.ORA' resize 10G;
+ 
+11g ---> alter tablespace TEMP shrink space;
+3.Try to run maxshrink on Datafiles :
+ 
+Check autoextensible enabled or not?
+ 
+SQL> select distinct autoextensible from dba_Data_Files;
+If Yes ...> Proceed
+ 
+SQL> select distinct autoextensible,count(*) from dba_Data_Files group by autoextensible;
+select 'alter database datafile '''||file_name||''' autoextend on ;' from dba_data_files where autoextensible='NO';
+ 
+SQL> select distinct autoextensible,count(*) from dba_Data_Files group by autoextensible;
+serrheorad001 --- oracle/dbat3am
+cd /home/oracle/dba/ram
+DEV:[TIBSOAD1]oracle@serrheorad001:/home/oracle/dba/ram
+==> scp maxshrink.sql nasolora012:/oracle/dba/ram
+Password:
+maxshrink.sql 100% 1201 1.2KB/s 00:0
+DEV:[TIBSOAD1]oracle@serrheorad001:/home/oracle/dba/ram
+ 
+ 
+@maxshrink.sql 
+
+COL TABLESPACE_SIZE FOR 999,999,999,999
+COL ALLOCATED_SPACE FOR 999,999,999,999
+COL FREE_SPACE FOR 999,999,999,999
+ SELECT TABLESPACE_SIZE/1024/1024/1024,ALLOCATED_SPACE/1024/1024/1024,FREE_SPACE/1024/1024/1024 FROM   dba_temp_free_space;
+
+
+
+the first view of the current database default table space:
+--------------------------------------------------------------
+SQL> select * from database_properties where property_name = 'DEFAULT_TEMP_TABLESPACE';
+
+Confirm the current temporary tablespace TEMP
+
+2, the view of the size of the temporary table space:
+--------------------------------------------------------------
+SQL> select file_name, tablespace_name, bytes/1024/1024 "MB", autoextensible from dba_temp_files;
+
+3, create a new temporary table space: (first borrow space in the disk space)
+---------------------------------------------------------------------------------
+SQL> create temporary tablespace temp02 tempfile '/ oracle/oms/oradata/undo/temp02.dbf'size 512M;
+
+4, the new temporary table space is replaced by the default temporary tablespace for the database
+---------------------------------------------------------------------------------------------------
+
+SQL> alter database default temporary tablespace temp02;
+
+
+5, confirm the current database's default temporary table space
+------------------------------------------------------------------
+
+SQL> select * from database_properties where property_name = 'DEFAULT_TEMP_TABLESPACE';
+
+Recognized temp02 current database default table space 
+
+6, delete temp temporary table space before the first operation in the the temp temporary 
+table space statement kill off this sql statement to sort statement
+-------------------------------------------------------------------------------------------
+
+
+
+col USERNAME form a20;
+Select se.username, se.sid, se.serial#, su.extents, su.blocks * to_number (rtrim (p.value))/1024/1024/1024 as "Space in GB",
+tablespace, segtype, sql_text
+from v$sort_usage su, v$parameter p, v$session se, v$sql s
+where p.name = 'db_block_size' and su.session_addr = se.saddr and s.hash_value = su.sqlhash
+and s.address = su.sqladdr
+order by se.username, se.sid;
+
+
+
+After check out, kill out the SQL statement:
+--------------------------------------------------------------
+
+SQL> alter User kill session '524, 778 '; (if a one run sql statement SID 524 Serial # to 778)
+
+Confirmation is not running in the the temp temporary table space SQL statement, you can delete temp temporary table space data file
+
+7, delete temp temporary table space
+--------------------------------------------------------------
+
+SQL> drop tablespace temp including contents and datafiles;
+
+Soon be able to delete the temporary table space data file
+
+8 temp02 temporary table space occupied disk space of others, need to re-establish temporary table space in the original position, re-create the temp temporary tablespace
+--------------------------------------------------------------
+
+SQL> create temporary tablespace temp tempfile '/ oracle/oms/oradata/temp/temp01.dbf' size 512M autoextend on maxsize 15G;
+
+
+Create a new 512M automatic extension of the temporary table space, the largest expansion to 15G.
+------------------------------------------------------------------------------------------------------
+
+View the new temp temporary table space is correct:
+--------------------------------------------------------------
+
+SQL> select file_name, tablespace_name, bytes/1024/1024, maxbytes/1024/1024, autoextensible from dba_temp_files;
+
+9 new the temp temporary table space is replaced by the database default temporary tablespace
+-----------------------------------------------------------------------------------------------
+SQL> alter database default temporary tablespace temp;
+
+
+10, confirm the current database's default temporary table space
+-------------------------------------------------------------------
+SQL> select * from database_properties
+where property_name = 'DEFAULT_TEMP_TABLESPACE';
+
+Recognized temp for the current database default tablespace
+
+
+11, the original the temp temporary table space into a 512M, empty out the remaining disk space temp02 temporary table space,
+ there is no use, delete temp02 temporary table space
+-------------------------------------------------------------------------------------------------------------------
+SQL> drop tablespace temp02 including contents and datafiles; 
+
+
+ref : http://www.databaseskill.com/3462715/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SIZE
+
+
+
+Checking the size of the database:
+===================================
+
+Finding Db status
+
+
+
+select a.host_name "Server",b.name "Database",b.open_mode "Database Status" from v$database b,v$instance a;
+col "Server" format a30
+col "Database" format a30
+col "Database Status" format a30
+select round(sum(bytes)/1024/1024/1024,2)||' GB' "Size Allocated to the DB" from dba_data_files;
+select round(sum(bytes)/1024/1024/1024,2)||' GB' "Database Current Size" from dba_segments;
+select distinct tablespace_name "Tablespaces In the Database" from dba_data_files;
+select owner "Schemas",round(sum(bytes)/1024/1024/1024,2)||' GB' "Size Of schema" from dba_segments group by owner;
+
+
+select round(sum(bytes)/1024/1024/1024,2)||' GB' "Size Of schema" from dba_segments where owner='&owner';
+
+
+find the table size 
+======================
+
+select
+segment_name table_name, 
+sum(bytes)/(1024*1024) table_size_meg
+from user_extents
+where segment_type='TABLE'
+and segment_name = '&table_name'
+group by segment_name;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+RMAN
+
+
+
+
+
+
+RMAN BACKUP
+============
+
+*********************************************
+
+#00 00 * * * /remotebu/rman_sample_script.sh
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+allocate channel d4 device type disk;
+allocate channel d5 device type disk;
+allocate channel d6 device type disk;
+backup current controlfile format '/remotebu/rman/RFPH01PR_control_pre_%U';
+backup as compressed backupset database format '/remotebu/rman/RFPH01PR_cold_%U';
+backup current controlfile format '/remotebu/rman/RFPH01PR_control_post_%U';
+release channel d1;
+release channel d2;
+release channel d3;
+release channel d4;
+release channel d5;
+release channel d6;
+}
+ 
+rman target /
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+allocate channel d4 device type disk;
+allocate channel d5 device type disk;
+allocate channel d6 device type disk;
+backup current controlfile format 'J:\RMAN\cold_backup_monthly\RFNT_control_pre_%U';
+backup as compressed backupset database format 'J:\RMAN\cold_backup_monthly\RFNT_cold_%U';
+backup current controlfile format 'J:\RMAN\cold_backup_monthly\RFNT_control_post_%U';
+release channel d1;
+release channel d2;
+release channel d3;
+release channel d4;
+release channel d5;
+release channel d6;
+}
+
+TO check the RMAN progress
+=============================
+set line 300;
+alter session set nls_date_format='DD-MM-YYYY hh24:mi:ss';
+select SID, START_TIME,TOTALWORK, sofar, (sofar/totalwork) * 100 done,sysdate + TIME_REMAINING/3600/24 end_at from v$session_longops where totalwork > sofar AND opname NOT LIKE '%aggregate%';
+
+
+
+
+
+SELECT a.sid,
+         a.serial#,
+         b.username,
+         opname OPERATION,
+         target OBJECT,
+         TRUNC (elapsed_seconds, 5) "ET (s)",
+         TO_CHAR (start_time, 'HH24:MI:SS') start_time,
+         ROUND ( (sofar / totalwork) * 100, 2) "COMPLETE (%)"
+    FROM v$session_longops a, v$session b
+   WHERE     a.sid = b.sid
+         AND b.username NOT IN ('SYS', 'User')
+         AND totalwork > 0
+ORDER BY elapsed_seconds;
+
+
+
+
+set pages 50000 lines 32767
+col OPNAME for a10
+col SID form 9999
+col SERIAL form 9999999
+col PROGRAM for a10
+col USERNAME for a10
+col SQL_TEXT for a40
+col START_TIME for a10
+col LAST_UPDATE_TIME for a10
+col TARGET for a25
+col MESSAGE for a25
+
+alter session set nls_date_format = 'DD-MM-YYYY HH24:MI:SS';
+
+SELECT inst_id,sid, serial#, sql_id, opname, username, target, sofar, totalwork, start_time,last_update_time,round(time_remaining/60,2) "REMAIN MINS", round(elapsed_seconds/60,2) "ELAPSED MINS", round((time_remaining+elapsed_seconds)/60,2) "TOTAL MINS", ROUND(SOFAR/TOTALWORK*100,2) "%_COMPLETE", message
+FROM gv$session_longops WHERE OPNAME  LIKE 'RMAN%' AND OPNAME NOT LIKE '%aggregate%' AND TOTALWORK != 0 AND sofar<>totalwork AND time_remaining > 0 
+/ 
+
+
+
+
+Applied PSU
+==============
+
+select comments, version, bundle_series from sys.registry$history where bundle_series = 'PSU' order by action_time;
+
+
+
+
+
+
+
+
+
+
+
+Linster
+================
+lsnrctl status
+lsnrctl stop
+
+
+
+for finding the enterprise manager link
+=========================================
+emctl status dbconsole
+emctl start dbconsole
+
+
+Killing session
+=================
+
+select sid,serial#,username,status,sql_hash_value,TO_CHAR(logon_time, 'DD-MON-YYYY HH24:MI:SS')TIME from v$session where status='ACTIVE' and username <> 'SYS';
+
+select sid,serial#,username,status,sql_id,TO_CHAR(logon_time, 'DD-MON-YYYY HH24:MI:SS')TIME,machine from v$session where status='ACTIVE' and username <> 'SYS';
+
+select sid,serial#,username,status,sql_id,TO_CHAR(logon_time, 'DD-MON-YYYY HH24:MI:SS')TIME,machine,inst_id from gv$session where status='ACTIVE' and username <> 'SYS';
+
+select sid,serial#,username,status,sql_id,TO_CHAR(logon_time, 'DD-MON-YYYY HH24:MI:SS')TIME from gv$session where sid='&sid';
+
+
+
+to select process to kill and get OS process ID:
+
+============================================================================
+select spid, sid, a.serial#, b.username from v$session a, v$process b where a.serial#=&serial and a.paddr=b.addr;
+
+
+select username,sql_hash_value ,sid,status from v$session where paddr=(select addr from v$process where spid=&spid);
+
+
+
+Kill session
+===============
+SQL> select logon_time, 'alter User kill session '''||sid||','||serial#||',@'||inst_id||''';' from gv$session where  TRUNC(SYSDATE - LOGON_TIME)<2;
+
+LOGON_TIM 'ALTERUserKILLSESSION'''||SID||','||SERIAL#||',@'||INST_ID||''';'
+--------- --------------------------------------------------------------------------------------------------------------------------------------------------------
+30-DEC-14 alter User kill session '29,8321,@1';
+30-DEC-14 alter User kill session '30,11407,@1';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reports
+~~~~~~~~
+awk report 
+===========================================
+@$ORACLE_HOME/rdbms/admin/awrrpt.sql
+@?/rdbms/admin/awrrpti.sql
+
+
+@?/rdbms/admin/awrrpt.sql
+
+
+
+
+
+
+
+
+
+
+Commands for Hanganalyze & Userstate
+===============================================
+
+Single Instance Non-RAC Database:
+
+Hanganalyze
+sqlplus '/ as sysdba'
+oradebug setmypid
+oradebug unlimit
+oradebug hanganalyze 3
+-- Wait one minute before getting the second hanganalyze
+oradebug hanganalyze 3
+oradebug tracefile_name
+exit
+
+Userstate
+sqlplus '/ as sysdba'
+oradebug setmypid
+oradebug unlimit
+oradebug dump Userstate 266
+oradebug dump Userstate 266
+oradebug tracefile_name
+exit
+
+RAC Database
+
+There are 2 bugs affecting RAC that without the relevant patches being applied on your User, make using level 266 or 267 very costly. Therefore without these fixes in place it highly unadvisable to use these level.
+
+RAC Hanganalyze and Userstate with fixes for bug 11800959 and 11827088
+sqlplus '/ as sysdba'
+oradebug setorapname reco
+oradebug  unlimit
+oradebug -g all hanganalyze 3
+oradebug -g all hanganalyze 3
+oradebug -g all dump Userstate 266
+oradebug -g all dump Userstate 266
+exit
+
+RAC Hanganalyze and Userstate without fixes for bug 11800959 and 11827088
+sqlplus '/ as sysdba'
+oradebug setorapname reco
+oradebug unlimit
+oradebug -g all hanganalyze 3
+oradebug -g all hanganalyze 3
+oradebug -g all dump Userstate 258
+oradebug -g all dump Userstate 258
+exit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Oracle Profile
+=====================================================
+
+export PATH=/opt/app/oracle/product/10.2.0/db_1/bin:$PATH
+export ORACLE_HOME=/opt/app/oracle/product/11.2.0.3/client_1
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib
+
+
+
+
+
+export PATH=/opt/app/oracle/product/11.2.0.3/client_1/bin:$PATH
+export ORACLE_HOME=/opt/app/oracle/product/11.2.0.3/client_1/
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib
+
+
+
+
+
+
+
+
+
+Bringing up standalone Database
+=====================================================
+
+SQL> select name, open_mode from v$database;   
+
+NAME      OPEN_MODE
+--------- ----------
+CCMPRD    READ ONLY
+ 
+SQL> shu immediate;
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+SQL> startup nomount;
+ORACLE instance started.
+
+Total User Global Area 6442450944 bytes
+Fixed Size                  2087192 bytes
+Variable Size            2080376552 bytes
+Database Buffers         4328521728 bytes
+Redo Buffers               31465472 bytes
+SQL> alter database mount standby database;
+
+Database altered.
+ 
+SQL> alter database recover managed standby database disconnect from session;
+
+Database altered.
+
+SQL> select name, open_mode from v$database;
+
+NAME      OPEN_MODE
+--------- ----------
+CCMPRD    MOUNTED
+
+SQL> select process, status, sequence# from v$managed_standby;
+
+PROCESS   STATUS        SEQUENCE#
+--------- ------------ ----------
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+ARCH      CONNECTED             0
+MRP0      WAIT_FOR_GAP      60373
+RFS       IDLE                  0
+RFS       IDLE              60373
+RFS       IDLE                  0
+RFS       IDLE                  0
+
+11 rows selected.
+
+
+
+
+
+
+
+
+
+
+
+generating runbook in CCM
+===========================
+
+SET MARKUP HTML ON ENTMAP ON SPOOL ON PREFORMAT OFF ;
+set linesize 500
+set pagesize 1000
+alter session set nls_date_format = 'mm/dd/yyyy hh24:mi:ss';
+spool 'D:\new_run.xls'
+select *
+  from ccm_company_inst1_v1r2.view_tickets_region_oracle
+where "Ticket Logged Date" between
+       to_date('10/01/2012 00:00:00', 'mm/dd/yyyy hh24:mi:ss') and
+       to_date(SYSDATE, 'mm/dd/yyyy hh24:mi:ss') and "Status"<>'Closed' and "Status"<>'Resolved' and "Status"<>'TransferredClosed' order by "Ticket No";
+spool off;
+exit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Recomplile package/body/view/function/trigger
+=================================================
+
+identifying the object which is INVALID
+
+COLUMN object_name FORMAT A30
+SELECT owner,
+       object_type,
+       object_name,
+       status
+FROM   dba_objects
+WHERE  status = 'INVALID'
+ORDER BY owner, object_type, object_name;
+
+select count(*),status from dba_objects where owner='&owner' group by status;
+
+
+
+ALTER PACKAGE my_package COMPILE;
+ALTER PACKAGE &my_package COMPILE BODY;
+ALTER PROCEDURE my_procedure COMPILE;
+ALTER FUNCTION &my_function COMPILE;
+ALTER TRIGGER my_trigger COMPILE;
+ALTER VIEW my_view COMPILE;
+
+
+
+An alternative approach is to use the DBMS_DDL package to perform the recompilations.
+
+EXEC DBMS_DDL.alter_compile('PACKAGE', 'MY_SCHEMA', 'MY_PACKAGE');
+EXEC DBMS_DDL.alter_compile('PACKAGE BODY', '&MY_SCHEMA', 'MY_PACKAGE');
+EXEC DBMS_DDL.alter_compile('PROCEDURE', 'MY_SCHEMA', 'MY_PROCEDURE');
+EXEC DBMS_DDL.alter_compile('FUNCTION', 'MY_SCHEMA', 'MY_FUNCTION');
+EXEC DBMS_DDL.alter_compile('TRIGGER', 'MY_SCHEMA', 'MY_TRIGGER');
+
+
+
+The COMPILE_SCHEMA procedure in the DBMS_UTILITY package compiles all procedures, functions, packages, and triggers in the specified schema
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+EXEC DBMS_UTILITY.compile_schema(schema => '&owner');
+
+utlrp.sql and utlprp.sql
+-------------------------
+The utlrp.sql and utlprp.sql scripts are provided by Oracle to recompile all invalid objects in the database. They are typically run after major database changes such as upgrades or patches. They are located in the $ORACLE_HOME/rdbms/admin directory and provide a wrapper on the UTL_RECOMP package. The utlrp.sql script simply calls the utlprp.sql script with a command line parameter of "0". The utlprp.sql accepts a single integer parameter that indicates the level of parallelism as follows.
+
+    0 - The level of parallelism is derived based on the CPU_COUNT parameter.
+    1 - The recompilation is run serially, one object at a time.
+    N - The recompilation is run in parallel with "N" number of threads.
+
+Both scripts must be run as the SYS user, or another user with SYSDBA, to work correctly.
+
+
+ref :
+
+http://www.oracle-base.com/articles/misc/recompiling-invalid-schema-objects.php
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Moving a datafile added in FileUser to ASM
+----------------------------------------------
+
+1.Take the tablespace offline, you may take offline a single datafile from a multifile tablespace if required
+
+ALTER TABLESPACE TRTST OFFLINE;
+
+2. Check where are your datafiles located on ASM
+
+SELECT FILE_NAME FROM DBA_DATA_FILES;
+
+3. Log out from sqlplus, start an RMAN session and execute the copy command
+
+RMAN> copy datafile '/u01/oradata/racdb/trtst01.dbf' to '+DATA';
+
+tarting backup at 19-JUN-07
+using channel ORA_DISK_1
+channel ORA_DISK_1: starting datafile copy
+input datafile fno=00006 name=/u01/oradata/racdb/trtst01.dbf
+output filename=+DATADG/racdb/datafile/trtst.263.625644857 tag=TAG20070619T061416 recid=1 stamp=625644858
+channel ORA_DISK_1: datafile copy complete, elapsed time: 00:00:04
+
+
+
+RMAN> switch datafile ' /u01/oradata/racdb/trtst01.dbf' to copy;
+
+or 
+
+Start an sqlplus session, rename the old file to the new ASM file
+
+alter database rename file '/u01/oradata/racdb/trtst01.dbf' to '+DATADG/racdb/datafile/trtst.263.625644857';
+
+
+4. Bring the tablespace online
+
+alter tablespace trtst online;
+
+
+5. Remove the old file
+
+rm /u01/oradata/racdb/trtst01.dbf
+
+ref : https://blogs.oracle.com/AlejandroVargas/entry/moving_a_datafile_from_file_sy
+
+
+
+
+
+
+
+
+
+To check the priveledges assigned to  a role
+======================================================
+
+select OWNER,TABLE_NAME,COLUMN_NAME,PRIVILEGE,GRANTABLE from ROLE_TAB_PRIVS where ROLE ='&role' order by owner
+
+select 'grant '|| GRANTED_ROLE|| ' to &touser;' from dba_role_privs where GRANTEE='&username';
+
+select 'grant '||privilege || ' to &touser;' from dba_sys_privs where grantee='&username';	
+
+
+select 
+
+
+checking grants in a role
+
+SELECT * FROM role_sys_privs;
+SELECT * FROM role_sys_privs where role='&role_name';
+
+
+SELECT * FROM role_tab_privs;
+SELECT * FROM role_tab_privs where role='&role_name';
+
+
+spool on
+set heading off
+
+exec dbms_metadata.set_transform_param(dbms_metadata.session_transform, 'SQLTERMINATOR', true);
+spool my_created_roles1.sql
+
+SELECT DBMS_METADATA.GET_DDL('ROLE', &role)||';' FROM dba_roles;
+spool my_created_roles2.sql
+
+SELECT DBMS_METADATA.GET_GRANTED_DDL('ROLE_GRANT', role) FROM role_role_privs;
+spool my_created_roles3.sql
+
+SELECT DBMS_METADATA.GET_GRANTED_DDL('User_GRANT', role) FROM ROLE_SYS_PRIVS;
+spool my_created_roles4.sql
+
+SELECT DBMS_METADATA.GET_GRANTED_DDL('OBJECT_GRANT', role) FROM ROLE_TAB_PRIVS;
+spool off
+
+
+
+
+gettting DDL get_ddl get ddl meatadata
+================================
+
+select  dbms_metadata.get_ddl('USER', '&users') || '/' usercreate from DUAL;
+select  dbms_metadata.get_ddl('USER', '&users')  from DUAL;
+
+
+
+
+
+
+
+
+archive generated per ser
+=====================================
+
+select to_char(COMPLETION_TIME,'DD/MON/YYYY') ser,
+     sum(blocks*block_size)/1048576/1024 "Size(GB)",
+     count(sequence#) "Total Archives" 
+     from (select distinct sequence#,
+                  thread#,
+                  COMPLETION_TIME,
+                  blocks,
+                  block_size 
+           from v$archived_log 
+           where completion_time>=sysdate-90)
+     group by to_char(COMPLETION_TIME,'DD/MON/YYYY')
+     order by 1;
+
+
+
+script to disable constrainss
+------------------------------
+
+begin
+for i in (select constraint_name, table_name from user_constraints) LOOP
+execute immediate 'alter table '||i.table_name||' disable constraint '||i.constraint_name||'';
+end loop;
+end;
+/
+
+
+First, make sure your automatic archiving is enabled.  To check the archive lo made, try:
+-----------------------------------------------------------
+
+SQL> archive log list;
+
+Now, note thatyou can find archive destinations if you are using a destination of USE_DB_RECOVERY_FILE_DEST by:
+-----------------------------------------------------------
+
+SQL> show parameter db_recovery_file_dest;
+
+The next step in resolving ORA-00257 is to find out what value is being used for db_recovery_file_dest_size, use:
+-----------------------------------------------------------
+
+SQL> SELECT * FROM V$RECOVERY_FILE_DEST;
+
+You may find that the SPACE_USED is the same as SPACE_LIMIT, if this is the case, to resolve ORA-00257 should be remedied by moving the archive logs to some other destination.
+
+You next need to archive the log files by,
+-----------------------------------------------------------
+SQL> alter User archive log all;
+
+It is important to note that within step five of the ORA-00257 resolution,  you may also encounter ORA-16020 in the LOG_ARCHIVE_MIN_SUCCEED_DEST, and you should use the proper archivelog path and use (keeping in mind that you may need to take extra measures if you are using Flash Recovery Area as you will receive more errors if you attempt to use LOG_ARCHIVE_DEST):
+-----------------------------------------------------------
+alter User set log_archive_dest_1='location=/opt/sblppr2/arch1/SBLTEST/arch' ; 
+
+
+SQL>alter User set LOG_ARCHIVE_DEST_.. = 'location=/archivelogpath reopen';
+
+The last step in resolving ORA-00257 is to change the logs for verification using:
+-----------------------------------------------------------
+SQL> alter User switch logfile;
+
+
+
+check in RMAN for 
+-----------------------------------------------------------
+crosscheck archivelog all;
+
+
+delete noprompt expired archivelog all;
+
+
+
+
+increase the size of archive destination 
+
+show parameter db_recovery_file_dest_size;
+
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+db_recovery_file_dest_size           big integer 2G
+
+
+ALTER User SET DB_RECOVERY_FILE_DEST_SIZE = 10G SCOPE=BOTH SID='*';
+
+The V$RECOVERY_FILE_DEST and V$FLASH_RECOVERY_AREA_USAGE views can help you determine whether you have allocated enough space for your flash recovery area.
+
+SELECT * FROM V$RECOVERY_FILE_DEST;
+
+
+SELECT * FROM V$FLASH_RECOVERY_AREA_USAGE;
+
+ref : http://docs.oracle.com/cd/B19306_01/backup.102/b14192/setup005.htm
+
+
+
+
+
+
+
+
+create table 
+====================
+
+CREATE TABLE owner.tablename AS ( SELECT * FROM owner.oldtablename);
+
+
+
+flashback a drop table
+------------------------
+
+ref : http://docs.oracle.com/cd/B19306_01/backup.102/b14192/flashptr004.htm
+
+DROP TABLE tablename;
+
+DROP TABLE tablename purge;
+
+
+show recyclebin;
+
+show parameter recyclebin;
+
+SQL> show recyclebin;
+ORIGINAL NAME    RECYCLEBIN NAME                   TYPE         DROP TIME
+---------------- --------------------------------- ------------ -------------------
+EMPLOYEE_DEMO    BIN$gk3lsj/3akk5hg3j2lkl5j3d==$0  TABLE        2005-04-11:17:08:54
+
+
+userfull views :
+
+USER_RECYCLEBIN
+DBA_RECYCLEBIN
+
+
+The views to determine the original names of dropped objects:
+-----------------------------------------------------------------------
+
+
+SELECT object_name as recycle_name, original_name, type FROM dba_recyclebin;
+
+
+FLASHBACK TABLE "BIN$gk3lsj/3akk5hg3j2lkl5j3d==$0" TO BEFORE DROP;
+
+FLASHBACK TABLE HR.INT_ADMIN_EMP TO BEFORE DROP;
+
+FLASHBACK TABLE "BIN$KSD8DB9L345KLA==$0" TO BEFORE DROP RENAME TO hr.int2_admin_emp;
+
+
+
+
+
+select count (*) from LCRODABCQ.fl_rgstr as of timestamp sysdate-0.4/24 order by crt_dt desc;
+
+create table LCRODABCQ.fl_rgstr_bkp_5jan as select * from LCRODABCQ.fl_rgstr as of timestamp sysdate-0.4/24;
+
+
+
+
+PURGE RECYCLEBIN
+===================
+
+
+check the size of recyclcebin
+-------------------------------------
+ select sum(space)/1024/1024 from dba_recyclebin order by owner;
+
+check the size of recycelbin per user
+------------------------------------------
+select sum(space)/1024/1024,owner from dba_recyclebin group by owner;
+
+
+purging recycle bin
+------------------------------
+
+ PURGE DBA_RECYCLEBIN;
+
+
+for users 
+
+PURGE RECYCLEBIN;
+
+
+session monitoring.sql
+---------------------------
+
+set line 300;
+alter session set nls_date_format='dd-mm-yyyy hh24:mi:ss';
+
+SELECT   A.tablespace_name tablespace, D.mb_total,
+         SUM (A.used_blocks * D.block_size) / 1024 / 1024 mb_used,
+         D.mb_total - SUM (A.used_blocks * D.block_size) / 1024 / 1024 mb_free
+FROM     v$sort_segment A,
+         (
+         SELECT   B.name, C.block_size, SUM (C.bytes) / 1024 / 1024 mb_total
+         FROM     v$tablespace B, v$tempfile C
+         WHERE    B.ts#= C.ts#
+         GROUP BY B.name, C.block_size
+         ) D
+WHERE    A.tablespace_name = D.name
+GROUP by A.tablespace_name, D.mb_total;
+
+select SID, START_TIME,TOTALWORK, sofar, (sofar/totalwork) * 100 done,
+sysdate + TIME_REMAINING/3600/24 end_at
+from v$session_longops
+where totalwork > sofar
+AND opname NOT LIKE '%aggregate%'
+AND sid in ('161',
+/
+
+select TABLESPACE_NAME,TABLESPACE_SIZE/1024/1024/1024,ALLOCATED_SPACE/1024/1024/1024,FREE_SPACE/1024/1024/1024 from dba_temp_free_space ;
+
+select sum((blocks*8192)/1024/1024/1024) from v$tempseg_usage;
+
+!echo Monitoring Index Growth
+select segment_name,bytes/(1024*1024*1024) from dba_segments where segment_name like  ('%XMLIND%');
+
+!echo ASM disk utilization
+select name,total_mb/1042,free_mb/1024 from v$asm_diskgroup;
+
+
+
+
+
+
+
+
+
+new build
+==========
+
+(1)How many oracle database(s) we need to migrate & upgrade to newly build servers?
+
+1
+
+(2)What is the purpose of these new oracle database(s)? 
+
+To replace the current database running on old hardware.
+
+(3)What application uses these new oracle database(s)?
+
+Pubran
+   
+(4)What is the business justification for creating these new database(s)?
+
+The current database is running on old hardware which needs to be refreshed. This database will replace the old one.
+
+(5)What is the name(s) of the database(s) to create?
+
+PBRN01PR
+            
+(6)Will these database(s) are permanent or temporary?
+
+Permanent
+
+(7)What will be the backup strategy for the database(s) which is about to be created?
+
+Nightly exports and rman backups
+
+(8)How large the database(s) will grow ?  i.e. an estimated database size after 2 years? 
+
+(9)How many users will access the database(s) at maximum(Peak business & load hours)? 
+
+(10)Database(s) will be in archive log mode or no archive log mode? 
+
+Archive log mode
+
+(11)With what characterset we need to create these database(s)? 
+
+AL32UTF8
+
+(12)What is retention point of objective for the backups of database(s)? 
+
+(13)What is recovery time objective for the database(s) availability? 
+
+(14)What is the database software edition we need to install is it Enterprise edition or standard edition?	
+
+Standard Edition
+
+(15)There is any data we need to copy from other database(s) after we created the database(s) in these new   server? 
+
+Copy PUBRAN and COGNOS schemas from gandalf
+
+(16)Do we already have license to install oracle database? If yes kindly share it with us? 
+
+Yes it will take over the licenses from Gandalf once that server is decommissioned.
+
+(17)After the databases migrated to New machine do we require to run the old databases ? 
+
+Once application is fully migrated, old databases can be decommissioned.
+
+(18)What is the oracle software version we need to install in new machine? 
+
+11.2.0.3.0
+
+
+We will need rights on User account.
+
+
+
+
+
+select sid,OPNAME,SOFAR,TOTALWORK,SOFAR/TOTALWORK*100 "% compl", TIME_REMAINING from v$session_longops where sid=172
+
+
+
+
+
+
+
+
+
+http://kamranagayev.com/2011/03/21/step-by-step-installing-oracle11g-on-linux/
+
+
+
+http://www.sdn.sap.com/irj/scn/go/portal/prtroot/docs/library/uuid/d0eefeb8-f789-2a10-baab-f7690451bca1?overridelayout=true
+
+
+
+
+
+
+NFS mounting rules :
+=======================================================================
+
+NFSD mount:
+
+NFS mount option
+Operating User Mount options for Binaries Mount options for Oracle Datafiles
+Sun Solaris *
+(8, 9, 10) rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,proto=tcp,suid rw,bg,hard,rsize=32768,wsize=32768,vers=3,[forcedirectio or 
+
+llock],nointr,proto=tcp,suid
+AIX (5L) ** rw,bg,hard,rsize=32768,wsize=32768,vers=3,intr,timeo=600,proto=tcp 
+
+
+
+/orabackup:
+        dev = /ifs/oradba/dev/orabackup
+        vfs = nfs
+        nodename = naserisilon02.isilon02.company.com
+        mount = true
+        type = nfs_mount
+        options = rw,hard,noac,rsize=32768,wsize=32768,proto=tcp
+
+these entry should be made in /etc/fileUser
+
+
+rw,bg,hard,rsize=32768,wsize=32768,vers=3,cio,intr,timeo=600,proto=tcp
+HPUX 11.23 **** rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,proto=tcp,suid 
+
+
+rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,proto=tcp, suid, forcedirectio
+Windows Not Supported Not Supported
+Linux x86
+# rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,tcp rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,tcp
+Linux x86-64 # rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,tcp rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,tcp
+Linux - Itanium rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,tcp rw,bg,hard,rsize=32768,wsize=32768,vers=3,nointr,timeo=600,tcp
+
+
+
+
+
+
+
+
+
+
+
+
+Disabling cron
+===============
+:%s/^/#/g  ---> for commenting
+:%s/^#//g  ---> for uncommenting
+
+
+QUERY USING V$ACCESS IS RUNNING SLOW (Doc ID 549895.1)
+alter session set "_optimizer_cartesian_enabled"=false;
+
+
+
+
+
+expdp impdp satatus
+=====================
+
+
+col STATE format a10
+col OWNER_NAME format a10
+col JOB_MODE format a10
+col MESSAGE format a55
+
+select sid, serial#, sofar, totalwork,
+dp.owner_name, dp.state, dp.job_mode,MESSAGE
+from gv$session_longops sl, gv$datapump_job dp
+where sl.opname = dp.job_name and sofar != totalwork; 
+
+
+
+
+
+
+
+
+Script to check space utilization of db_recovery_file_dest_size 
+=================================================================
+
+col name     format a32
+col size_mb  format 999,999,999
+col used_mb  format 999,999,999
+col pct_used format 999
+
+select
+   name,
+   ceil( space_limit / 1024 / 1024) size_mb,
+   ceil( space_used / 1024 / 1024) used_mb,
+   decode( nvl( space_used, 0),0, 0,
+   ceil ( ( space_used / space_limit) * 100) ) pct_used
+ from
+    v$recovery_file_dest
+order by
+   name desc;
+
+
+Nice blog's
+--------------
+http://oraclespin.wordpress.com/category/general-dba/
+
+
+
+Disable the automatic startup of the Oracle Clusterware (CRS|HAS) software
+----------------------------------------------------------------------------
+
+crsctl disable/enable has
+crsctl disable/enable crs
+
+crsctl start/stop crs
+
+
+
+emctl blackout 
+------------------
+
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl start blackout MEMORYUPGRADE_NOV2014 -nodelevel
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl stop agent
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl stop blackout MEMORYUPGRADE_NOV2014 -nowait
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl start agent
+
+
+
+
+
+Archivelog generation on a daily basis:
+
+set pages 1000
+select trunc(COMPLETION_TIME,'DD') ser, thread#, round(sum(BLOCKS*BLOCK_SIZE)/1048576) MB,count(*) Archives_Generated from v$archived_log
+group by trunc(COMPLETION_TIME,'DD'),thread# order by 1;
+
+
+
+set pages 1000
+select trunc(COMPLETION_TIME,'HH') Hour,thread# , round(sum(BLOCKS*BLOCK_SIZE)/1048576) MB,count(*) Archives from v$archived_log
+group by trunc(COMPLETION_TIME,'HH'),thread#  order by 1 ;
+
+
+
+
+get the all the permissions for a user :
+----------------------------------------------
+
+
+set head off
+set pagesize 0
+set long 999999
+set feedback off
+set echo off
+SELECT DBMS_METADATA.GET_DDL('USER','PRODUCT_STG') || '/' DDL
+FROM DUAL
+UNION ALL
+SELECT DBMS_METADATA.GET_GRANTED_DDL('ROLE_GRANT','PRODUCT_STG') || '/' DDL
+FROM DUAL
+where exists (select 'x' from dba_role_privs drp where drp.grantee='PRODUCT_STG')
+UNION ALL
+SELECT DBMS_METADATA.GET_GRANTED_DDL('User_GRANT','PRODUCT_STG') || '/' DDL
+FROM DUAL
+where exists (select 'x' from dba_sys_privs drp where drp.grantee='PRODUCT_STG')
+UNION ALL
+SELECT DBMS_METADATA.GET_GRANTED_DDL('OBJECT_GRANT','PRODUCT_STG') || '/' DDL
+FROM DUAL
+where exists(select 'x' from dba_tab_privs drp where drp.grantee='PRODUCT_STG')
+/
+
+
+
+
+How to Use the UTL_MAIL Package (Doc ID 269375.1)
+How To Set Network ACLs in Oracle 11g To Access Packages UTL_TCP, UTL_SMTP, UTL_MAIL, UTL_HTTP, UTL_INADDR (Doc ID 958129.1)
+
+
+
+Resourse manager :
+
+http://www.ritzyblogs.com/OraTalk/PostID/123/How-to-use-Oracle-Resource-Manager-to-control-degree-of-parallelism-with-examples
+https://martincarstenbach.wordpress.com/2013/04/23/limiting-the-degree-of-parallelism-via-resource-manager-and-a-gotcha/
+http://docs.oracle.com/cd/B19306_01/server.102/b14231/dbrm.htm 
+http://spaghettidba.com/2011/07/20/oracle-does-parallel_degree_limit-really-limit-the-dop/  ? how does DOP work when set to DEFAULT?
+
+
+
+
+exec dbms_resource_manager.create_pending_area();
+exec dbms_resource_manager.create_plan( plan => 'LIMIT_DOP', comment => 'Limit Degree of Parallelism');
+exec dbms_resource_manager.create_consumer_group ( consumer_group => 'ODMP_DOP' , comment =>'Limit Degree of Parallelism');
+exec dbms_resource_manager.create_plan_directive(plan => 'LIMIT_DOP', group_or_subplan => 'ODMP_DOP',comment => 'limits the parallelism', parallel_degree_limit_p1=> 4);
+exec dbms_resource_manager.create_plan_directive(plan => 'LIMIT_DOP', group_or_subplan => 'OTHER_GROUPS', comment=>'leave others alone', parallel_degree_limit_p1=> 8);
+exec dbms_resource_manager.set_consumer_group_mapping(attribute => DBMS_RESOURCE_MANAGER.ORACLE_USER,value => 'SINGAR',consumer_group => 'ODMP_DOP');
+exec dbms_resource_manager.validate_pending_area();
+exec dbms_resource_manager.submit_pending_area();
+alter User set resource_manager_plan = 'LIMIT_DOP' sid='*';
+
+
+select name,pqs_completed,pq_servers_used from V$RSRC_CONSUMER_GROUP where name = 'ODMP_DOP'
+
+
+select RESOURCE_CONSUMER_GROUP from v$session where username ='SINGAR';
+
+
+select ATTRIBUTE,VALUE,CONSUMER_GROUP from DBA_RSRC_GROUP_MAPPINGS where CONSUMER_GROUP='ODMP_DOP';
+
+
+select PLAN,GROUP_OR_SUBPLAN,PARALLEL_DEGREE_LIMIT_P1 from DBA_RSRC_PLAN_DIRECTIVES where PLAN='LIMIT_DOP';
+
+
+begin 
+dbms_resource_manager_privs.grant_switch_consumer_group( 
+grantee_name => 'SINGAR', 
+consumer_group => 'ODMP_DOP'); 
+end; 
+/ 
+
+upgrade DOC
+==============
+
+Complete Checklist for Manual Upgrades to 11gR2 (Doc ID 837570.1)
+Complete Checklist to Upgrade the Database to 11gR2 Using DBUA (Doc ID 870814.1)
+
+create session in loop
+========================
+
+#!/bin/ksh
+
+while true
+do
+sqlplus companydba/companydba@OraMemn01prSCAN.company.com:1521/APPSVCPR.company.com<<EOF
+##sqlplus companydba/companydba@serrheorap003.company.com:1521/APPSVCPR.company.com<<EOF
+select instance_number from v\$instance;
+##quit
+EOF
+done;
+
+

@@ -1,0 +1,48 @@
+artimis user creation 
+
+
+
+ 
+As per the ticket  user millna02 has been created .
+ 
+Please check the worklog of the ticket as it describes user has been created .
+ 
+"Oracle Database 11g Release 11.2.0.3.0 - 64bit Production
+SQL> ALTER SESSION SET CURRENT_SCHEMA=ARTEMIS;
+Session altered.
+SQL>  @/artemis/bin/CreateUser.sql
+Enter value for username: millna02
+old   2: PX_USER_SEQ.NEXTVAL, '&&userName', '&&userName', 0, 1,
+new   2: PX_USER_SEQ.NEXTVAL, 'millna02', 'millna02', 0, 1,
+Enter value for teamtype: 20
+old   4: &&teamType from sys.dual
+new   4: 20 from sys.dual
+1 row created.
+old   4: ) select PX_SOURCE_SEQ.NEXTVAL, '&&userName', '&&userName', 111, 0,
+new   4: ) select PX_SOURCE_SEQ.NEXTVAL, 'millna02', 'millna02', 111, 0,
+1 row created.
+Enter value for usergroup: NUK
+Enter value for actualname: Miller, Natasha C
+Enter value for email: Miller.Natasha@company.com
+old   1: insert into ap_users values (upper('&&userName'), '&&userGroup', '&&actualName', '&&email',  'Y' )
+new   1: insert into ap_users values (upper('millna02'), 'NUK', 'Miller, Natasha C', 'Miller.Natasha@company.com',  'Y' )
+1 row created.
+SQL> commit;
+Commit complete."
+ 
+ 
+this is the description of the ticket
+ 
+ 
+"This needs to be assigned to the Oracle DBA team.
+ 
+Requester’s user id: millna02
+ 
+Please can you create a new TeleOrdering application 
+user.  The username should be created as below, and the 
+passwords should be the same as the usernames. They should 
+be created like the existing samanthat user.
+ 
+aarons
+petaw
+"

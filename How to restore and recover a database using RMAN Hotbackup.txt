@@ -1,0 +1,357 @@
+This document would explain the steps that need to be followed to restore and recover a database from an RMAN Hotbackup taken to disk.
+Here the source and destination are considered to be two deifferent servers.
+
+
+Step0
+-----
+Copy all the files created by the RMAN backup from source to destination.
+Ensure that the location is the same i.e., the path.If the path is the same it would ease our work else we need to catalog the backups manually.
+Copy the backupset that contains the datafile and archives as well as copy the controlfile created from by autobackup.
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Step1
+-----
+startup nomount;
+
+You can restore the spfile also using rman,but we manually created an init.ora file(copied the init.ora file from source) and started the instance in nomount.
+Once this was done the controlfile was restored fromt the AUTOBACKUP using RMAN.
+
+Recovering the controlfile from the autobackup using rman
+----------------------------------------------------------
+
+(sun02:aprp:oracle:/u01/app/oracle/admin/aprp/udump>) rman target /
+
+
+(sun02:aprp:oracle:/u01/app/oracle/admin/aprp/udump>) rman target /
+
+Recovery Manager: Release 10.2.0.3.0 - Production on Fri Jan 30 15:49:05 2009
+
+Copyright (c) 1982, 2005, Oracle.  All rights reserved.
+
+connected to target database: APRP (DBID=1118795894, not mounted)
+
+RMAN> set DBID=1118795894 (we set the DBID to be the same as source)
+
+executing command: SET DBID
+
+RMAN> set controlfile autobackup format for device type disk to '/db335/backup/aprp/cf%F'; (we specify the location where the autobackup of controlfile is located)
+
+executing command: SET CONTROLFILE AUTOBACKUP FORMAT
+using target database controlfile instead of recovery catalog
+
+RMAN> restore controlfile from autobackup;
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Step2
+-----
+After we have successfully restore the controlfile we can mount the database using it.
+shutdown immediate;
+startup mount;
+
+We then manually catalog the backuppiece information into the controlfile.
+These include the hotbackups and the archivelogs.
+Your files should be physically present in the location.
+Manual catalogging may not be necessary if the paths were the same at both the source and desstination.
+
+Hotbackups
+
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018264_13_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018264_14_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018264_15_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018265_16_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018280_17_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018281_18_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018307_19_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018307_20_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018323_21_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018323_22_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018338_23_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018339_24_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018339_25_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018346_26_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018347_27_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018347_28_1_20090124';
+CATALOG BACKUPPIECE  '/db335/backup/aprp/db_hot_677018349_29_1_20090124';
+
+Archivelog Backups
+
+RMAN> catalog backuppiece '/db335/backup/aprp/arch677011013_11_1_20090124';
+RMAN> catalog backuppiece '/db335/backup/aprp/arch677011030_12_1_20090124';
+RMAN> catalog backuppiece '/db335/backup/aprp/arch677169078_30_1_20090126';
+RMAN> catalog backuppiece '/db335/backup/aprp/arch677169610_32_1_20090126';
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STEP 3
+-------
+Our final goal is to restore the datafiles and archivelog files from the hotbackup and recover the database.
+Since the source and destination file locations differ we need to user SET NEWNAME while restoring else dirct restore database can be triggered.
+
+run
+{
+allocate channel d1 device type disk;
+allocate channel d2 device type disk;
+allocate channel d3 device type disk;
+allocate channel d4 device type disk;
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/User01.dbf'    		to    '/db335/oradata/aprp/User01.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/undo01.dbf'    		to    '/db335/oradata/aprp/undo01.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/sysaux01.dbf'    		to    '/db335/oradata/aprp/sysaux01.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/users01.dbf'    		to    '/db335/oradata/aprp/users01.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/tools1.dbf'    		to    '/db335/oradata/aprp/tools1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/INFCLIENT_cgd1.dbf'    	to    '/db335/oradata/aprp/INFCLIENT_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/INFCLIENT_cgx1.dbf'    	to    '/db335/oradata/aprp/INFCLIENT_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/INFCLIENT_default1.dbf'   	to    '/db335/oradata/aprp/INFCLIENT_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/spectra_default1.dbf'    	to    '/db335/oradata/aprp/spectra_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/CAMPBELL_cgd1.dbf'    		to    '/db335/oradata/aprp/CAMPBELL_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/CAMPBELL_cgx1.dbf'    		to    '/db335/oradata/aprp/CAMPBELL_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/CAMPBELL_default1.dbf'    	to    '/db335/oradata/aprp/CAMPBELL_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/BEIERSDORF_cgd1.dbf'    	to    '/db335/oradata/aprp/BEIERSDORF_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/BEIERSDORF_cgx1.dbf'    	to    '/db335/oradata/aprp/BEIERSDORF_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/BEIERSDORF_default1.dbf'    	to    '/db335/oradata/aprp/BEIERSDORF_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/CADBURY_cgd1.dbf'    		to    '/db335/oradata/aprp/CADBURY_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/CADBURY_cgx1.dbf'    		to    '/db335/oradata/aprp/CADBURY_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/CADBURY_default1.dbf'    	to    '/db335/oradata/aprp/CADBURY_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/COKE_cgd1.dbf'    		to    '/db335/oradata/aprp/COKE_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/COKE_cgx1.dbf'    		to    '/db335/oradata/aprp/COKE_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/COKE_default1.dbf'    		to    '/db335/oradata/aprp/COKE_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/SANMIGUEL_cgd1.dbf'    	to    '/db335/oradata/aprp/SANMIGUEL_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/SANMIGUEL_cgx1.dbf'    	to    '/db335/oradata/aprp/SANMIGUEL_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/SANMIGUEL_default1.dbf'    	to    '/db335/oradata/aprp/SANMIGUEL_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/JNJ_cgd1.dbf'    		to    '/db335/oradata/aprp/JNJ_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/JNJ_cgx1.dbf'    		to    '/db335/oradata/aprp/JNJ_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/JNJ_default1.dbf'    		to    '/db335/oradata/aprp/JNJ_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/KIMCLARK_cgd1.dbf'    		to    '/db335/oradata/aprp/KIMCLARK_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/KIMCLARK_cgx1.dbf'    		to    '/db335/oradata/aprp/KIMCLARK_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/KIMCLARK_default1.dbf'    	to    '/db335/oradata/aprp/KIMCLARK_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/KRAFT_cgd1.dbf'    		to    '/db335/oradata/aprp/KRAFT_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/KRAFT_cgx1.dbf'    		to    '/db335/oradata/aprp/KRAFT_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/KRAFT_default1.dbf'    	to    '/db335/oradata/aprp/KRAFT_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/NESTLE_cgd1.dbf'    		to    '/db335/oradata/aprp/NESTLE_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/NESTLE_cgx1.dbf'    		to    '/db335/oradata/aprp/NESTLE_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/NESTLE_default1.dbf'    	to    '/db335/oradata/aprp/NESTLE_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/PEPSI_cgd1.dbf'    		to    '/db335/oradata/aprp/PEPSI_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PEPSI_cgx1.dbf'    		to    '/db335/oradata/aprp/PEPSI_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/PEPSI_default1.dbf'    	to    '/db335/oradata/aprp/PEPSI_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PMORRIS_cgd1.dbf'    		to    '/db335/oradata/aprp/PMORRIS_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/PMORRIS_cgx1.dbf'    		to    '/db335/oradata/aprp/PMORRIS_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PMORRIS_default1.dbf'    	to    '/db335/oradata/aprp/PMORRIS_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/SARALEE_cgd1.dbf'    		to    '/db335/oradata/aprp/SARALEE_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/SARALEE_cgx1.dbf'    		to    '/db335/oradata/aprp/SARALEE_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/SARALEE_default1.dbf'    	to    '/db335/oradata/aprp/SARALEE_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/UNILEVER_cgd1.dbf'    		to    '/db335/oradata/aprp/UNILEVER_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/UNILEVER_cgx1.dbf'    		to    '/db335/oradata/aprp/UNILEVER_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/UNILEVER_default1.dbf'    	to    '/db335/oradata/aprp/UNILEVER_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PNG_cgd1.dbf'    		to    '/db335/oradata/aprp/PNG_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/PNG_cgx1.dbf'    		to    '/db335/oradata/aprp/PNG_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PNG_default1.dbf'    		to    '/db335/oradata/aprp/PNG_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/RECKITT_cgd1.dbf'    		to    '/db335/oradata/aprp/RECKITT_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/RECKITT_cgx1.dbf'    		to    '/db335/oradata/aprp/RECKITT_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/RECKITT_default1.dbf'    	to    '/db335/oradata/aprp/RECKITT_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/FERRERO_cgd1.dbf'    		to    '/db335/oradata/aprp/FERRERO_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/FERRERO_cgx1.dbf'    		to    '/db335/oradata/aprp/FERRERO_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/FERRERO_default1.dbf'    	to    '/db335/oradata/aprp/FERRERO_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/COLESGROUP_cgd1.dbf'    	to    '/db335/oradata/aprp/COLESGROUP_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/COLESGROUP_cgx1.dbf'    	to    '/db335/oradata/aprp/COLESGROUP_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/COLESGROUP_default1.dbf'    	to    '/db335/oradata/aprp/COLESGROUP_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/METCASH_cgd1.dbf'    		to    '/db335/oradata/aprp/METCASH_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/METCASH_cgx1.dbf'    		to    '/db335/oradata/aprp/METCASH_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/METCASH_default1.dbf'    	to    '/db335/oradata/aprp/METCASH_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/WOOLWORTHS_cgd1.dbf'    	to    '/db335/oradata/aprp/WOOLWORTHS_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/WOOLWORTHS_cgx1.dbf'    	to    '/db335/oradata/aprp/WOOLWORTHS_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/WOOLWORTHS_default1.dbf'       to    '/db335/oradata/aprp/WOOLWORTHS_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/PMCLIENT_cgd1.dbf'    		to    '/db335/oradata/aprp/PMCLIENT_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PMCLIENT_cgx1.dbf'    		to    '/db335/oradata/aprp/PMCLIENT_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/PMCLIENT_default1.dbf'    	to    '/db335/oradata/aprp/PMCLIENT_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PROJCLIENT_cgd1.dbf'    	to    '/db335/oradata/aprp/PROJCLIENT_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/PROJCLIENT_cgx1.dbf'    	to    '/db335/oradata/aprp/PROJCLIENT_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap012/oradata/aprp/PROJCLIENT_default1.dbf'    	to    '/db335/oradata/aprp/PROJCLIENT_default1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/TNGCLIENT_cgd1.dbf'    	to    '/db335/oradata/aprp/TNGCLIENT_cgd1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap011/oradata/aprp/TNGCLIENT_cgx1.dbf'    	to    '/db335/oradata/aprp/TNGCLIENT_cgx1.dbf';
+SET NEWNAME FOR DATAFILE    '/ap013/oradata/aprp/TNGCLIENT_default1.dbf'    	to    '/db335/oradata/aprp/TNGCLIENT_default1.dbf';
+restore database;
+switch datafile all;
+release channel d1;
+release channel d2;
+release channel d3;
+release channel d4;
+}
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STEP 4
+------
+Recovery of the database
+
+Once the restoration and file name changes have been accomplished please verify the same from v$datafile.
+Before the restoration and datafile rename a query on v$datafile whould show the file User locations.
+
+select name from v$datafile;
+
+Now we need to restore the archivelogs from the RMAN archive backup and then perform the recovery.
+We specify the destination where the archives would be restored.
+
+RMAN> run
+{
+set archivelog destination to '/db335/backup/aprp';
+restore archivelog all;(To be more precise we can specify to restore only the archive logs genereated during te hotbackup window)
+}
+
+You can alter ther archivelog restoration command to restore archives of respective sequences,timestamps etc.
+Use which ever command suits your need.
+
+Recover was done using the below command.....
+
+recover automatic database using backup controlfile until cancel;
+
+Also when you issue this command you can find out from which sequence the archivelogs need to be applied.
+If you see below you see that we need the archvies from sequence# 59
+
+
+SQL> recover database using backup controlfile until cancel;
+ORA-00279: change 12153609580 generated at 01/24/2009 20:37:44 needed for
+thread 1
+ORA-00289: suggestion : /db335/backup/aprp/arch_1_635162712_59.arc
+ORA-00280: change 12153609580 for thread 1 is in sequence #59
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+/db335/backup/aprp/arch_1_635162712_59.arc
+ORA-00279: change 12153678481 generated at 01/26/2009 14:30:10 needed for
+thread 1
+ORA-00289: suggestion : /db335/backup/aprp/arch_1_635162712_60.arc
+ORA-00280: change 12153678481 for thread 1 is in sequence #60
+ORA-00278: log file '/db335/backup/aprp/arch_1_635162712_59.arc' no longer
+needed for this recovery
+
+
+Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
+CANCEL
+Media recovery cancelled.
+SQL> alter database open resetlogs;
+
+Database altered.
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STEP 5
+------
+Once the recovery is completed,we need to open the database by resetting the logs.
+But open resetlogs would throw errors if the location of the online redologs in controlfile is different than the location where we operate.
+Hence please perform the below steps to overcome the issue else this step is not needed.
+
+
+We find the online redolog location from v$logfile.
+SQL> select member from v$logfile;
+
+MEMBER
+--------------------------------------------------------------------------------
+/ap011/oradata/aprp/redo04a.log
+/ap012/oradata/aprp/redo04b.log
+/ap013/oradata/aprp/redo03a.log
+/ap011/oradata/aprp/redo03b.log
+/ap012/oradata/aprp/redo02a.log
+/ap013/oradata/aprp/redo02b.log
+/ap011/oradata/aprp/redo01a.log
+/ap012/oradata/aprp/redo01b.log
+
+
+We rename the redolog files accordingly.
+
+SQL> alter database rename file '/ap011/oradata/aprp/redo04a.log' to '/db335/oradata/aprp/redo04a.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap012/oradata/aprp/redo04b.log' to '/db335/oradata/aprp/redo04b.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap013/oradata/aprp/redo03a.log' to '/db335/oradata/aprp/redo03a.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap011/oradata/aprp/redo03b.log' to '/db335/oradata/aprp/redo03b.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap012/oradata/aprp/redo02a.log' to '/db335/oradata/aprp/redo02a.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap013/oradata/aprp/redo02b.log' to '/db335/oradata/aprp/redo02b.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap011/oradata/aprp/redo01a.log' to '/db335/oradata/aprp/redo01a.log';
+
+Database altered.
+
+SQL> alter database rename file '/ap012/oradata/aprp/redo01b.log' to '/db335/oradata/aprp/redo01b.log';
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STEP 6
+------
+
+We need to drop and recreate the temporary tablespaces or alter them to add the missing tempfiles.
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Miscellaneous
+-------------
+
+In this section you would find useful rman commands that can be used as and when required.
+
+How to restore an Spfile from autobackup older than 7 sers 
+Whenever we issue in RMAN, RMAN> restore spfile from autobackup; then restoring from autobackup stops at seven sers and then it arises message channel ORA_DISK_1: no autobackup in 7 sers found. For example,
+
+RMAN> restore spfile from autobackup;
+Starting restore at 31-AUG-08
+using channel ORA_DISK_1
+
+channel ORA_DISK_1: looking for autobackup on ser: 20080831
+channel ORA_DISK_1: looking for autobackup on ser: 20080830
+channel ORA_DISK_1: looking for autobackup on ser: 20080829
+channel ORA_DISK_1: looking for autobackup on ser: 20080828
+channel ORA_DISK_1: looking for autobackup on ser: 20080827
+channel ORA_DISK_1: looking for autobackup on ser: 20080826
+channel ORA_DISK_1: looking for autobackup on ser: 20080825
+channel ORA_DISK_1: no autobackup in 7 sers found
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of restore command at 08/31/2008 01:31:12
+RMAN-06172: no autobackup found or specified handle is not a valid copy or piece
+
+Whenever you give RMAN to RESTORE SPFILE FROM AUTOBACKUP or RESTORE CONTROLFILE FROM AUTOBACKUP, RMAN begins the search on the current ser or on the ser specified with the SET UNTIL caluse. If no autobackup is found in the current or SET UNTIL ser, RMAN checks the previous ser. In this way RMAN by default checks for 7 sers autobackup from the current or SET UNTIL ser. 
+
+However if you want to extend your searching of autobackup more than 7 then you have to use MAXserS option with the RESTORE command.
+
+For example,
+RMAN>restore spfile from autobackup maxsers 30;
+or
+RMAN>restore controlfile from autobackup maxsers 30;
+
+In these cases autobackup searches will be performed up to 30 sers from the current or SET UNTIL ser. 
+
+How to restore archivelogs of a specific sequence?
+run
+{
+set archivelog destination to '/u03/flash_recovery_area/ORACOM/archivelog';
+restore archivelog from logseq=24097 until logseq=24100;
+}
+
+
+How to monitor progress of RMAN restore/backup?
+
+SELECT SID, SERIAL#, CONTEXT, SOFAR, TOTALWORK,
+ROUND(SOFAR/TOTALWORK*100,2) "%_COMPLETE"
+FROM V$SESSION_LONGOPS
+WHERE OPNAME LIKE 'RMAN%'
+AND OPNAME NOT LIKE '%aggregate%'
+AND TOTALWORK != 0
+AND SOFAR <> TOTALWORK
+/
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+

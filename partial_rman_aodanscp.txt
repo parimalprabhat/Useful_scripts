@@ -1,0 +1,69 @@
+run
+{
+allocate channel sbt3 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt2 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt4 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt1 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt5 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt6 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+set until time "to_date('2016-2-29:20:00:00', 'yyyy-mm-dd:hh24:mi:ss')";
+restore tablespace USERS,User,SYSAUX,UNDOTBS1,RBOADVP;
+recover tablespace USERS,User,SYSAUX,UNDOTBS1,RBOADVP;
+RECOVER DATABASE SKIP FOREVER TABLESPACE 
+}
+
+run
+{
+allocate channel sbt3 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+restore controlfile from 'c-1723462779-20160301-04';
+}
+
+
+
+
+
+
+
+run
+{
+allocate channel sbt3 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt2 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt4 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt1 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt5 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+allocate channel sbt6 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/opt/app/oracle/product/11.2.0.4/db_1/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd03,BACKUP_HOST=oldsdd03.companymedia.com,ORACLE_HOME=/opt/app/oracle/product/11.2.0.4/db_1)';
+set until time "to_date('2016-2-29:20:00:00', 'yyyy-mm-dd:hh24:mi:ss')";
+RECOVER DATABASE SKIP FOREVER TABLESPACE TEMP, ADF_25_DATA, ADMDBP, ADMDBU, ADMDB_25_DATA, ANS_STTC_DATA, ANS_STTC_INDEX, COGAUDIT_25_DATA, CSF, CSF_25_DATA, DI, HMPAGE, HMPAGE_25_DATA, IDO_ADF, IDO_COMPOSITE_DATA, IDO_IPEAUTO_DATA, IDO_META_DATA, IDO_META_INDEX, METADATA_25_DATA, OD_PRDC_GRP, ONDEMAND_DATA, PGAT_25_DATA, ADV, TS_ADMDB, TS_ADV_25, TS_ANSVAL, TS_COGCS_25, TS_COMPOSITE_25, TS_CSAPP_25, XMLDB_TBS, COMPOSITE, COMPOSITE_29, ADV_RO, METADATA_RO, AWPMDSGMNP, ADV_SV, METADATA_SV, COMPOSITE_SV, METADATA_25_RO, MFRMSMCMOSTGP, MFRMSMCMOSTGP_RO, MFRANCP, MFRCMPP, MFRMDSP, LTYCMPDMO, CVGADVU, CVGMDSU, CVGCMPU, CVGSEGREFU, CVGANSCU, APPANSP_RO, CSFCORSP, CMO_STG, CNVCMPP, PROCMGRP, CVGCMPP, CVGCMP6U, PROCMGRP_RO, GPSCORE_PROD, DATA, CVGKMDSP, CVGKCMPP, CVGKADVP, CVGKSEGREFP, CVGKANSCP, CVGKCOREAUDIT, CVGKPGATP, SQLTXPLAIN, MFRMSMCMOSTGP_RO_N, MFRMSMCMOSTGP_N, APPPULESP, AWFOANSP, AWAFAPPDFN_DATA, AWAFAPPDFN_INDEX, AWAFAPPCTRL_DATA, AWAFAPPCTRL_INDEX, AWAFAPPSTATE_DATA, AWAFAPPSTATE_INDEX, AWAF_LOB, ODISTAGING, AWAF_ODIACCESS, AWAF_ODILOB, AWAF_FSSLOB, PGAT_PROD, SEGMREF, SEGMREF_RO, MSMOLSCMO_DATA, MSMOLSCMO_RO_DATA, MSMOLSCMO_RO, APPPNLCMPP, JIRA_TBS, MSMUATOLSCMO, MSMDRN2OLSCMO, DBAUDIT;
+}
+
+
+
+
+run
+{
+allocate channel sbt1 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt2 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt3 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt4 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt5 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt6 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt7 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt8 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt9 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt10 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt11 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+allocate channel sbt12 type sbt PARMS='BLKSIZE=1048576,SBT_LIBRARY=/u01/app/oracle/product/10.2.0/lib/libddobk.so,ENV=(STORAGE_UNIT=ORA_APP_oldsdd06,BACKUP_HOST=oldsdd06.companymedia.com,ORACLE_HOME=/u01/app/oracle/product/10.2.0)';
+restore database from tag = 'TAG20160302T000226';
+release channel sbt1;
+release channel sbt2;
+release channel sbt3;
+release channel sbt4;
+release channel sbt5;
+release channel sbt6;
+release channel sbt7;
+release channel sbt8;
+release channel sbt9;
+release channel sbt10;
+release channel sbt11;
+release channel sbt12;
+}

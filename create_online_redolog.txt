@@ -1,0 +1,48 @@
+adding a new redolog group
+==============================
+
+ALTER DATABASE ADD LOGFILE GROUP 100 ('+DATA', '+DATA') SIZE 1024M;
+
+
+Dropping an existing group
+============================
+
+Before dropping a redo log group, make sure that at the moment, logwriter process is not writing to the redo log file you plan to drop.
+------------------------------------------------------------------------------------------------------------------
+
+SELECT GROUP#, THREAD#,ARCHIVED, STATUS FROM V$LOG ;
+
+
+The value for "ARCHIVED" column must be "YES" and STATUS column must be "INACTIVE".
+------------------------------------------------------------------------------------
+
+If the status is "CURRENT" it means that logwriter is currently using this group to store redo records. After the redo files in this group is filled it will switch to next group
+
+
+
+alter User switch logfile ;
+
+
+
+If status is "ACTIVE" it means that there are some redo log records, which have not been applied to datafiles yet. The status is supposed to turn to INACTIVE soon after the next checkpoint operation. If you do not want to wait till then you may manually trigger checkpoint by command below.
+-----------------------------------------------------------------------------------------------------------------
+
+alter User checkpoint ;
+
+
+If the status has turned to INACTIVE you may drop it by specifying the group number.
+---------------------------------------------------------------------------------------
+
+ALTER DATABASE DROP LOGFILE GROUP 6;
+
+
+
+
+ref:
+
+http://www.oracleportal.org/knowledge-base/high-availability/general/how-to-add,-remove-or-relocate-online-redo-log-files-and-groups.aspx
+
+http://docs.oracle.com/cd/B28359_01/server.111/b28310/onlineredo003.htm
+
+http://www.idevelopment.info/data/Oracle/DBA_tips/Database_Administration/DBA_34.shtml
+

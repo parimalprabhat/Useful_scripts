@@ -1,0 +1,14 @@
+Model :
+\https://ishare.company.com/teams/Changes/RCAB/Lists/EmergencyChangeRequest/DispForm.aspx?ID=609
+
+
+Prompt Message:
+1. Scope of work: Dropping empty partititon from RFINDEX year 2012-13
+2. Test Results : Successful
+3. Actual outage to Business : No outage
+4. List person(s) onsite for this change : DBA COE APIMEA
+5. Business Partner(s) who approved this time frame for the change : N/A
+6. If Media, Is this Wellness Board Approved? N/A
+7. Backout Plan - Partition will be recreated
+9. DMZ Access? N/A
+

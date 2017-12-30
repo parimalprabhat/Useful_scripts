@@ -1,0 +1,235 @@
+ASM Migration
+==============
+Cold back 
+####################################
+run
+     {
+       allocate channel t1 type disk;
+       allocate channel t2 type disk;
+       allocate channel t3 type disk;
+       allocate channel t4 type disk;
+       backup current controlfile format '/oradata/serverQ/rman/coldbackup/serverQ_pre_control_file_pre_%d_%f.ctl';
+       BACKUP AS COMPRESSED BACKUPSET DATABASE format '/oradata/serverQ/rman/coldbackup/serverQ_cold_back_%d_%f.bck';
+       backup current controlfile format '/oradata/serverQ/rman/coldbackup/serverQ_post_control_file_pre_%d_%f.ctl';
+       release  channel t1;
+       release  channel t2;
+       release  channel t3;
+       release  channel t4;
+     }
+  
+  
+  
+sqlplus '/as sysdba'
+create pfile '/home/oracle/serverQ_pfile.ora' from spfile;
+show parameter control;
+alter database backup controlfile to '+DATA';
+alter User set control_files='+DATA','+DATA' scope=spfile;
+shut immediate ;
+start nomount;
+RMAN> restore controlfile from '/oradata/serverQ/control01.ctl';
+RMAN> alter database mount;
+RMAN>alter database archivelog;
+shut immediate;
+startup 
+alter User set db_create_file_dest='+DATA';
+ 
+ 
+Backing database to copy 
+#################################################
+
+ run
+{
+allocate channel dev1 type disk;
+allocate channel dev2 type disk;
+allocate channel dev3 type disk;
+allocate channel dev4 type disk;
+backup as copy database format '+DATA';
+release channel dev1;
+release channel dev2;
+release channel dev3;
+release channel dev4;
+}
+ 
+Switching database to copy
+#############################################
+ 
+RMAN>switch database to copy;
+ 
+Creating Temp and Redo Logs in ASM 
+#######################################################
+ 
+SQL> Alter database open;
+SQL> CREATE TEMPORARY TABLESPACE TEMP1 tempfile '+DATA' size 100m autoextend on next 100m;
+Tablespace created.
+SQL> ALTER DATABASE DEFAULT TEMPORARY TABLESPACE temp1;
+Database altered.
+SQL> drop tablespace temp including contents and datafiles;
+Tablespace dropped.
+SQL> select * from v$log;
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC
+---------- ---------- ---------- ---------- ---------- ---------- ---
+STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------------- ------------- --------- ------------ ---------
+         1          1     141136   10485760        512          1 NO
+CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         2          1     141134   10485760        512          1 YES
+INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         3          1     141135   10485760        512          1 YES
+INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+
+SQL> set lines 300;
+SQL> /
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141136   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         2          1     141134   10485760        512          1 YES INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         3          1     141135   10485760        512          1 YES INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+SQL> /
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141136   10485760        512          1 YES ACTIVE              9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         2          1     141137   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         3          1     141135   10485760        512          1 YES INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+   
+   
+SQL> alter database drop logfile group 3;
+Database altered.
+SQL> alter database add logfile group 3 ('+DATA') size 10m;
+Database altered.
+SQL> select * from v$log;
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141136   10485760        512          1 YES ACTIVE              9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         2          1     141137   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         3          1          0   10485760        512          1 YES UNUSED                       0                      0
+SQL> select * from v$logfile;
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  /oradata/serverQ/redo01.log                                                                                                                                                                                                                                         NO
+         2         ONLINE  /oradata/serverQ/redo02.log                                                                                                                                                                                                                                         NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> /
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  /oradata/serverQ/redo01.log                                                                                                                                                                                                                                         NO
+         2         ONLINE  /oradata/serverQ/redo02.log                                                                                                                                                                                                                                         NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> select * from v$log;
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141136   10485760        512          1 YES ACTIVE              9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         2          1     141137   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         3          1          0   10485760        512          1 YES UNUSED                       0                      0
+   
+SQL> select * from v$log;
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141136   10485760        512          1 YES INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         2          1     141137   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         3          1          0   10485760        512          1 YES UNUSED                       0                      0
+SQL>
+SQL> alter database drop logfile group 1;
+Database altered.
+SQL> alter database add logfile group 1 ('+DATA') size 10m;
+Database altered.
+SQL> select * from v$log;
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1          0   10485760        512          1 YES UNUSED                       0                      0
+         2          1     141137   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         3          1          0   10485760        512          1 YES UNUSED                       0                      0
+SQL> /
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1          0   10485760        512          1 YES UNUSED                       0                      0
+         2          1     141137   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+         3          1          0   10485760        512          1 YES UNUSED                       0                      0
+
+SQL> alter User switch logfile;
+User altered.
+SQL> /
+User altered.
+SQL> /
+/
+/
+User altered.
+SQL>
+User altered.
+SQL>  select * from v$log;
+User altered.
+SQL>
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141141   10485760        512          1 NO  ACTIVE              9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         2          1     141140   10485760        512          1 YES INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         3          1     141142   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+SQL>  alter database drop logfile group 2;
+Database altered.
+SQL>  alter database add logfile group 2 ('+DATA') size 10m;
+Database altered.
+SQL> select * from v$log;
+    GROUP#    THREAD#  SEQUENCE#      BYTES  BLOCKSIZE    MEMBERS ARC STATUS           FIRST_CHANGE# FIRST_TIM NEXT_CHANGE# NEXT_TIME
+---------- ---------- ---------- ---------- ---------- ---------- --- ---------------- ------------- --------- ------------ ---------
+         1          1     141141   10485760        512          1 YES INACTIVE            9.9994E+12 29-MAY-14   9.9994E+12 29-MAY-14
+         2          1          0   10485760        512          1 YES UNUSED                       0                      0
+         3          1     141142   10485760        512          1 NO  CURRENT             9.9994E+12 29-MAY-14   2.8147E+14
+SQL> select * from v$logfile;
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  +DATA/serverq/onlinelog/group_1.1059.848827825                                                                                                                                                                                                                      NO
+         2         ONLINE  +DATA/serverq/onlinelog/group_2.1060.848827903                                                                                                                                                                                                                      NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> /
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  +DATA/serverq/onlinelog/group_1.1059.848827825                                                                                                                                                                                                                      NO
+         2         ONLINE  +DATA/serverq/onlinelog/group_2.1060.848827903                                                                                                                                                                                                                      NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> /
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  +DATA/serverq/onlinelog/group_1.1059.848827825                                                                                                                                                                                                                      NO
+         2         ONLINE  +DATA/serverq/onlinelog/group_2.1060.848827903                                                                                                                                                                                                                      NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> /
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  +DATA/serverq/onlinelog/group_1.1059.848827825                                                                                                                                                                                                                      NO
+         2         ONLINE  +DATA/serverq/onlinelog/group_2.1060.848827903                                                                                                                                                                                                                      NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> select * from v$logfile;
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  +DATA/serverq/onlinelog/group_1.1059.848827825                                                                                                                                                                                                                      NO
+         2         ONLINE  +DATA/serverq/onlinelog/group_2.1060.848827903                                                                                                                                                                                                                      NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> select file_name from dba_data_files where file_name like '%/oradata%';
+no rows selected
+SQL> select file_name from dba_temp_files where file_name like '%/oradata%';
+no rows selected
+SQL> select * from v$logfile where member like '%/%';
+    GROUP# STATUS  TYPE    MEMBER                                                                                                                                                                                                                                                            IS_
+---------- ------- ------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---
+         1         ONLINE  +DATA/serverq/onlinelog/group_1.1059.848827825                                                                                                                                                                                                                      NO
+         2         ONLINE  +DATA/serverq/onlinelog/group_2.1060.848827903                                                                                                                                                                                                                      NO
+         3         ONLINE  +DATA/serverq/onlinelog/group_3.1058.848827665                                                                                                                                                                                                                      NO
+SQL> shut immediate;
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+SQL> startup mount;
+ORACLE instance started.
+Total User Global Area 2121183232 bytes
+Fixed Size                  2223160 bytes
+Variable Size            1862271944 bytes
+Database Buffers          251658240 bytes
+Redo Buffers                5029888 bytes
+Database mounted.
+SQL> alter database noarchivelog;
+Database altered.
+SQL> alter database open;
+Database altered.
+SQL> select name,open_mode from v$database;
+NAME      OPEN_MODE
+--------- --------------------
+serverQ     READ WRITE

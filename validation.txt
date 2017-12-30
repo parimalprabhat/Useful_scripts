@@ -1,0 +1,301 @@
+asm_list.ksh >> asm_disk_info.out
+
+df -h 
+
+ps -ef|grep pmon 
+
+ps -ef|grep tns
+
+powermt display dev=all
+
+crsctl stat res -t
+
+srvctl status service -d
+
+asmcmd lsdg >> asmcmd.log
+
+
+ASM Details
+-------------
+spool asm_details.log;
+set echo on;
+set line 300 pagesize 200;
+col PATH form a20;
+col NAME form a15;
+col HEADER_STATUS form a15;
+select GROUP_NUMBER,DISK_NUMBER,NAME,PATH,STATE,HEADER_STATUS,MOUNT_STATUS,round(TOTAL_MB/1024),round(FREE_MB/1024) from v$asm_disk order by 1,2;
+select NAME,GROUP_NUMBER,TOTAL_MB,FREE_MB from  v$asm_diskgroup;
+spool off;
+
+
+
+
+for each DB 
+------------
+
+spool details_from_database.log
+set line 300;
+set echo on;
+select name,open_mode from v$database;
+select name from v$controlfile;
+
+col NAME form a50;
+select name,FILE#,TS#,STATUS from v$datafile;
+
+select member from v$logfile;
+
+select name from v$tempfile;
+
+select * from v$tablespace;
+
+select distinct status from v$datafile;
+
+select distinct status from v$datafile_header;
+
+
+alter database backup controlfile to trace as '&crontroltext_backup_path' noresetlogs;
+alter database backup controlfile to '&control_binary_path';
+
+spool off;
+
+
+
+
+
+
+
+
+
+
+
+
+
+Before bring down the db 
+-------------------------
+
+
+select sid,serial#,username from gv$session where status='ACTIVE' and username <> 'SYS';
+alter User checkpoint;
+
+
+
+
+
+
+disable cron both nodes
+------------------------
+
+crontab  -r 
+
+stop emctl agent both nodes
+------------------------------
+
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl start blackout MEMORYUPGRADE_NOV2014 -nodelevel
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl stop agent
+
+
+bringdown DB's
+------------------
+
+set ASM profile
+----------------
+crsctl stat res -t
+crsctl stop res -all
+
+
+might need to be done as root
+------------------------------
+
+
+/opt/app/11.2.0/grid/bin/crsctl stop crs
+/opt/app/11.2.0/grid/bin/crsctl disable crs
+
+
+crsctl stop crs
+
+
+crsctl disable crs
+crsctl disable has
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+After activity
+------------------
+
+set ASM profile
+----------------
+
+
+/opt/app/11.2.0/grid/bin/crsctl enable crs
+/opt/app/11.2.0/grid/bin/crsctl start crs
+
+
+
+crsctl enable crs
+crsctl enable has
+
+crsctl start crs
+
+
+crsctl start res -all
+
+crsctl stat res -t
+
+
+validate services
+------------------
+
+srvctl status service -d APPMPCP
+srvctl status service -d APPCMICP
+srvctl status service -d APPANSCP
+srvctl status service -d APPCMOCP
+srvctl status service -d APPCKACP
+srvctl status service -d XMETACP
+
+
+
+Service APPMPCP_BE is running on instance(s) APPMPCP2
+Service APPCMICP_BE is running on instance(s) APPCMICP2
+Service APPANSCP_FE is running on instance(s) APPANSCP1
+Service APPCMOCP_FE is running on instance(s) APPCMOCP1
+Service APPCMOCP_MONFE is running on instance(s) APPCMOCP1
+Service APPCKACP_BE is running on instance(s) APPCKACP2
+Service XMETACP_BE is running on instance(s) XMETACP2
+
+
+
+if running from wrong the restart
+-----------------------------------
+
+srvctl stop service -d APPMPCP
+srvctl stop service -d APPCMICP
+srvctl stop service -d APPANSCP
+srvctl stop service -d APPCMOCP
+srvctl stop service -d APPCKACP
+srvctl stop service -d XMETACP
+
+
+srvctl start service -d APPMPCP
+srvctl start service -d APPCMICP
+srvctl start service -d APPANSCP
+srvctl start service -d APPCMOCP
+srvctl start service -d APPCKACP
+srvctl start service -d XMETACP
+
+
+
+
+validate memory parameter changes
+=---------------------------------
+
+
+Database	New SGA in GB	New PGA in GB	Current SGA in GB	Current PGA in GB
+APPMPCP	4	4	4	3
+APPCMICP	24	12	4	3
+APPANSCP	36	24	8	6
+APPCMOCP	36	24	14	12
+APPCKACP	24	12	8	6
+XMETACP	8	8	6	4
+NEW Database	4	4	 	 
+
+
+show parameter sga;
+show parameter pga;
+show parameter db_files;
+
+
+
+start emctl in both nodes 
+--------------------------
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl stop blackout MEMORYUPGRADE_NOV2014 -nowait
+/opt/app/oracle/product/12.1.0/core/12.1.0.3.0/bin/emctl start agent
+
+
+
+enable cron in both nodes
+-----------------------------
+cd /opt/app/home/oracle/dba/parimal
+crontab memory_upgrade_validation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+srvctl status service -d 
+
+
+
+srvctl status service -d APPMPCP
+srvctl status service -d APPCMICP
+srvctl status service -d APPANSCP
+srvctl status service -d APPCMOCP
+srvctl status service -d APPCKACP
+srvctl status service -d XMETACP
+
+
+
+
+

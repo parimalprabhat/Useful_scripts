@@ -1,0 +1,75 @@
+prompt "Please Enter The UNIX Process ID"
+set pagesize 50000
+set linesize 30000
+set long 500000
+set head off
+select
+s.username su,
+substr(sa.sql_text,1,540) txt
+from v$process p,
+v$session s,
+v$sqlarea sa
+where p.addr=s.paddr
+and s.username is not null
+and s.sql_address=sa.address(+)
+and s.sql_hash_value=sa.hash_value(+)
+and spid=&SPID;
+
+
+
+
+1) Get the Process ID (PID) from TOP command which consume high CPU Usages.
+
+So the query to get the session details (SID) from OS PID (SPID) will be as per following.
+
+select s.sid from v$process p, v$session s
+where s.paddr=p.addr and p.spid = (PID) ;
+
+3) Once we get the session ID, base on this information we can get the actual SQL statement which is causing
+HIGH CPU usage on database server.
+
+We can use the following query to get the actual SQL STATEMENT.
+
+SELECT SQL_TEXT from V$SQLTEXT_WITH_NEWLINES where HASH_VALUE
+= (select sql_hash_value from v$session
+where SID = (SID_WITCH_CAPTURED_IN_STEP_2) ;
+
+--# from below query you will findout sid:-
+
+SELECT se.username, ss.sid, ROUND (value/100) "CPU Usage"
+FROM v$session se, v$sesstat ss, v$statname st
+WHERE ss.statistic# = st.statistic#
+AND name LIKE '%CPU used by this session%'
+AND se.sid = ss.SID
+AND se.username IS NOT NULL
+ORDER BY value DESC;
+
+select
+ss.username,
+se.SID,
+VALUE/100 cpu_usage_seconds
+from
+v$session ss,
+v$sesstat se,
+v$statname sn
+where
+se.STATISTIC# = sn.STATISTIC#
+and
+NAME like '%CPU used by this session%'
+and
+se.SID = ss.SID
+and
+ss.status='ACTIVE'
+and
+ss.username is not null
+order by VALUE desc;
+
+select sql_hash_value, count(*) from v$session
+where status = 'ACTIVE' group by sql_hash_value order by 2 desc;
+
+select sql_text,users_executing from v$sql where hash_value = <give hash value here which is out put of above query>; 
+
+
+
+ref :
+http://orafaq.com/papers/cpu.pdf

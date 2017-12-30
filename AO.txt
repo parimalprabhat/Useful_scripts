@@ -1,0 +1,500 @@
+AO tasks
+==============
+
+set line 300;
+set pagesize 999;
+set long 9999;
+col DIRECTORY_PATH form a50;
+col USERNAME form a20;
+col ACCOUNT_STATUS form a10;
+col STATE format a10;
+col OWNER_NAME format a10;
+col JOB_MODE format a10;
+col MESSAGE format a55;
+col OBJECT_NAME form a40;
+
+
+-Prechecks 
+-------------
+
+
+Check the ASM disk space utilization in target  and the datacenter in which the database server is located 
+                                                        --------------------------------------------------
+If the datacenter are diffrent and the schema size is large it is not adviced to go ahead with database copy and dump transfer will take long. 
+
+
+
+================================================================================================================================
+1. Get the list of db_links in target before dropping the schema
+------------------------------------------------------------------
+
+set pagesize 999;
+set long 9999;
+select owner,dbms_metadata.get_ddl('DB_LINK',DB_LINK,owner) from dba_db_links;
+
+set pagesize 999;
+set long 9999;
+select owner,dbms_metadata.get_ddl('DB_LINK',DB_LINK,owner) from dba_db_links where owner='&owner';
+
+
+
+================================================================================================================================
+2. Get the password of the target schema if the schema is already present
+---------------------------------------------------------------------------
+
+set pagesize 999;
+set long 9999;
+col USERNAME form a20;
+col ACCOUNT_STATUS form a10;
+select USERNAME,ACCOUNT_STATUS,PASSWORD,DEFAULT_TABLESPACE,PASSWORD_VERSIONS from dba_users where username='&schema_name';
+
+select  dbms_metadata.get_ddl('USER', '&users')  from DUAL;
+
+
+
+================================================================================================================================
+3. Get the DEFAULT_TABLESPACE and space utilization in both source and target
+-------------------------------------------------------------------------------
+
+select DEFAULT_TABLESPACE from dba_users where username='&schema_name';
+
+select sum(bytes/1024/1024/1024) from dba_segments where owner='&owner';
+
+
+
+================================================================================================================================
+4. Check the freespace in ASM as well as the backup mountpoint
+-----------------------------------------------------------------
+
+ASM disk space utilization 
+
+select name,total_mb/1042,free_mb/1024 from v$asm_diskgroup;
+
+
+set line 330;
+col DIRECTORY_PATH form a50;
+select * from dba_directories;
+
+
+CREATE DIRECTORY IF NECESSARY
+------------------------------
+
+CREATE OR REPLACE DIRECTORY DUMP AS '/APP_orap_dumps';
+
+
+
+
+
+================================================================================================================================
+5. Get the number of objects and the status in the source schema
+------------------------------------------------------------------
+
+select count(*),object_type from dba_objects where owner='&owner' group by object_type;
+select count(*),status from dba_objects where owner='&owner' group by status;
+
+
+================================================================================================================================
+6. Go Ahead with the export
+------------------------------
+
+nohup expdp  User/passwd@CMI280Q directory=PUMP dumpfile=PERIOD_HD5511063%u.dmp logfile=PERIOD_HD5511063.log SCHEMAS=PERIOD EXCLUDE=STATISTICS,DB_LINK parallel=4 &
+
+------Can also use the below parameters----------
+
+EXPDP help=y
+
+parfile=table.par
+
+directory=PUMP
+dumpfile=PERIOD_HD5511063.dmp
+logfile=PERIOD_HD5511063.log
+SCHEMAS=PERIOD
+EXCLUDE=STATISTICS,DB_LINK
+parallel=4
+content=data_only
+
+================================================================================================================================
+7. Import after creating the tablespace and verifying details like ASM disk space
+-----------------------------------------------------------------------------------
+
+impdp directory=EXT_DIR_NVAU REMAP_SCHEMA=PADE:PADE_CQ_DEV REMAP_TABLESPACE=PAPROD:PADE_CQ_DEV_DATA dumpfile=PADE_INC00067778%u.dmp logfile=imp_PADE_INC00067778.log TABLE_EXISTS_ACTION=REPLACE parallel=4
+
+
+------Can also use the below parameters------------
+
+directory=EXT_DIR_NVAU
+REMAP_SCHEMA=PADE:PADE_CQ_DEV 
+REMAP_TABLESPACE=PAPROD:PADE_CQ_DEV_DATA
+dumpfile=PADE_INC00067778.dmp
+logfile=imp_PADE_INC00067778.log 
+TABLE_EXISTS_ACTION=REPLACE
+
+
+=============================================================-----------------------------------===============================================
+
+expdp impdp satatus
+=====================
+
+
+col STATE format a10
+col OWNER_NAME format a10
+col JOB_MODE format a10
+col MESSAGE format a35
+
+select sid, serial#, sofar, totalwork,dp.owner_name, dp.state, dp.job_mode,MESSAGE from gv$session_longops sl, gv$datapump_job dp
+where sl.opname = dp.job_name and sofar != totalwork; 
+
+
+
+Monitor the alert log properly for any error
+
+=============================================================-----------------------------------===============================================
+
+
+
+
+================================================================================================================================
+8. validate using the logs and object count,status
+-----------------------------------------------------
+
+select count(*),object_type from dba_objects where owner='&owner' group by object_type;
+select count(*),status from dba_objects where owner='&owner' group by status;
+
+
+Recompile the object if INVALID
+---------------------------------
+
+EXEC DBMS_UTILITY.compile_schema(schema => '&owner');
+
+ALTER PACKAGE my_package COMPILE;
+ALTER PACKAGE &my_package COMPILE BODY;
+ALTER PROCEDURE my_procedure COMPILE;
+ALTER FUNCTION &my_function COMPILE;
+ALTER TRIGGER my_trigger COMPILE;
+ALTER VIEW my_view COMPILE;
+
+An alternative approach is to use the DBMS_DDL package to perform the recompilations.
+
+EXEC DBMS_DDL.alter_compile('PACKAGE', 'MY_SCHEMA', 'MY_PACKAGE');
+EXEC DBMS_DDL.alter_compile('PACKAGE BODY', '&MY_SCHEMA', 'MY_PACKAGE');
+EXEC DBMS_DDL.alter_compile('PROCEDURE', 'MY_SCHEMA', 'MY_PROCEDURE');
+EXEC DBMS_DDL.alter_compile('FUNCTION', 'MY_SCHEMA', 'MY_FUNCTION');
+EXEC DBMS_DDL.alter_compile('TRIGGER', 'MY_SCHEMA', 'MY_TRIGGER');
+
+
+
+
+================================================================================================================================
+9. set the original password of the target schema as backuped up
+-------------------------------------------------------------------
+
+alter user <username> identified by <password> ;
+
+
+
+10. recreate target db_link and reset old password passwd
+----------------------------------------------------------- 
+
+
+
+*Useful Links :
+
+
+
+
+Known Issues----------------------------------------------------
+
+
+
+
+
+
+
+
+----------------------------------------------------------------
+
+
+
+
+=================================================================EXAMPLES===================================================================================
+
+
+expdp directory=DATAPUMP dumpfile=HD5657747_pgat_prod_backup_data.dmp logfile=HD5657747_pgat_prod_backup_data parfile=table_hd5657747_bk.par content=data_only
+
+
+tables=(
+PGAT_PROD.ND_CHARACTERISTICS, 
+PGAT_PROD.PG_FOLDERS, 
+PGAT_PROD.PRODUCT_GROUPS, 
+PGAT_PROD.SEGMENT_SUBTOTAL, 
+PGAT_PROD.SEGMENT, 
+PGAT_PROD.WEB_APP_LOG,
+PGAT_PROD.DB_WEB_APP_RLTD, 
+PGAT_PROD.WEB_APP, 
+PGAT_PROD.DATABASES, 
+PGAT_PROD.SUBTOTALS, 
+PGAT_PROD.SBTTL_TYPE 
+)
+
+
+Using the SQL one can create a list of tables to pass as a parameter to export (exp).
+---------------------------------------------------------------------------------------
+
+set heading off
+set pages 0
+
+– create the list for a specific user
+SELECT DECODE( rownum, 1, ‘tables=(‘, ‘,’ ), owner || ‘.’ || table_name FROM dba_tables WHERE owner IN ( ‘SCOTT’ )
+UNION ALL
+SELECT ‘)’, null FROM dual;
+
+Output:
+tables=( SCOTT.USERS
+, SCOTT.DEPT
+, SCOTT.EMP
+, SCOTT.BONUS
+, SCOTT.SALGRADE
+, SCOTT.TEST_OBJECTS
+, SCOTT.STATS_BACKUP
+, SCOTT.DUMMY1
+, SCOTT.BIGEMP
+, SCOTT.MYDUAL
+)
+
+
+
+impdp directory=EXT_DIR_NVAU REMAP_SCHEMA=PADE:PADE_CQ_DEV REMAP_TABLESPACE=PAPROD:PADE_CQ_DEV_DATA dumpfile=PADE_INC00067778.dmp logfile=imp_PADE_INC00067778.log TABLE_EXISTS_ACTION=REPLACE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+************************************************************
+NOTE : Need to Grant APP_SYSPRIVS_ROLE to any new schema 
+       created as part Data copy or Schema Creation Request 
+       EXCEPT Read Only Schema.
+************************************************************
+
+SCHEMA CREATION | user creation
+================================================================================================================================
+set line 300;
+set pagesize 999;
+set long 9999;
+col DIRECTORY_PATH form a50;
+col USERNAME form a20;
+col ACCOUNT_STATUS form a10;
+col STATE format a10;
+col OWNER_NAME format a10;
+col JOB_MODE format a10;
+col MESSAGE format a55;
+================================================================================================================================
+1. check the database name and a valid ticket also Check the schema reqest if it already present
+------------------------------------------------------------------------------------------------------
+
+select USERNAME,ACCOUNT_STATUS,PASSWORD,DEFAULT_TABLESPACE,PASSWORD_VERSIONS from dba_users where username='&schema_name';
+
+================================================================================================================================
+2. get the model if possible and extract the ddl
+--------------------------------------------------
+
+select  dbms_metadata.get_ddl('USER', '&users')  from DUAL;
+
+select USERNAME,ACCOUNT_STATUS,PASSWORD,DEFAULT_TABLESPACE,PASSWORD_VERSIONS from dba_users where username='&schema_name';
+
+================================================================================================================================
+3. get the sapce allocation details to the model user
+------------------------------------------------------
+
+Select sum(bytes/1024/1024/1024) from dba_segments where owner='&owner';
+select FILE_NAME, BYTES/1024/1024/1024, MAXBYTES/1024/1024/1024, TABLESPACE_NAME, AUTOEXTENSIBLE from dba_data_files where TABLESPACE_NAME ='&tablespace';
+
+================================================================================================================================
+4. check the role and grant present in the model ID
+-------------------------------------------------------
+
+select 'grant '|| GRANTED_ROLE|| ' to &touser;' from dba_role_privs where GRANTEE='&username';
+	
+
+================================================================================================================================
+5.Create tablespace and add datafile as per the requirement
+-------------------------------------------------------------	
+select  dbms_metadata.get_ddl('TABLESPACE','&name') from dual;
+
+ASM disk space utilization 
+----------------------------------
+select name,total_mb/1042,free_mb/1024 from v$asm_diskgroup;
+
+Check for bigfile tablespace
+-----------------------------
+select distinct BIGFILE from dba_tablespaces;
+
+create tablespace &tablesapce_name DATAFILE '+DATA' size 200M AUTOEXTEND ON;
+alter tablespace &tablespace_name add datafile '+DATA' size 200M AUTOEXTEND ON;
+
+================================================================================================================================
+6.create user and grant priviledge as per the model ID
+---------------------------------------------------------
+Create user &username identified by &password;
+
+grant APP_SYSPRIVS_ROLE to &username;
+alter user &username QUOTA UNLIMITED ON &tbs_name;
+
+7. validate
+------------------------------
+
+
+ 
+
+
+
+
+
+
+
+
+
+DBMS_METADATA.GET_DDL('USER','RTL_STORE_GRP')
+--------------------------------------------------------------------------------
+
+   CREATE USER "RTL_STORE_GRP" IDENTIFIED BY VALUES '1E62F2A1C5750B8A'
+      DEFAULT TABLESPACE "RTL_STORE_GRP"
+      TEMPORARY TABLESPACE "TS_TEMP"
+
+
+
+
+
+
+
+cd $ORACLE_HOME/sqlplus/admin/
+
+
+glogin.sql
+
+
+
+
+
+scp database_JAVA_component.sh oracle@serrheorad001:/opt/app/home/oracle/dba/parimal
+scp database_JAVA_component.sh oracle@serrheorau001:/opt/app/home/oracle/dba/parimal
+scp database_JAVA_component.sh oracle@serrheoraq001:/opt/app/home/oracle/dba/parimal
+scp database_JAVA_component.sh oracle@serrheorap001:/opt/app/home/oracle/dba/parimal
+scp database_JAVA_component.sh oracle@serrheorap002:/opt/app/home/oracle/dba/parimal
+scp database_JAVA_component.sh oracle@serrheorap022:/opt/app/home/oracle/dba/parimal
+
+
+
+
+for some priviledge issue :
+-----------------------------
+
+SQL> execute TLOG_CHECK_GROUP_CMPLTNESS(6173,'LESODCONFIGQ',2);
+BEGIN TLOG_CHECK_GROUP_CMPLTNESS(6173,'LESODCONFIGQ',2); END;
+
+*
+ERROR at line 1:
+ORA-01031: insufficient privileges
+ORA-06512: at "LESODABCQ.TLOG_CHECK_GROUP_CMPLTNESS", line 73
+ORA-06512: at line 1
+
+
+
+SOLUTION:
+---------
+
+grant create table to LESODABCQ with admin option;
+
+
+
+
+
+
+
+
+=-==
+
+   CREATE USER "APPR4CMPPNLQ" IDENTIFIED BY VALUES 'S:D524C3BB5DD8622921A0A6A1BB
+FC9900AEC7EEA6178192E9A7A13779784E;3D5577D1B832004E'
+      DEFAULT TABLESPACE "APPR4CMPPNLQ"
+      TEMPORARY TABLESPACE "TEMP"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+service Consolidation
+========================
+
+
+
+set line 300;
+col USERNAME form a20;
+col SERVICE_NAME form a30;
+col machine form a13 trunc;
+select sid,serial#,username,machine,logon_time,inst_id,service_name from gv$session where username not in ('SYS','User','DBACOE','DBSNMP') and type <>'BACKGROUND' and service_name not like '%_FE';
+
+
+
+
+select 'ALTER User KILL SESSION ' ||chr(39)||sid||chr(44)||serial#||chr(44)||chr(64)||inst_id||chr(39)||'immediate;' QUERY from gv$session where username like 'DBSNMP';
+
+
+
+
+Droping SChema :
+=================
+set line 300;
+select username,account_status,default_tablespace from dba_users where username='&name';
+select username,account_status,default_tablespace from dba_users where DEFAULT_TABLESPACE='&tbs_name';
+select distinct tablespace_name,owner from dba_segments where owner='&name';
+select distinct tablespace_name,owner from dba_segments where TABLESPACE_NAME='&tbs_name';
+
+
+
+
+grant read/write access to another user
+=========================================
+
+select 'grant select, update, insert, delete on '||owner||'.'||object_name||' to '||'ESPECPOC'||';' from all_objects where owner='SECURITY' and object_type in ('TABLE','VIEW');
+
+-------------------------------------------------------------------
+
+select 'grant execute on '||owner||'.'||object_name||' to '||'ESPECPOC'||';' from all_objects where owner='ESPEC' and  object_type in ('PACKAGE','PROCEDURE','FUNCTION');
+
+
+
+

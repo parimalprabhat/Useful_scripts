@@ -1,0 +1,49 @@
+export ORACLE_HOME=/opt/app/oracle/11.2.0/grid
+export ORACLE_SID="+ASM"
+
+     $ORACLE_HOME/bin/sqlplus -S '/ as sysasm' << EOF
+      --set linesize 50
+      --set pagesize 9999
+      set heading off
+     set newpage none
+     set feedback off
+set pages 100 lines 200
+col host_name for a13 trunc
+      col total_mb format a8
+      col free_mb format a8
+      col name format a8
+      col free_pct format a8
+select a.HOST_NAME,b.name,round(total_mb/1024) total_gb,round(free_mb/1024) free_gb,round(free_mb*100/total_mb)||'%' free_pct from v\$instance a,v\$asm_diskgroup b;
+EOF
+export ORACLE_HOME=/opt/app/oracle/product/11.2.0/db_1
+export ORACLE_SID="APPDBRD"
+$ORACLE_HOME/bin/sqlplus -S '/ as sysdba' << EOF
+      --set linesize 50
+      --set pagesize 9999
+      set heading off
+     set newpage none
+     set feedback off
+set pages 100 lines 200
+col host_name for a13 trunc
+      col total_mb format a8
+      col free_mb format a8
+      col name format a8
+      col free_pct format a8
+select round(sum(bytes/1024/1024/1024) TOTAL_GB from dba_data_files;
+EOF
+export ORACLE_HOME=/opt/app/oracle/product/11.2.0/db_1
+export ORACLE_SID="APPDBRA"
+$ORACLE_HOME/bin/sqlplus -S '/ as sysba' << EOF
+      --set linesize 50
+      --set pagesize 9999
+      set heading off
+     set newpage none
+     set feedback off
+set pages 100 lines 200
+col host_name for a13 trunc
+      col total_mb format a8
+      col free_mb format a8
+      col name format a8
+      col free_pct format a8
+select round(sum(bytes/1024/1024/1024) TOTAL_GB from dba_data_files;
+EOF

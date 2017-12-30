@@ -1,0 +1,146 @@
+Transportable Tablespaces
+===========================
+
+http://www.oracle-base.com/articles/misc/transportable-tablespaces.php
+http://albertolarripa.com/2012/07/22/transportable-tablespace-with-asm/
+http://agstamy.blogspot.in/2009/09/transportable-table-space-tts.html
+
+
+
+For a tablespace to be transportable it must be totally self contained. This can be checked using the DBMS_TTS.TRANSPORT_SET_CHECK procedure.
+
+CONN / AS SYSDBA
+EXEC SYS.DBMS_TTS.TRANSPORT_SET_CHECK(ts_list => 'TEST_DATA', incl_constraints => TRUE);
+
+PL/SQL procedure successfully completed.
+
+SQL>
+
+
+The TRANSPORT_SET_VIOLATIONS view is used to check for any violations.
+
+SELECT * FROM transport_set_violations;
+
+no rows selected
+
+
+Assuming no violations are produced we are ready to proceed by switching the tablespace to read only mode.
+
+SQL> ALTER TABLESPACE test_data READ ONLY;
+
+Tablespace altered.
+
+
+Next we export the tablespace metadata using the export (expdp or exp) utility. If you are using 10g or above you should use the expdp utility
+
+CONN / AS SYSDBA
+CREATE OR REPLACE DIRECTORY temp_dir AS '/tmp/';
+GRANT READ, WRITE ON DIRECTORY temp_dir TO User;
+
+
+We can now export the tablespace metadata.
+
+expdp userid=User/password directory=temp_dir transport_tablespaces=test_data dumpfile=test_data.dmp logfile=test_data_exp.log
+
+
+If you are using a version prior to 10g
+
+exp userid='User/password as sysdba' transport_tablespace=y tablespaces=test_data file=test_data.dmp log=test_data_exp.log
+
+
+
+
+
+Copy the datafile to the appropriate location on the destination database server. Also copy the dump file to a suitable place on the destination database server.
+
+If running on ASM :-
+
+Select the destination platform format for your datafile.
+
+SQL> COLUMN PLATFORM_NAME FORMAT A32
+SQL> SELECT * FROM V$TRANSPORTABLE_PLATFORM;
+
+PLATFORM_ID PLATFORM_NAME ENDIAN_FORMAT
+----------- -------------------------------- --------------
+ 1 Solaris[tm] OE (32-bit) Big
+ 2 Solaris[tm] OE (64-bit) Big
+ 7 Microsoft Windows IA (32-bit) Little
+ 10 Linux IA (32-bit) Little
+ 6 AIX-Based Users (64-bit) Big
+ 3 HP-UX (64-bit) Big
+ 5 HP Tru64 UNIX Little
+ 4 HP-UX IA (64-bit) Big
+ 11 Linux IA (64-bit) Little
+ 15 HP Open VMS Little
+ 8 Microsoft Windows IA (64-bit) Little
+ 9 IBM zSeries Based Linux Big
+ 13 Linux 64-bit for AMD Little
+ 16 Apple Mac OS Big
+ 12 Microsoft Windows 64-bit for AMD Little
+ 17 Solaris Operating User (x86) Little
+
+To be sure what format use, run this sql statement in your destination database:
+
+SELECT tp.platform_id,substr(d.PLATFORM_NAME,1,30) PLATFORM_NAME, ENDIAN_FORMAT
+FROM V$TRANSPORTABLE_PLATFORM tp, V$DATABASE d
+WHERE tp.PLATFORM_NAME = d.PLATFORM_NAME; 2 3
+
+PLATFORM_ID PLATFORM_NAME ENDIAN_FORMAT
+----------- ------------------------------ --------------
+13 		Linux x86 64-bit Little
+
+
+rman configuration :
+CONFIGURE DEVICE TYPE DISK PARALLELISM 2 BACKUP TYPE TO BACKUPSET;
+
+
+
+RMAN> convert tablespace TEST_DATA TO PLATFORM 'Linux x86 64-bit' FORMAT '/src/data/%U';
+
+Starting conversion at source at 21/07/2012 21:13:29
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=42 device type=DISK
+allocated channel: ORA_DISK_2
+channel ORA_DISK_2: SID=338 device type=DISK
+channel ORA_DISK_1: starting datafile conversion
+input datafile file number=00109 name=+DATA/MYDB/datafile/data.366.773260595
+converted datafile=/src/data/data_D-MYDB_I-624066827_TS-DATA_FNO-109_n2ngm3rp
+channel ORA_DISK_1: datafile conversion complete, elapsed time: 00:00:55
+Finished conversion at source at 21/07/2012 21:14:24
+
+Starting Control File and SPFILE Autobackup at 21/07/2012 21:14:24
+piece handle=+FRA/MYDB/autobackup/2012_07_21/s_789254064.960.789254065 comment=NONE
+Finished Control File and SPFILE Autobackup at 21/07/2012 21:14:25
+
+Activate the compression :
+
+CONFIGURE DEVICE TYPE DISK PARALLELISM 2 BACKUP TYPE TO COMPRESSED BACKUPSET;
+
+
+
+
+impdp userid=User/password directory=temp_dir dumpfile=test_data.dmp logfile=test_data_imp.log transport_datafiles='/src/data/data_D-MYDB_I-624066827_TS-DATA_FNO-109_n2ngm3rp'
+
+
+
+ALTER TABLESPACE TEST_DATA READ WRITE;
+
+
+The tablespace is now available in the destination database.
+
+SELECT tablespace_name, plugged_in, status
+FROM   dba_tablespaces
+WHERE  tablespace_name = 'TEST_DATA';
+
+TABLESPACE_NAME                PLU STATUS
+------------------------------ --- ---------
+TEST_DATA                      YES ONLINE
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,43 @@
+First, make sure your automatic archiving is enabled.  To check the archive lo made, try:
+=====================================================================================================
+
+SQL> archive log list;
+
+Now, note thatyou can find archive destinations if you are using a destination of USE_DB_RECOVERY_FILE_DEST by:
+=====================================================================================================
+
+SQL> show parameter db_recovery_file_dest;
+
+The next step in resolving ORA-00257 is to find out what value is being used for db_recovery_file_dest_size, use:
+=====================================================================================================
+
+SQL> SELECT * FROM V$RECOVERY_FILE_DEST;
+
+You may find that the SPACE_USED is the same as SPACE_LIMIT, if this is the case, to resolve ORA-00257 should be remedied by moving the archive logs to some other destination.
+
+You next need to archive the log files by,
+=====================================================================================================
+SQL> alter User archive log all;
+
+It is important to note that within step five of the ORA-00257 resolution,  you may also encounter ORA-16020 in the LOG_ARCHIVE_MIN_SUCCEED_DEST, and you should use the proper archivelog path and use (keeping in mind that you may need to take extra measures if you are using Flash Recovery Area as you will receive more errors if you attempt to use LOG_ARCHIVE_DEST):
+=====================================================================================================
+alter User set log_archive_dest_1='location=/opt/sblppr2/arch1/SBLTEST/arch' ; 
+
+
+SQL>alter User set LOG_ARCHIVE_DEST_.. = 'location=/archivelogpath reopen';
+
+The last step in resolving ORA-00257 is to change the logs for verification using:
+=====================================================================================================
+SQL> alter User switch logfile;
+
+
+
+
+
+check in RMAN for 
+=====================================================================================================
+crosscheck archivelog all;
+
+
+delete noprompt expired archivelog all;
+

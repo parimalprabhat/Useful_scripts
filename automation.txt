@@ -1,0 +1,96 @@
+Vi /opt/app/home/oracle/dba/parimal/APP_space_utilization/final_report.sh
+
+
+
+#!/bin/ksh
+export DATE=$(date +%Y-%m-%d)
+
+### Purge old logs #######
+rm /opt/app/home/oracle/dba/parimal/APP_space_utilization/consolidate_report.log
+rm /opt/app/home/oracle/dba/parimal/APP_space_utilization/failed_report.log
+mv /opt/app/home/oracle/dba/parimal/APP_space_utilization/final_temp.log /opt/app/home/oracle/dba/parimal/APP_space_utilization/logs/final_report_$DATE.log
+
+
+
+##### Collect Report from all primary host
+count_max=`cat /opt/app/home/oracle/dba/parimal/APP_space_utilization/server_list |wc -l`
+count=1
+while [ $count -le $count_max ]
+do
+i=`awk 'FNR == '$count' {print $1}' /opt/app/home/oracle/dba/parimal/APP_space_utilization/server_list`
+###j=`awk 'FNR == '$count' {print $1}' /opt/app/home/oracle/dba/parimal/APP_space_utilization/database_list`
+rm /opt/app/home/oracle/dba/parimal/APP_space_utilization/final_report_$i.log
+scp oracle@$i:/opt/app/home/oracle/dba/parimal/APP_space_utilization/final_report_$i.log /opt/app/home/oracle/dba/parimal/APP_space_utilization/
+
+if  [ `stat -c %s /opt/app/home/oracle/dba/parimal/APP_space_utilization/final_report_$i.log` -gt 0 ]; then
+cat /opt/app/home/oracle/dba/parimal/APP_space_utilization/final_report_$i.log >> /opt/app/home/oracle/dba/parimal/APP_space_utilization/consolidate_report.log
+let count++
+else
+cat /dev/null > /opt/app/home/oracle/dba/parimal/APP_space_utilization/failed_report.log
+#echo "Below databases are down or under issue" >> /opt/app/home/oracle/dba/parimal/APP_space_utilization/failed_report.log
+echo "$j" >> /opt/app/home/oracle/dba/parimal/APP_space_utilization/failed_report.log
+let count++
+fi
+done
+
+
+
+#### Send the report
+
+
+ASMMAIL=/opt/app/home/oracle/dba/parimal/APP_space_utilization/consolidate_report.log
+
+
+NOW=$(date +"%m-%d-%Y")
+
+
+echo "TO: parimal.prabhat.ap@company.com"  > $ASMMAIL
+#echo "TO: PrimaryDBASupport@company.com,parimal.prabhat.ap@company.com"  > $ASMMAIL
+echo "FROM: ASMMON"  >> $ASMMAIL
+echo "SUBJECT:ASM DISK Space usage" >> $ASMMAIL
+echo "Mime-Version: 1.0" >> $ASMMAIL
+echo "Content-Type: text/html" >> $ASMMAIL
+echo "<html><body> <h3> ASM DISK Space usage </h3>" >> $ASMMAIL
+echo "<p> </p>" >> $ASMMAIL
+echo "<table border bgcolor=#EEDC82 size=2>" >> $ASMMAIL
+echo "<tr bgcolor=#FCD59C><b> <td><center><b>SERVER NAME</b></center></td> <td><center><b>DISKGROUP</b></center></td> <td><center><b>TOTAL SIZE IN GB</b></center></td> <td><center><b>FREE SIZE IN GB</b></center></td> <td><center><b>PERCENTAGE FREE </b></center></td></tr>" >> $ASMMAIL
+cat $TMPFILE |while read -r a b c d e f
+do
+echo "<tr bgcolor=#FBEC5D><td><center>$a</td> <td><center>$b</td> <td><center>$c</td> <td><center>$d</td> <td><center>$e</td></tr>" >> $ASMMAIL
+done
+echo "</body> </html>" >> $ASMMAIL
+/usr/sbin/sendmail -t -oi < $ASMMAIL
+
+
+
+
+
+
+
+
+
+
+
+
+
+file=/opt/app/home/oracle/dba/parimal/APP_space_utilization/failed_report.log
+cp /opt/app/home/oracle/dba/parimal/APP_space_utilization/consolidate_report.log /opt/app/home/oracle/dba/parimal/APP_space_utilization/final_temp.log
+if test -s "$file"
+then
+#echo "Kindly take action on above databases , have a look now on below report and take action if needed" >> /opt/app/home/oracle/dba/parimal/archive_gap/failed_report.log
+/opt/app/home/oracle/dba/parimal/APP_space_utilization/send_report_failure.sh
+else
+/opt/app/home/oracle/dba/parimal/APP_space_utilization/send_report.sh
+fi
+
+
+ 
+
+/opt/app/home/oracle/dba/parimal/APP_space_utilization/
+/opt/app/home/oracle/dba/parimal/APP_space_utilization/logs/
+
+
+
+
+
+

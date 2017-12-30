@@ -1,0 +1,111 @@
+Compressing a log file.
+==============================================================
+cp alert_CLE10UA1.log /dumps 
+cat /dev/null > messages
+
+
+Bzip a file
+==============================================================
+bzip2 alert_CLE10UA1_14May.log
+
+
+Secure copy
+==============================================================
+scp your_username@remotehost.edu:/some/remote/directory/\{a,b,c\} 
+
+few passwords
+==============================================================
+ser==== Oldsmar - Jq6*2pVe
+Lebanon - Kw5%3oCw
+ser-----Cinncinatti: 2o0nBe@m$
+P2cwd*En
+UX$28hub
+Vd#18iSn
+2o0nBe@m$ 
+Kw5%3oCw 
+Sis56M@n
+
+changing the home directiory
+==============================================================
+usermod -m -d /export/home/soriso01 soriso01 
+usermod -m -d /path/to/new/home/dir userNameHere
+
+
+Adding a secondary group
+==============================================================
+usermod -a -G tripload munrke01
+ 
+
+Adding a new user;
+==============================================================
+useradd -c "Deepesh Kumar HD#4607084" -d /home/kumarde01 -g acn -s /bin/csh  kumarde01
+
+
+Changing directory permissions
+==============================================================
+Chmod 775 /home/kumarde01  
+
+
+Find and delete file
+==============================================================
+find . -type f -size +20000k -exec ls -lh {} \; | awk '{print $5": "$8}'
+find . -type f -mtime +180 -exec ls -ltr {} \;
+find . -type f -mtime +180 -exec rm -rf {} \;
+find . -type f -name '*.dmp*' -mtime +90 -exec ls -ltr {} \;
+find . -type f -name '*.xml' -mtime +30 -exec rm -rf {} \;
+
+find . -type f -name '*.trm' -mtime +10 -exec rm -rf {} \;
+Sort the file with size
+==============================================================
+du -sk * . | sort -n -r | head -n 10
+
+Incresing the SWAP space
+==============================================================
+cat /etc/fstab
+lvcreate -L 10G -n /dev/sysvg/swap1.vol
+mkswap /dev/sysvg/swap1.vol
+vi /etc/fstab
+swapon -a 
+
+
+solaris  :
+
+swap -l  | grep -v swapfile | awk '{s+=$4}{sum+=$5} END { print "",sum,"/"s"*100"}' | bc -l;df -k /tmp;date;uptime
+ps -ef |grep netbackup |wc -l
+
+
+
+Console - IDRAC passwords. Keep it confidential.
+==============================================================
+Olymp!c@12 
+Olymp!c@08
+calvin
+
+
+
+zipping a file
+=============================================================
+gzip -c messages>messages.$(date +%Y-%m-%d)log.gz
+
+
+
+Validation Script 
+Oldsmar: 
+wget -qO- http://serrhnsatellite.company.com/pub/validate/node_check.sh | /bin/bash  
+CBTS and Lebanon: 
+wget -qO- http://cvgrhnsatellite.company.com/pub/validate/node_check.sh | /bin/bash
+
+
+
+Scanning power path
+=============================================================
+cd /sys/class/scsi_host/
+ls
+echo " - - - " >/sys/class/scsi_host/host2/scan
+
+
+
+telnet <servername> 13782
+
+wget –qO- http://10.38.9.100/pub/profiles/common/servicenow/setid_linux.sh | /bin/bash
+

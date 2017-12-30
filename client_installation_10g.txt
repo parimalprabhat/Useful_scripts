@@ -1,0 +1,13 @@
+1.	Goto to the machine as Apacoracleservice and de-install whatever clients that are available (irrespective 8i, 10G).
+2.	Login to the machine as Service Account : twnproces/Change_2011
+3.	Goto User Properties, Under the Advanced Tab, Environment Variables.
+4.	Go to Path and Remove and old remaining paths of Oracle clients in the User Path.
+5.	Under User Variables, Add a New Item : NLS_LANG and Value : AMERICAN_AMERICA.ZHT16BIG5
+6.	Goto \\maawinrfpp178\client\client location to install the 10.2.0.1 64 bit Base Client
+7.	Goto \\maawinrfpp178\Disk1\Disk1 location to install the 10.2.0.3 64 bit Upgrade Client
+8.	Goto \\maawinrfpp178\Das\10201_client_win32 location to install the 10.2.0.1 32 bit Base Client
+9.	Goto \\maawinrfpp178\Das\10G_PatchSet_10203\Disk1 location to install the 10.2.0.3 32 bit Upgrade Client
+
+
+
+

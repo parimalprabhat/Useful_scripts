@@ -1,0 +1,19 @@
+Clonning a database 
+=====================
+
+1. Validate the backup in the backup server
+2. Shutdown immediate
+3. Bring down NEDEV and clean the file Users. Delete all datafiles and redolog files.
+4. Start the copy process.
+
+- datafiles
+- archive logs
+- init files
+- redologs ( Yes, redolog files )
+
+
+5. Start the cloning process
+
+6. Add the temporary files in the temporary tablespace
+7. Drop database links and restore the old one.
+

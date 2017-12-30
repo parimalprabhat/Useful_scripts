@@ -1,0 +1,233 @@
+Hi Team,
+
+Recently we have faced /dev/shm issue during RAC build on Red Hat Enterprise Linux Server release 6.3 environment. Generally we are deciding to set up memory_max_target and memory_target value with based on fileUser size of /dev/shm . Because of OS Bug – 669700 ( On RHEL 6 it is applicable ) /dev/shm is not using /etc/fstab values after server reboot.
+
+Issue Description : In /etc/fstab the /dev/shm value is specified as below :
+
+[root@sharheorap001 ~]# cat /etc/fstab
+
+#
+# /etc/fstab
+# Created by anaconda on Sat Jul 13 15:19:09 2013
+#
+# Accessible fileUsers, by reference, are maintained under '/dev/disk'
+# See man pages fstab(5), findfs(8), mount(8) and/or blkid(8) for more info
+#
+/dev/mapper/sysvg-root.vol / ext4 defaults 1 1
+UUID=32d67c21-a1a0-4ad6-a8c7-8fa93c9972db /boot ext4 defaults 1 2
+/dev/mapper/sysvg-home.vol /home ext4 defaults 1 2
+/dev/mapper/sysvg-opt.vol /opt ext4 defaults 1 2
+/dev/mapper/sysvg-tmp.vol /tmp ext4 defaults 1 2
+/dev/mapper/sysvg-usr.vol /usr ext4 defaults 1 2
+/dev/mapper/sysvg-var.vol /var ext4 defaults 1 2
+/dev/appvg/swap.vol swap swap defaults 0 0
+tmpfs /dev/shm tmpfs defaults,size=98g 0 0
+devpts /dev/pts devpts gid=5,mode=620 0 0
+sysfs /sys sysfs defaults 0 0
+proc /proc proc defaults 0 0
+
+
+/dev/appvg/orahome.vol /opt/app ext4 defaults 0 0
+/dev/remotevg/remotebu.vol /remotebu ext4 defaults 0 0
+
+After that if you try mount -o remount /dev/shm command and then you can see /dev/shm is changed as 98G.But once you will reboot the server the size of /dev/shm will be reduced to 50% of physical RAM instead of 98G as set up in fstab like as below :
+
+PROD:[IMCH01PR1]oracle@sharheorap001:/opt/app/home/oracle
+==> df -h
+FileUser Size Used Avail Use% Mounted on
+tmpfs 63G 0G 63G 0% /dev/shm
+
+OS Bug Description :
+
+Bug 669700 - Size parameter for tmpfs in fstab is not applied during reboot (Applicable for RHEL 6)
+
+Workaround :
+
+Unix Admin put the remount command in rc.local so during startup of the server /dev/shm will be remounted automatically.
+
+[root@sharheorap001 ~]# ls -ltr /etc/rc.local
+lrwxrwxrwx. 1 root root 13 Jul 14 05:43 /etc/rc.local -> rc.d/rc.local
+
+[root@sharheorap001 ~]# cat /etc/rc.local 
+#!/bin/sh
+#
+# This script will be executed *after* all the other init scripts.
+# You can put your own initialization stuff in here if you don't
+# want to do the full Sys V style init stuff.
+
+touch /var/lock/subsys/local
+mount -o remount /dev/shm
+
+
+
+
+
+
+
+
+
+
+
+Dear Team,
+
+Recently we have migrated IMDB database from HPUX (Standalone) to Linux X86-64 (RAC) – RHEL 6.3 . In this environment validation we have experienced some point which is new in RHEL 6.
+
+•	Rp_filter set up :
+
+In the 2.6.31 Linux kernel made the net.ipv4.conf.default.rp_filter = 1 more strict in the I/O that is accepted. Consequently, in Red Hat Enterprise Linux 6, if there are multiple interfaces on the same subnet and I/O is sent to the one that is not the default route, the I/O will be dropped. Note that this applies to iSCSI iface binding when multiple interfaces are on the same subnet. This will either disable (0) or relax (2) the filtering and allow RAC to function correctly. It is not considered unsafe to disable or relax this filtering since the private interconnect is supposed to be private/isolated network. This one can lead DRM latency that can cause the wait on ges lms sync. We have seen same thing on this build.
+
+How to check :
+
+Kindly run below command :
+
+PROD:[IMCH01PR1]oracle@sharheorap001:/opt/app/home/oracle
+==> grep . `find /proc/sys/net -name rp_filter`
+/proc/sys/net/ipv4/conf/all/rp_filter:0
+/proc/sys/net/ipv4/conf/default/rp_filter:1
+/proc/sys/net/ipv4/conf/lo/rp_filter:1
+/proc/sys/net/ipv4/conf/em1/rp_filter:1
+/proc/sys/net/ipv4/conf/em4/rp_filter:1
+/proc/sys/net/ipv4/conf/em3/rp_filter:1
+/proc/sys/net/ipv4/conf/em2/rp_filter:1
+/proc/sys/net/ipv4/conf/bond0/rp_filter:1
+
+In the metalink it is clearly mentioned with good example :
+
+The rp_filter parameter can be set globally on all NICs, or specific on each NIC. The maximum (between the "all" and the specific interface) value is taken. The values are defined as follows: 
+
+rp_filter - INTEGER
+
+• 0 - No source validation.
+• 1 - Strict mode as defined in RFC3704 Strict Reverse Path Each incoming packet is tested against the FIB and if the interface is not the best reverse path the packet check will fail. By default failed packets are discarded.
+• 2 - Loose mode as defined in RFC3704 Loose Reverse Path Each incoming packet's source address is also tested against the FIB and if the source address is not reachable via any interface the packet check will fail.
+In the example situation where ib0 & ib1 are used for private interconnect (on 2 or more nodes), then the MAX value of rp_filter for the "all" and "ib0" and "ib1" must be either 0 or 2 for RAC to function correctly. For example, if you set "net.ipv4.conf.ib1.rp_filter = 0" to disable filtering on that NIC but then set "net.ipv4.conf.all.rp_filter = 1", that is a wrong configuration. It is wrong because the value that will be taken for ib1 is 1 which is the MAX between 0 & 1. As explained above, the MAX should be either 0 or 2 for RAC to function correctly. 
+
+A valid configuration would be for example to set "net.ipv4.conf.ib1.rp_filter = 2" and "net.ipv4.conf.all.rp_filter = 0 or 1", MAX would be 2 in this case for NIC ib1, which is valid. 
+
+Examples of valid configurations: 
+
+(Max value would be "2", this is OK) 
+net.ipv4.conf.ib1.rp_filter = 2
+net.ipv4.conf.ib0.rp_filter = 2
+net.ipv4.conf.all.rp_filter = 0
+
+(Max value would be "0", this is OK) 
+net.ipv4.conf.eth1.rp_filter = 0
+net.ipv4.conf.eth0.rp_filter = 0
+net.ipv4.conf.all.rp_filter = 0
+
+
+Examples of Invalid configurations 
+
+(Max value would be "1", this is NOT OK) 
+net.ipv4.conf.ib1.rp_filter = 0
+net.ipv4.conf.ib0.rp_filter = 0
+net.ipv4.conf.all.rp_filter = 1
+
+(Max value would be "1", this is NOT OK) 
+net.ipv4.conf.eth1.rp_filter = 1
+net.ipv4.conf.eth0.rp_filter = 1
+net.ipv4.conf.all.rp_filter = 0 
+
+How to change the value 
+
+We need to change net.ipv4.conf.default.rp_filter parameter in /etc/sysctl.conf to 2 and reboot the server. It will be look like this :
+
+PROD:[IMCH01PR1]oracle@sharheorap001:/opt/app/home/oracle
+==> cat /etc/sysctl.conf|grep net.ipv4.conf.default.rp_filter
+net.ipv4.conf.default.rp_filter = 2
+
+How to validate :
+
+After rebooting with proper change Kindly check below output again :
+
+PROD:[IMCH01PR1]oracle@sharheorap001:/opt/app/home/oracle
+==> grep . `find /proc/sys/net -name rp_filter`
+/proc/sys/net/ipv4/conf/all/rp_filter:0
+/proc/sys/net/ipv4/conf/default/rp_filter:2
+/proc/sys/net/ipv4/conf/lo/rp_filter:2
+/proc/sys/net/ipv4/conf/em1/rp_filter:2
+/proc/sys/net/ipv4/conf/em4/rp_filter:2
+/proc/sys/net/ipv4/conf/em3/rp_filter:2
+/proc/sys/net/ipv4/conf/em2/rp_filter:2
+/proc/sys/net/ipv4/conf/bond0/rp_filter:2
+
+Ref. Doc :
+
+http://linux.derkeiler.com/Mailing-Lists/Kernel/2009-09/msg04929.html 
+
+http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Technical_Notes/ar01s04s02.html
+
+rp_filter for multiple private interconnects and Linux Kernel 2.6.32+ (Doc ID 1286796.1)
+
+•	Transparent Hugepage set up
+
+From RHEL 6 Transparent Hugepages are by default enabled. Because of this we are frequently seeing the buffer cache is getting shrink to get enough memory and our AMM is not working as expected.
+
+How to check :
+
+First Method -> 
+
+Kindly run below command :
+
+[root@sharheorap001 ~]# cat /sys/kernel/mm/redhat_transparent_hugepage/enabled
+[always] never ? It is enabled.
+
+After disabling the output will be like this :
+
+[root@sharheorap001 ~]# cat /sys/kernel/mm/redhat_transparent_hugepage/enabled
+always [never] ? It is disabled
+
+Second Method ->
+
+The value of AnonHugepages in /proc/meminfo is the current amount of Transparent HugePages that the kernel is using.
+
+After disabling the value should be 0KB.
+
+[root@sharheorap001 ~]# grep AnonHugePages /proc/meminfo
+AnonHugePages: 632832 kB
+
+
+How to Disable it :
+
+Kindly add transparent_hugepage=never in /etc/grub.conf as below and reboot the server :
+
+[root@sharheorap001 ~]# cat /etc/grub.conf
+# grub.conf generated by anaconda
+#
+# Note that you do not have to rerun grub after making changes to this file
+# NOTICE: You have a /boot partition. This means that
+# all kernel and initrd paths are relative to /boot/, eg.
+# root (hd0,0)
+# kernel /vmlinuz-version ro root=/dev/mapper/sysvg-root.vol
+# initrd /initrd-[generic-]version.img
+#boot=/dev/sddb
+default=0
+timeout=5
+splashimage=(hd0,0)/grub/splash.xpm.gz
+hiddenmenu
+title Red Hat Enterprise Linux Server (2.6.32-279.19.1.el6.x86_64)
+root (hd0,0)
+kernel /vmlinuz-2.6.32-279.19.1.el6.x86_64 ro root=/dev/mapper/sysvg-root.vol rd_NO_LUKS LANG=en_US.UTF-8 rd_NO_MD SYSFONT=latarcyrheb-sun16 crashkernel=auto rd_NO_DM KEYBOARDTYPE=pc transparent_hugepage=never KEYTABLE=us rd_LVM_LV=sysvg/root.vol rhgb quiet
+initrd /initramfs-2.6.32-279.19.1.el6.x86_64.img
+title Red Hat Enterprise Linux (2.6.32-279.el6.x86_64)
+root (hd0,0)
+kernel /vmlinuz-2.6.32-279.el6.x86_64 ro root=/dev/mapper/sysvg-root.vol rd_NO_LUKS LANG=en_US.UTF-8 rd_LVM_LV=sysvg/swap.vol rd_NO_MD SYSFONT=latarcyrheb-sun16 crashkernel=auto rd_NO_DM KEYBOARDTYPE=pc KEYTABLE=us rd_LVM_LV=sysvg/root.vol rhgb quiet
+initrd /initramfs-2.6.32-279.el6.x86_64.img
+
+
+After rebooting Kindly check the value of AnonHugepages.It should be like this :
+
+PROD:[IMCH01PR1]oracle@sharheorap001:/opt/app/home/oracle
+==> grep AnonHugePages /proc/meminfo
+AnonHugePages: 0 kB
+
+Ref Doc :
+
+ALERT: Disable Transparent HugePages on SLES11, RHEL6, OEL6 and UEK2 Kernels (Doc ID 1557478.1)
+
+We will keep you updates with our latest finding on this.
+
+Thanks,
+Tridib
+

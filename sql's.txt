@@ -1,0 +1,857 @@
+enable session level tracing 
+-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+SQL> execute dbms_User.set_sql_trace_in_session(451,32815,true);
+
+recomplile package/body/view/function/trigger
+=================================================
+
+identifying the object which is INVALID
+
+COLUMN object_name FORMAT A30
+SELECT owner,
+       object_type,
+       object_name,
+       status
+FROM   dba_objects
+WHERE  status = 'INVALID'
+ORDER BY owner, object_type, object_name;
+
+
+
+ALTER PACKAGE my_package COMPILE;
+ALTER PACKAGE my_package COMPILE BODY;
+ALTER PROCEDURE my_procedure COMPILE;
+ALTER FUNCTION my_function COMPILE;
+ALTER TRIGGER my_trigger COMPILE;
+ALTER VIEW my_view COMPILE;
+
+
+
+An alternative approach is to use the DBMS_DDL package to perform the recompilations.
+
+EXEC DBMS_DDL.alter_compile('PACKAGE', 'MY_SCHEMA', 'MY_PACKAGE');
+EXEC DBMS_DDL.alter_compile('PACKAGE BODY', 'MY_SCHEMA', 'MY_PACKAGE');
+EXEC DBMS_DDL.alter_compile('PROCEDURE', 'MY_SCHEMA', 'MY_PROCEDURE');
+EXEC DBMS_DDL.alter_compile('FUNCTION', 'MY_SCHEMA', 'MY_FUNCTION');
+EXEC DBMS_DDL.alter_compile('TRIGGER', 'MY_SCHEMA', 'MY_TRIGGER');
+
+
+
+The COMPILE_SCHEMA procedure in the DBMS_UTILITY package compiles all procedures, functions, packages, and triggers in the specified schema
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+EXEC DBMS_UTILITY.compile_schema(schema => 'SCOTT');
+
+utlrp.sql and utlprp.sql
+-------------------------
+The utlrp.sql and utlprp.sql scripts are provided by Oracle to recompile all invalid objects in the database. They are typically run after major database changes such as upgrades or patches. They are located in the $ORACLE_HOME/rdbms/admin directory and provide a wrapper on the UTL_RECOMP package. The utlrp.sql script simply calls the utlprp.sql script with a command line parameter of "0". The utlprp.sql accepts a single integer parameter that indicates the level of parallelism as follows.
+
+    0 - The level of parallelism is derived based on the CPU_COUNT parameter.
+    1 - The recompilation is run serially, one object at a time.
+    N - The recompilation is run in parallel with "N" number of threads.
+
+Both scripts must be run as the SYS user, or another user with SYSDBA, to work correctly.
+
+
+
+
+To check the priveledges assigned to  a role
+======================================================
+
+select OWNER,TABLE_NAME,COLUMN_NAME,PRIVILEGE,GRANTABLE from ROLE_TAB_PRIVS where ROLE ='&role' order by owner
+
+select 'grant '|| GRANTED_ROLE|| ' to &touser;' from dba_role_privs where GRANTEE='&username';
+
+select 'grant '||privilege || ' to &touser;' from dba_sys_privs where grantee='&username';	
+
+
+
+select  dbms_metadata.get_ddl('USER', '&users') || '/' usercreate from DUAL;
+
+scp -pr
+
+
+PWD 
+
+
+10.9.36.29
+shanva01
+Dec@2011
+
+10.47.16.63
+rengsr01
+Password7
+
+
+
+oracle internal parameters
+========================================================= 
+select par.ksppinm name,  
+val.ksppstvl value,  
+val.ksppstdf default_value  
+from   x$ksppi  par,  
+       x$ksppcv val  
+where  par.indx=val.indx and  par.ksppinm like '_gc_delta%'; 
+
+to get the exact sql_id running at a point of time in database
+=================================================================
+select SAMPLE_TIME,SQL_ID,WAIT_TIME from DBA_HIST_ACTIVE_SESS_HISTORY where SAMPLE_TIME like '16-JUN-14 05.26.01.687 PM';
+
+select SAMPLE_TIME,SQL_ID,WAIT_TIME from DBA_HIST_ACTIVE_SESS_HISTORY where SAMPLE_TIME like '16-JUN-14 05.26%';
+
+
+select distinct SQL_ID from DBA_HIST_ACTIVE_SESS_HISTORY where SAMPLE_TIME like '16-JUN-14 05.26%';
+
+
+
+
+
+in case password in not available
+======================================================
+alter session set current_schema=WEBRF
+
+
+
+==============================================================================
+to select process to kill and get OS process ID:
+
+============================================================================
+select spid, sid, a.serial#, b.username from v$session a, v$process b where 
+a.serial#=5352 and a.paddr=b.addr;
+
+
+select username,sql_hash_value ,sid,status from v$session where
+ paddr=(select addr from v$process where spid=1765536);
+
+
+
+==============================================================================
+
+exec rrs.p_create_partition.create_partition('20111409','1095','SC_RAW')
+
+==============================================================================
+
+
+
+to check which sid is blocking other SID:
+==============================================================================
+select     'SID ' || l1.sid ||' is blocking  ' || l2.sid blocking
+from    v$lock l1, v$lock l2
+where   l1.block =1 and l2.request > 0
+and     l1.id1=l2.id1
+and     l1.id2=l2.id2;
+
+to check which sid is blocking other SID: IN RAC
+==============================================================================
+
+select     'SID ' || l1.sid ||' is blocking  ' || l2.sid blocking
+from    gv$lock l1, gv$lock l2
+where   l1.block =1 and l2.request > 0
+and     l1.id1=l2.id1
+and     l1.id2=l2.id2;
+
+==============================================================================
+to find Sid;
+=================================================================================
+SELECT a.sid,a.serial#, a.username,c.os_user_name,a.terminal,
+b.object_id,substr(b.object_name,1,40) object_name
+from v$session a, dba_objects b, v$locked_object c
+where a.sid = c.session_id
+and b.object_id = c.object_id
+
+ 
+select a.sid,a.serial#, a.username
+
+
+No of CPU on AIX server:
+=================================================================================
+
+
+lscfg -vs|grep proc | wc -l 
+
+
+
+oracle error
+============================================
+oerr ora 06512
+
+
+alter rollback segment sysrol online;
+
+exec dbms_stats.gather_table_stats(ownname => 'HERGOLPI',tabname => 'BASICFCT',estimate_percent => DBMS_STATS.AUTO_SAMPLE_SIZE , method_opt=>'for all columns size auto', cascade=>true); 
+
+
+
+expdp User/passwd@MIDEV directory=DATAPUMP dumpfile=MIDEV_full_db_16jun2011_01.dmp,MIDEV_full_db_16jun2011_02.dmp  full=y exclude=statistics logfile=MIDEV_full_exp.log parallel=2
+19165
+     
+script:
+
+exec rrs.p_trend_partition.create_partition(20121601,'RA_RAW');
+exec rrs.p_trend_partition.create_partition(20121602,'RA_RAW');
+exec rrs.p_trend_partition.create_partition(20121603,'RA_RAW');
+exec rrs.p_trend_partition.create_partition(20121604,'RA_RAW');
+exec rrs.p_trend_partition.create_partition(20121605,'RA_RAW');
+exec rrs.p_trend_partition.create_partition(20121606,'RA_RAW');
+
+==> cat test.sh
+a=1625
+
+while [ $a -lt 1630 ]
+do
+   echo "exec rrs.p_create_partition.create_partition('20111401','$a','SC_RAW');" >> script.txt
+   a=`expr $a + 1`
+done
+
+==> cat test.sh
+for a in `cat input.txt`
+do
+  echo "exec rrs.p_create_partition.create_partition('20121401','$a','SC_RAW');" >> script_20121401_.txt
+done
+
+
+to check inactive users:
+===================================================================================================
+select username,status,osuser from v$session where username is not null order by status;
+
+select username,status,osuser,SID,SERIAL# from v$session where username is not null order by status;
+
+
+ 
+select object_type,count(*) from dba_objects where owner='KIM7PAPI'group by object_type;
+
+size of a schema:
+===================================================================================================
+select sum(bytes/1024/1024/1024) from dba_segments where OWNER='NZ_PH_CN';
+
+select tablespace_name,sum(bytes)/1024/1024/1024 from dba_data_files where tablespace_name in () group by tablespace_name;
+
+
+select owner,constraint_name,constraint_type,table_name,r_owner,r_constraint_name
+from dba_constraints 
+where constraint_type='R'
+and r_constraint_name in (select constraint_name from dba_constraints 
+where table_name='DAT_PM_INFO');
+
+
+
+create tablespace:
+=====================================================================================================
+CREATE TABLESPACE TEST1  DATAFILE
+  '/oradata/IDOANSR2/test01.dbf' SIZE 3M AUTOEXTEND ON NEXT 512M MAXSIZE 32767M
+LOGGING
+ONLINE
+PERMANENT
+EXTENT MANAGEMENT LOCAL UNIFORM SIZE 256K
+BLOCKSIZE 8K
+SEGMENT SPACE MANAGEMENT AUTO;
+
+get metadata:
+=====================================================================================================
+SELECT DBMS_METADATA.GET_DDL('TABLE','BA_DISPLAY','VC_NZ_PH_UK') from dual;
+ 
+
+select  dbms_metadata.get_ddl('USER', '&username') || '/' usercreate from DUAL;
+
+to find directories:
+================================================================
+select directory_name,directory_path from dba_directories;
+2878004
+cimqa08
+
+for delete obtion:
+======================================================================
+stty erase
+
+
+precheck
+===============================================================
+select username from dba_users where username='&username'; 
+select object_type,count(*) from dba_objects where owner='&username' group by object_type;
+select * from dba_directories where owner='&username';
+select distinct TABLESPACE_NAME from dba_segments where owner='&username';
+select GRANTED_ROLE from dba_role_privs where GRANTEE='&username';
+select privilege from dba_sys_privs where grantee='&username';	
+select USER_ID,PASSWORD,DEFAULT_TABLESPACE,TEMPORARY_TABLESPACE from dba_users where USERNAME='&username'; 
+select sum(bytes/1024/1024/1024) from dba_segments where OWNER='&username';
+
+
+
+CREATE DATABASE LINK to_synmgqa
+   CONNECT TO "VC_NZ_PH_UK" IDENTIFIED BY VC_NZ_PH_UK USING 'SYNMGQA';
+
+
+
+
+conn to the user
+create database link msm_mddbprod.accompany.com CONNECT to mddb_publish identified by mddb_publish using '(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = APP02PRCLU-SCAN.servernet.ORG)(PORT = 1521)) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = APPCMOCP_FE)))';
+
+
+
+
+
+schema stats gather:
+====================================================================================================
+exec dbms_stats.gather_schema_stats('NSOAPP',estimate_percent => DBMS_STATS.AUTO_SAMPLE_SIZE,
+ method_opt => 'FOR ALL COLUMNS SIZE AUTO', cascade => TRUE);
+
+
+
+exp  FILE=VC_NZ_PH_UK.dmp LOG=VC_NZ_PH_UK.log tables=VC_NZ_PH_UK.BA_DISPLAY query=\"WHERE PERIOD_ID IN \'M20101201\','M20110101'\"
+impdp 
+
+
+
+
+impdp directory=EXPDP_DIR dumpfile=dws_vc.vc_tree_tally.dmp logfile=dws_vc.vc_tree_tally_imp.log tables=dws_vc.vc_tree_tally TABLE_EXISTS_ACTION=append query=\"where PERIOD_ID=\'M20101001\' and   COUNTRY_CODE_ID\=31\"
+
+
+
+
+amsd refresh  - - CVGSOLORAP014,U001,Q002
+====================================================================================================
+/usr/local/sbin/trigger-db-amsm.sh disable
+/usr/local/sbin/trigger-db-amsd.sh disable
+sudo /var/cron/emcscripts/ams_refresh.sh amsd inc
+/usr/local/sbin/trigger-db-amsm.sh enable
+/usr/local/sbin/trigger-db-amsd.sh enable
+
+
+amsa refresh
+=====================================================================================================
+/usr/local/sbin/trigger-db-amsm.sh disable
+/usr/local/sbin/trigger-db-amsa-vnu001specdb.sh disable
+sudo /var/cron/emcscripts/ams_refresh.sh amsa full
+/usr/local/sbin/trigger-db-amsa-vnu001specdb.sh enable
+/usr/local/sbin/trigger-db-amsm.sh enable
+
+amsb
+=====================================================================================================
+/usr/local/sbin/trigger-db-amsm.sh disable
+/usr/local/sbin/trigger-db-amsb-vnu001specdb.sh disables
+sudo /var/cron/emcscripts/ams_refresh.sh amsb full
+/usr/local/sbin/trigger-db-amsb-vnu001specdb.sh enable
+/usr/local/sbin/trigger-db-amsm.sh enable
+
+
+easd refresh
+====================================================================================================
+/usr/local/sbin/trigger-db-easm.sh disable
+/usr/local/sbin/trigger-db-easd.sh disable
+sudo /var/cron/emcscripts/eas_refresh.sh easd inc
+/usr/local/sbin/trigger-db-easm.sh enable
+/usr/local/sbin/trigger-db-easd.sh enable
+
+easq refresh
+====================================================================================================
+/usr/local/sbin/trigger-db-easm.sh disable
+/usr/local/sbin/trigger-db-easd.sh disable
+sudo /var/cron/emcscripts/eas_refresh.sh easq inc
+/usr/local/sbin/trigger-db-easm.sh enable
+/usr/local/sbin/trigger-db-easd.sh enable
+
+apsd refresh
+====================================================================================================
+/usr/local/sbin/trigger-db-apsm.sh disable
+/usr/local/sbin/trigger-db-apsd.sh disable
+sudo /var/cron/emcscripts/aps_refresh.sh apsd inc
+/usr/local/sbin/trigger-db-apsm.sh enable
+/usr/local/sbin/trigger-db-apsd.sh enable
+
+apsq refresh
+====================================================================================================
+/usr/local/sbin/trigger-db-apsm.sh disable
+/usr/local/sbin/trigger-db-apsd.sh disable
+sudo /var/cron/emcscripts/aps_refresh.sh apsq inc
+/usr/local/sbin/trigger-db-apsm.sh enable
+/usr/local/sbin/trigger-db-apsd.sh enable
+
+
+====================================================================================================
+amsq refresh 
+
+/usr/local/sbin/trigger-db-amsm.sh disable
+/usr/local/sbin/trigger-db-amsq.sh disable
+sudo /var/cron/emcscripts/ams_refresh.sh amsq inc
+/usr/local/sbin/trigger-db-amsm.sh enable
+/usr/local/sbin/trigger-db-amsq.sh enable
+====================================================================================================
+APSA Refresh 
+
+/usr/local/sbin/trigger-db-apsm.sh disable
+/usr/local/sbin/trigger-db-apsa-vnu001specdb.sh disable
+sudo /var/cron/emcscripts/aps_refresh.sh apsa full
+/usr/local/sbin/trigger-db-apsa-vnu001specdb.sh enable
+/usr/local/sbin/trigger-db-apsm.sh enable
+
+====================================================================================================
+AMSU
+
+/usr/local/sbin/trigger-db-amsm.sh disable
+/usr/local/sbin/trigger-db-amsu.sh disable
+sudo /var/cron/emcscripts/ams_refresh.sh amsu inc
+/usr/local/sbin/trigger-db-amsm.sh enable
+/usr/local/sbin/trigger-db-amsu.sh enable
+
+except the databases on sun02 
+
+if you trigger a refresh for anyother database 
+
+it should be full
+
+only for AMSD, APSD and EASD you should trigger incremental backups
+
+for all other databases it is always full
+
+====================================================================================================
+
+find 2>/dev/null
+
+
+
+
+stats gather
+==========================================================================================================================
+select 'exec dbms_stats.gather_table_stats(ownname=>''RRS'',tabname=>''SC_RAW'',partname=>'''||partition_name||''',
+estimate_percent=>DBMS_STATS.AUTO_SAMPLE_SIZE,method_opt=>''FOR ALL INDEXED COLUMNS SIZE 1'',degree=>4,granularity=>''PARTITION'',cascade=>TRUE);'
+ from  dba_tab_partitions where partition_name like '%20110107%' and table_name='SC_RAW';
+
+
+
+to check if rollback segments are online or not
+=======================================================================================
+desc dba_rollback_segs
+SQL> select segment_name, status from dba_rollback_segs;
+
+
+sp_helpdb
+rengsr01 Password3
+
+\\10.47.15.249\share
+
+
+root access
+=============
+yadasa01
+amardeep@07
+
+
+\\inchnsirblfs03\acnstr$\unix
+
+
+
+alter session set nls_date_format='DD-MM-YYYY:HH24:MI:SS';
+
+10.227.10.10
+
+Script to delete duplicate rows:
+==========================================
+DELETE FROM 
+   table_name A
+WHERE 
+  a.rowid > 
+   ANY (
+     SELECT 
+        B.rowid
+     FROM 
+        table_name B
+     WHERE 
+        A.col1 = B.col1
+     AND 
+        A.col2 = B.col2
+        ); 
+
+
+to make all the listed items white
+===========================================================
+unalias ls
+
+
+
+to list the whole number and not the scientific form
+================================================================
+SQL>  select current_scn from v$database;
+
+CURRENT_SCN
+-----------
+ 9.3010E+12
+
+SQL> set num 99999
+SP2-0267: numwidth option 99999 out of range (2 through 50)
+SQL> set num 20
+SQL> select current_scn from v$database;
+
+         CURRENT_SCN
+--------------------
+       9300963772904
+
+
+ipcs
+
+
+
+to check the temp segments in use
+==========================================
+SELECT ROUND(SUM( u.blocks * blk.block_size)/1024/1024/1024,0) temp_ts_used_gb                                                                             
+FROM v$sort_usage u,                                                            
+     (SELECT distinct block_size                                                
+     FROM dba_tablespaces                                                       
+     WHERE contents = 'TEMPORARY') blk; 
+
+
+@?/rdbms/admin/utlxplp.sql
+delete plan_table;
+DBMS_STATS.CREATE_STAT_TABLE ('User', 'savestats');
+DBMS_STATS.EXPORT_TABLE_STATS ('ADV', 'DFC_DOT_DATA_RQS', stattab => 'savestats', statown => 'User');
+DBMS_STATS.DELETE_TABLE_STATS ('ADV' ,'DFC_DOT_DATA_RQS');
+DBMS_STATS.GATHER_TABLE_STATS ('WEBRF','WEBRF_QA_MV_PV_SUMMARY', cascade=> TRUE);
+
+PROCEDURE GATHER_TABLE_STATS
+ Argument Name                  Type                    In/Out Default?
+ ------------------------------ ----------------------- ------ --------
+ OWNNAME                        VARCHAR2                IN
+ TABNAME                        VARCHAR2                IN
+ PARTNAME                       VARCHAR2                IN     DEFAULT
+ ESTIMATE_PERCENT               NUMBER                  IN     DEFAULT
+ BLOCK_SAMPLE                   BOOLEAN                 IN     DEFAULT
+ METHOD_OPT                     VARCHAR2                IN     DEFAULT
+ DEGREE                         NUMBER                  IN     DEFAULT
+ GRANULARITY                    VARCHAR2                IN     DEFAULT
+ CASCADE                        BOOLEAN                 IN     DEFAULT
+ STATTAB                        VARCHAR2                IN     DEFAULT
+ STATID                         VARCHAR2                IN     DEFAULT
+ STATOWN                        VARCHAR2                IN     DEFAULT
+ NO_INVALIDATE                  BOOLEAN                 IN     DEFAULT
+
+
+privilege                access
+-----------------------------------------------------------------
+select on dictionary	to select from DBA_ and v$ views
+
+
+
+Kill sessions
+------------------------------------------------------------------
+
+select 'alter User kill session '''||sid||','||serial#||''' immediate;' from v$session
+select 'alter User kill session '''||sid||','||serial#||',@'||inst_id||''' immediate;' from gv$session
+
+
+
+Check RMAN progress:
+-----------------------------------------------------------------
+
+alter session set nls_date_format='dd/mm/yy hh24:mi:ss'
+/
+select SID, START_TIME,TOTALWORK, sofar, (sofar/totalwork) * 100 done,
+sysdate + TIME_REMAINING/3600/24 end_at
+from v$session_longops
+where totalwork > sofar
+AND opname NOT LIKE '%aggregate%'
+AND opname like 'RMAN%'
+/
+
+
+set autotrace traceonly explain;
+
+
+
+to check constrains on the tables
+=================================================================================================
+select owner,constraint_name,constraint_type,table_name,r_owner,r_constraint_name
+from dba_constraints 
+where constraint_type='R'
+and r_constraint_name in 
+(
+select constraint_name from dba_constraints 
+where constraint_type in ('P','U') and table_name in (
+'COLLABT50',
+'CHAREXCEPT66',
+'COLLABATTRCHART53',
+'COLLABATTRNONCHART54',
+
+);
+
+
+location to find netbackup log
+==================================================
+/usr/openv/netbackup/logs/user_ops/dbext/logs
+
+
+
+latam
+---------------------------------------------------
+offshore-dba admin Password02 
+
+
+flushing shared pool
+==================================================
+alter User flush shared_pool;
+
+
+validating rman job completion
+==================================================
+
+select START_TIME,END_TIME,STATUS from v$rman_backup_job_details;
+
+
+
+company audio stat gather for table
+====================================
+exec ORA_ANALYZE_TABLE (''); 
+
+
+Auto task scheduler enable /disable in NAPE
+==============================================
+
+BEGIN 
+DBMS_AUTO_TASK_ADMIN.DISABLE( 
+client_name => 'auto optimizer stats collection', 
+operation => NULL, 
+window_name => NULL); 
+END; 
+/
+
+
+This can be verified with:
+-----------------------------
+
+SQL> select client_name,status from Dba_Autotask_Client; 
+
+CLIENT_NAME                        STATUS
+---------------------------------- --------
+auto optimizer stats collection    DISABLED
+auto space advisor                 ENABLED
+sql tuning advisor                 ENABLED
+
+
+to re-enable again: 
+
+
+BEGIN
+DBMS_AUTO_TASK_ADMIN.ENABLE(
+client_name => 'auto optimizer stats collection',
+operation => NULL,
+window_name => NULL);
+END;
+/
+
+
+=========================================================
+ISSUE:
+SQL> startup;
+ORA-32004: obsolete or deprecated parameter(s) specified for RDBMS instance
+ORACLE instance started.
+
+Total User Global Area 8551575552 bytes
+Fixed Size                  2243608 bytes
+Variable Size            2936013800 bytes
+Database Buffers         5603590144 bytes
+Redo Buffers                9728000 bytes
+ORA-01105: mount is incompatible with mounts by other instances
+ORA-19808: recovery destination parameter mismatch
+
+
+SQL> show parameter recovery;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+db_recovery_file_dest                string      +FLASH
+db_recovery_file_dest_size           big integer 400G
+recovery_parallelism                 integer     0
+
+changing recovery parameter in both the node 
+------------------------------------------------------------------------------
+SQL> alter User set db_recovery_file_dest_size =400G sid='*';
+
+User altered.
+
+
+
+user account locked
+==========================
+select NAME,VALUE from V$SPPARAMETER where NAME='sec_case_sensitive_logon';
+
+chenge the case sensitive off
+-------------------------------
+alter User set sec_case_sensitive_logon=false;
+
+to reset the password in 11g, we need to query spare4 column in user$ table
+----------------------------------------------------------------------------
+select spare4 from user$ where name='&usrname';
+
+
+SPARE4
+--------------------------------------------------------------------------------
+S:2D058976AE8FAD8ECFCDB93835ACEE94C83EDE19169209155BB81FEE7DBB
+
+alter user amit identified by values 'S:2D058976AE8FAD8ECFCDB93835ACEE94C83EDE19169209155BB81FEE7DBB';
+
+
+http://www.oracle-base.com/articles/11g/data-guard-setup-11gr2.php
+
+
+
+create UNDO tablespace
+==========================================================
+
+create undo tablespace UNDOTBS datafile '+DATA' size 200M AUTOEXTEND ON NEXT 8192 MAXSIZE 32767M;
+
+make it as default
+----------------------------------------------------------
+
+alter User set undo_tablespace=UNDOTBS;
+
+Bounce the db and then drop the old one
+-----------------------------------------------------------
+
+drop tablespace UNDOTBS1 including contents and datafiles;.
+
+
+
+Deployment copy dblink
+==================================
+
+
+CREATE PUBLIC DATABASE LINK "FNDTNS_PREPROD_HD5713659" CONNECT TO FNDTNS_PREPROD IDENTIFIED BY FNDTNS_PREPROD USING 'OraMemn01uaSCAN.company.com:1521/MEDIAVIEWSVCUA.company.com';
+
+drop PUBLIC DATABASE LINK "FNDTNS_PREPROD_HD5713659"
+
+
+
+*********************************************************************************************************
+
+SQL> select count(*) from FNDTNS_PREPROD.WEIGHTINGCONTROL@FNDTNS_PREPROD_HD5713659 where SAMPLINGSRVCCLTNMETHODKEY in (3,2);
+
+  COUNT(*)
+----------
+    133663
+
+
+INSERT INTO FNDTNS_LMHPROD.WEIGHTINGCONTROL select * from FNDTNS_PREPROD.WEIGHTINGCONTROL@FNDTNS_PREPROD_HD5713659 where SAMPLINGSRVCCLTNMETHODKEY in (3,2);
+
+
+making spfile readable
+=========================================
+
+string spfileRAPSP.ora initRAPSP.ora
+cat initrapsp.ora
+
+
+
+killing rman process from OS level
+============================================
+
+select '! kill -9 '||p.spid  kill_rman_process
+from  v$session s, v$process p
+where s.paddr=p.addr
+and s.program like 'rman%'
+order by s.sid;
+
+
+Query to check the tablespace size and freespace 
+=============================================================
+ 
+ ViragSharma May 9, 2007 4:30 AM (in response to 547581) Currently Being Moderated 
+col "Tablespace" for a22
+col "Used MB" for 99,999,999
+col "Free MB" for 99,999,999
+col "Total MB" for 99,999,999
+
+select df.tablespace_name "Tablespace",
+totalusedspace "Used MB",
+(df.totalspace - tu.totalusedspace) "Free MB",
+df.totalspace "Total MB",
+round(100 * ( (df.totalspace - tu.totalusedspace)/ df.totalspace))
+"Pct. Free"
+from
+(select tablespace_name,
+round(sum(bytes) / 1048576) TotalSpace
+from dba_data_files 
+group by tablespace_name) df,
+(select round(sum(bytes)/(1024*1024)) totalusedspace, tablespace_name
+from dba_segments 
+group by tablespace_name) tu
+where df.tablespace_name = tu.tablespace_name ; 
+
+
+
+
+Agent restart
+===================================================================
+
+
+cd /u01/app/oracle/product/12.1.0/core/12.1.0.3.0/bin
+
+
+
+
+./emctl stop agent
+./emctl clearstate agent
+./emctl start agent
+./emctl status agent
+./emctl upload agent
+
+
+Swap issue in NND1
+============================
+
+select spid from v$process where addr in (select paddr from v$session where sql_id in ('8cx2b5d53ft93','fgbrpbhm1y0fc'));
+
+
+
+
+
+and spid and address v$session
+
+
+tansferring multiple files using subsitution in SCP
+=========================================================
+
+scp GRP_1_1559[4-9]* oragrq@sersolsapq001:/QASarch/GRQ-restore/archive
+
+
+
+check which database objects are using certain tablespace in Oracle DB
+=============================================================================
+
+SELECT OWNER,SEGMENT_NAME,SEGMENT_TYPE,TABLESPACE_NAME from dba_segments WHERE TABLESPACE_NAME='&tablespace_name';
+
+
+
+
+last DDL done on tablespace
+=========================================================
+alter session set nls_date_format='DD-MON-YYYY HH:MI:SS';  
+select 'Last DDL by Tablespace as on ' ||substr(to_char(sysdate,'DD-MON-YYYY HH24:MI:SS'),1,35) toser from dual;  
+select b.tablespace_name,  to_date(max(a.last_ddl_time),'DD-MON-YYYY HH:MI:SS') LAST_DDL_TIME  from dba_objects a, dba_segments b  where a.owner=b.owner  and a.object_name=b.segment_name  group by b.tablespace_name  / 
+
+Simple logrotate configuration:
+=============================================
+
+Add file:
+/etc/logrotate.d/oracle
+
+- write this lines into that file:
+/oracle/product/10.2.0/network/log/listener.log {
+missingok
+weekly
+rotate 4
+compress
+create 644 oracle dba
+}
+
+Logs will rotate every weak and old ones will be compressed. We will have 4 latest backups.
+
+
+
+client softwares
+=========================
+\\nawinora010.servernet.org\dba\clients
+
+
+
+
+
+sasi3366*

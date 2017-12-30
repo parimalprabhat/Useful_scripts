@@ -1,0 +1,343 @@
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch>rep pmon       <
+oracle    1803 31562  0 09:26 pts/0    00:00:00 grep pmon
+oracle    8887     1  0 Apr18 ?        00:03:05 asm_pmon_+ASM
+oracle   32114     1  0 09:22 ?        00:00:00 ora_pmon_PERFTEST
+
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch>sinventory     <
+Oracle Interim Patch Installer version 11.2.0.3.5
+Copyright (c) 2013, Oracle Corporation.  All rights reserved.
+
+
+Oracle Home       : /opt/app/oracle/product/11.2.0.2/db_1
+Central Inventory : /opt/app/oraInventory
+   from           : /opt/app/oracle/product/11.2.0.2/db_1/oraInst.loc
+OPatch version    : 11.2.0.3.5
+OUI version       : 11.2.0.2.0
+Log file location : /opt/app/oracle/product/11.2.0.2/db_1/cfgtoollogs/opatch/opatch2014-11-04_09-26-48AM_1.log
+
+Lsinventory Output file location : /opt/app/oracle/product/11.2.0.2/db_1/cfgtoollogs/opatch/lsinv/lsinventory2014-11-04_09-26-48AM.txt
+
+--------------------------------------------------------------------------------
+Installed Top-level Products (1):
+
+Oracle Database 11g                                                  11.2.0.2.0
+There are 1 products installed in this Oracle Home.
+
+
+There are no Interim patches installed in this Oracle Home.
+
+
+--------------------------------------------------------------------------------
+
+OPatch succeeded.
+
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch/19721304>pwd
+/opt/app/home/oracle/dba/mitigation_patch/19721304
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch/19721304>altr   <
+total 32
+-rw-r--r-- 1 oracle dba  219 Oct 14 05:50 postinstall.sql
+-rw-r--r-- 1 oracle dba  219 Oct 14 05:50 postdeinstall.sql
+drwxr-xr-x 4 oracle dba 4096 Oct 14 05:50 files
+drwxr-xr-x 4 oracle dba 4096 Oct 14 05:50 etc
+drwxr-xr-x 4 oracle dba 4096 Oct 14 05:50 .
+-rw-rw-r-- 1 oracle dba 6139 Oct 24 07:42 README.txt
+drwxr-xr-x 3 oracle dba 4096 Nov  4 09:26 ..
+
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch/19721304>opatch apply
+Oracle Interim Patch Installer version 11.2.0.3.5
+Copyright (c) 2013, Oracle Corporation.  All rights reserved.
+
+
+Oracle Home       : /opt/app/oracle/product/11.2.0.2/db_1
+Central Inventory : /opt/app/oraInventory
+   from           : /opt/app/oracle/product/11.2.0.2/db_1/oraInst.loc
+OPatch version    : 11.2.0.3.5
+OUI version       : 11.2.0.2.0
+Log file location : /opt/app/oracle/product/11.2.0.2/db_1/cfgtoollogs/opatch/19721304_Nov_04_2014_09_27_01/apply2014-11-04_09-27-01AM_1.log
+
+Applying interim patch '19721304' to OH '/opt/app/oracle/product/11.2.0.2/db_1'
+Verifying environment and performing prerequisite checks...
+All checks passed.
+Provide your email address to be informed of security issues, install and
+initiate Oracle Configuration Manager. Easier for you if you use your My
+Oracle Support Email address/User Name.
+Visit http://www.oracle.com/support/policies.html for details.
+Email address/User Name:
+
+You have not provided an email address for notification of security issues.
+Do you wish to remain uninformed of security issues ([Y]es, [N]o) [N]:  y
+
+
+Backing up files...
+
+Patching component oracle.rdbms.dbscripts, 11.2.0.2.0...
+
+Verifying the update...
+Patch 19721304 successfully applied
+Log file location: /opt/app/oracle/product/11.2.0.2/db_1/cfgtoollogs/opatch/19721304_Nov_04_2014_09_27_01/apply2014-11-04_09-27-01AM_1.log
+
+OPatch succeeded.
+
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch/19721304>dba'   <
+
+SQL*Plus: Release 11.2.0.2.0 Production on Tue Nov 4 09:27:32 2014
+
+Copyright (c) 1982, 2010, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle Database 11g Enterprise Edition Release 11.2.0.2.0 - 64bit Production
+With the Partitioning, Automatic Storage Management, OLAP, Data Mining
+and Real Application Testing options
+
+SQL> @postinstall.sql
+
+Session altered.
+
+Calling rdbms/admin/dbmsjdev.sql on 04-NOV-14 09.27.37.283840 AM -05:00
+
+SQL> SET FEEDBACK 1
+SQL> SET NUMWIDTH 10
+SQL> SET LINESIZE 80
+SQL> SET TRIMSPOOL ON
+SQL> SET TAB OFF
+SQL> SET PAGESIZE 100
+SQL>
+SQL> declare
+  2    role_exists exception;
+  3    pragma exception_init(role_exists, -1921);
+  4  begin
+  5    execute immediate 'create role oracle_java_dev';
+  6  exception
+  7    when role_exists then
+  8      null;
+  9  end;
+10  /
+
+PL/SQL procedure successfully completed.
+
+SQL>
+SQL> create or replace trigger sys.dbms_java_dev_trg before create
+  2  on database disable
+  3  begin
+  4    if (ora_dict_obj_type='JAVA')
+  5    then
+  6      raise_application_error(-20031,'Java Development Disabled');
+  7    end if;
+  8  end;
+  9  /
+
+Trigger created.
+
+SQL>
+SQL> create or replace view sys.java_dev_status as
+  2  select decode(status,'ENABLED','NO','YES') JAVA_DEV_ALLOWED
+  3  from dba_triggers
+  4  where trigger_name='DBMS_JAVA_DEV_TRG'
+  5    and owner='SYS';
+
+View created.
+
+SQL>
+SQL>
+SQL> create or replace public synonym java_dev_status for sys.java_dev_status;
+
+Synonym created.
+
+SQL> grant select on java_dev_status to public;
+
+Grant succeeded.
+
+SQL>
+SQL> declare
+  2    constraint_exists exception;
+  3    pragma exception_init(constraint_exists, -2264);
+  4  begin
+  5    execute immediate 'alter table sys.procedurejava$ add constraint
+  6                       java_dev_disabled check (obj# = 0) disable';
+  7  exception
+  8    when constraint_exists then
+  9      null;
+10  end;
+11  /
+
+PL/SQL procedure successfully completed.
+
+SQL>
+SQL> declare
+  2    constraint_exists exception;
+  3    pragma exception_init(constraint_exists, -2264);
+  4  begin
+  5    execute immediate 'alter table sys.javajar$ add constraint
+  6                       java_dev_jars_disabled check (owner# = -1) disable';
+  7  exception
+  8    when constraint_exists then
+  9      null;
+10  end;
+11  /
+
+PL/SQL procedure successfully completed.
+
+SQL>
+SQL>
+SQL> create or replace package sys.dbms_java_dev authid definer is
+  2
+  3    procedure disable;
+  4
+  5    procedure enable;
+  6
+  7  end dbms_java_dev;
+  8  /
+
+Package created.
+
+SQL>
+SQL> create or replace package body sys.dbms_java_dev is
+  2
+  3    procedure disable is
+  4      type grant_collection is table of sys.dba_tab_privs.table_name%type;
+  5      jdev_grants grant_collection;
+  6      type grantee_collection is table of sys.dba_tab_privs.grantee%type;
+  7      jdev_grantees grantee_collection;
+  8      type invalid_collection is table of sys.obj$.obj#%type;
+  9      invalids invalid_collection;
+10      pkg_name sys.dba_tab_privs.table_name%type;
+11      grantee varchar2(130);
+12      stmt varchar2(2000);
+13      stmt2 varchar2(2000);
+14    begin
+15
+16      select distinct owner, referenced_name bulk collect
+17      into jdev_grantees, jdev_grants
+18      from sys.dba_dependencies
+19      where referenced_owner in ('SYS','PUBLIC') and owner != 'PUBLIC'
+20        and owner != referenced_owner
+21        and referenced_name in ('DBMS_JAVA','DBMS_JAVA_TEST','SQLJUTL',
+22                                'SQLJUTL2','JVMRJBCINV','DBMS_JAVA_MISC');
+23
+24      for i in 1..jdev_grants.count loop
+25        pkg_name := dbms_assert.simple_sql_name(jdev_grants(i));
+26        grantee := dbms_assert.enquote_name(jdev_grantees(i),FALSE);
+27        stmt := 'grant execute on sys.' || pkg_name || ' to ' || grantee;
+28        execute immediate stmt;
+29      end loop;
+30
+31      select table_name bulk collect into jdev_grants from sys.dba_tab_privs
+32      where grantee='PUBLIC' and owner='SYS' and privilege='EXECUTE'
+33        and table_name in ('DBMS_JAVA','DBMS_JAVA_TEST','SQLJUTL','SQLJUTL2',
+34                           'JVMRJBCINV','DBMS_JAVA_MISC');
+35
+36      for i in 1..jdev_grants.count loop
+37        pkg_name := dbms_assert.simple_sql_name(jdev_grants(i));
+38        stmt := 'revoke execute on sys.' || pkg_name || ' from public';
+39        stmt2 := 'grant execute on sys.' || pkg_name || ' to oracle_java_dev';
+40        execute immediate stmt;
+41        execute immediate stmt2;
+42      end loop;
+43
+44      select obj# bulk collect into invalids from sys.obj$ where status=4;
+45
+46      for i in 1..invalids.count loop
+47        sys.dbms_utility.validate(invalids(i));
+48      end loop;
+49
+50      execute immediate 'alter trigger sys.dbms_java_dev_trg enable';
+51
+52      execute immediate 'alter table sys.procedurejava$ enable novalidate
+53                         constraint java_dev_disabled';
+54      execute immediate 'alter table sys.javajar$ enable novalidate
+55                         constraint java_dev_jars_disabled';
+56
+57    end disable;
+58
+59    procedure enable is
+60      type grant_collection is table of sys.dba_tab_privs.table_name%type;
+61      jdev_grants grant_collection;
+62      pkg_name sys.dba_tab_privs.table_name%type;
+63      stmt varchar2(2000);
+64      stmt2 varchar2(2000);
+65    begin
+66
+67      select table_name bulk collect into jdev_grants from sys.dba_tab_privs
+68      where grantee='ORACLE_JAVA_DEV' and privilege='EXECUTE' and owner='SYS'
+69        and table_name in ('DBMS_JAVA','DBMS_JAVA_TEST','SQLJUTL','SQLJUTL2',
+70                           'JVMRJBCINV','DBMS_JAVA_MISC');
+71
+72      for i in 1..jdev_grants.count loop
+73        pkg_name := dbms_assert.simple_sql_name(jdev_grants(i));
+74        stmt := 'grant execute on sys.' || pkg_name || ' to public';
+75        stmt2 := 'revoke execute on sys.' || pkg_name || ' from oracle_java_dev';
+76        execute immediate stmt;
+77        execute immediate stmt2;
+78      end loop;
+79
+80      execute immediate 'alter trigger sys.dbms_java_dev_trg disable';
+81
+82      execute immediate 'alter table sys.procedurejava$ disable constraint
+83                         java_dev_disabled';
+84      execute immediate 'alter table sys.javajar$ disable constraint
+85                         java_dev_jars_disabled';
+86
+87    end enable;
+88  end dbms_java_dev;
+89  /
+
+Package body created.
+
+SQL>
+SQL>
+SQL>
+SQL> ALTER SESSION SET CURRENT_SCHEMA = SYS;
+
+Session altered.
+
+SQL>
+SQL> exit
+Disconnected from Oracle Database 11g Enterprise Edition Release 11.2.0.2.0 - 64bit Production
+With the Partitioning, Automatic Storage Management, OLAP, Data Mining
+and Real Application Testing options
+
+PROD :serrhenetd002.servernet.org:PERFTEST:oracle:/opt/app/home/oracle/dba/mitigation_patch/19721304>entory <
+Oracle Interim Patch Installer version 11.2.0.3.5
+Copyright (c) 2013, Oracle Corporation.  All rights reserved.
+
+
+Oracle Home       : /opt/app/oracle/product/11.2.0.2/db_1
+Central Inventory : /opt/app/oraInventory
+   from           : /opt/app/oracle/product/11.2.0.2/db_1/oraInst.loc
+OPatch version    : 11.2.0.3.5
+OUI version       : 11.2.0.2.0
+Log file location : /opt/app/oracle/product/11.2.0.2/db_1/cfgtoollogs/opatch/opatch2014-11-04_09-27-57AM_1.log
+
+Lsinventory Output file location : /opt/app/oracle/product/11.2.0.2/db_1/cfgtoollogs/opatch/lsinv/lsinventory2014-11-04_09-27-57AM.txt
+
+--------------------------------------------------------------------------------
+Installed Top-level Products (1):
+
+Oracle Database 11g                                                  11.2.0.2.0
+There are 1 products installed in this Oracle Home.
+
+
+Interim patches (1) :
+
+Patch  19721304     : applied on Tue Nov 04 09:27:14 EST 2014
+Unique Patch ID:  18147652
+   Created on 14 Oct 2014, 02:50:50 hrs PST8PDT
+   Bugs fixed:
+     19721304
+
+
+
+--------------------------------------------------------------------------------
+
+OPatch succeeded.
+
+COMP_ID                        COMP_NAME                                STATUS     VERSION
+------------------------------ ---------------------------------------- ---------- ------------------------------
+JAVAVM                         JServer JAVA Virtual Machine             VALID      11.2.0.2.0
+CATJAVA                        Oracle Database Java Packages            VALID      11.2.0.2.0
+
+
+Thanks & Regards
+Raja
+

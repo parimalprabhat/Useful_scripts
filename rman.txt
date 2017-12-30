@@ -1,0 +1,2065 @@
+==> cat initngab01pr.ora
+NGAB01PR.__db_cache_size=3355443200
+NGAB01PR.__java_pool_size=67108864
+NGAB01PR.__large_pool_size=50331648
+NGAB01PR.__oracle_base='/opt/app/oracle'#ORACLE_BASE set from environment
+NGAB01PR.__pga_aggregate_target=1073741824
+NGAB01PR.__sga_target=4294967296
+NGAB01PR.__shared_io_pool_size=0
+NGAB01PR.__shared_pool_size=788529152
+NGAB01PR.__streams_pool_size=0
+*.audit_file_dest='/opt/app/oracle/admin/NGAB01QC/adump'
+*.audit_trail='db'
+*.compatible='11.2.0.0.0'
+*.control_files='+DATA/NGAB01QC/controlfile/control_01.ctl'
+*.db_block_size=8192
+*.db_create_file_dest='+DATA'
+*.DB_FILE_NAME_CONVERT=(+DATA/ngab01pr/datafile/,+DATA/ngab01qc/datafile/)
+*.LOG_FILE_NAME_CONVERT=(+DATA/ngab01pr/onlinelog/,+DATA/ngab01qc/onlinelog/)
+*.db_domain=''
+*.db_name='NGAB01PR'
+*.diagnostic_dest='/opt/app/oracle'
+*.dispatchers='(PROTOCOL=TCP) (SERVICE=NGAB01PRXDB)'
+*.open_cursors=300
+*.pga_aggregate_target=1G
+*.processes=1000
+*.remote_login_passwordfile='EXCLUSIVE'
+*.sga_max_size=4G
+*.sga_target=4G
+*.undo_tablespace='UNDOTBS1'
+DEV:[NGAB01QC]oracle@NMR044BRADBS930:/opt/app/oracle/product/11.2.0.3/db_1/dbs
+==> sqlplus '/as sysdba'
+
+SQL*Plus: Release 11.2.0.3.0 Production on Sun May 25 03:46:11 2014
+
+Copyright (c) 1982, 2011, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle Database 11g Enterprise Edition Release 11.2.0.3.0 - 64bit Production
+With the Partitioning, Automatic Storage Management, OLAP, Data Mining
+and Real Application Testing options
+
+SQL> select name,open_mode from v$database;
+
+NAME      OPEN_MODE
+--------- --------------------
+NGAB01QC  READ WRITE
+
+SQL> !
+DEV:[NGAB01QC]oracle@NMR044BRADBS930:/opt/app/oracle/product/11.2.0.3/db_1/dbs
+==> rman target /
+
+Recovery Manager: Release 11.2.0.3.0 - Production on Sun May 25 03:47:00 2014
+
+Copyright (c) 1982, 2011, Oracle and/or its affiliates.  All rights reserved.
+
+connected to target database: NGAB01QC (DBID=2035458358)
+
+RMAN> STARTUP FORCE MOUNT;
+
+Oracle instance started
+database mounted
+
+Total User Global Area    5344731136 bytes
+
+Fixed Size                     2237776 bytes
+Variable Size               1073744560 bytes
+Database Buffers            4261412864 bytes
+Redo Buffers                   7335936 bytes
+
+RMAN> SQL 'ALTER User ENABLE RESTRICTED SESSION';
+
+using target database control file instead of recovery catalog
+sql statement: ALTER User ENABLE RESTRICTED SESSION
+
+RMAN> DROP DATABASE INCLUDING BACKUPS NOPROMPT;
+
+database name is "NGAB01QC" and DBID is 2035458358
+
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=257 device type=DISK
+specification does not match any backup in the repository
+
+released channel: ORA_DISK_1
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=257 device type=DISK
+specification does not match any datafile copy in the repository
+specification does not match any control file copy in the repository
+specification does not match any control file copy in the repository
+specification does not match any archived log in the repository
+
+database name is "NGAB01QC" and DBID is 2035458358
+database dropped
+
+RMAN> exit
+
+==> . oraenv
+ORACLE_SID = [NGAB01QC] ? NGAB01PR
+ORACLE_HOME = [/opt/app/home/oracle] ? /opt/app/oracle/product/11.2.0.3/db_1
+The Oracle base remains unchanged with value /opt/app/oracle
+DEV:[NGAB01PR]oracle@NMR044BRADBS930:/opt/app/oracle/product/11.2.0.3/db_1/dbs
+==> rman target /
+
+Recovery Manager: Release 11.2.0.3.0 - Production on Sun May 25 04:00:02 2014
+
+Copyright (c) 1982, 2011, Oracle and/or its affiliates.  All rights reserved.
+
+connected to target database (not started)
+
+RMAN> startup nomount;
+
+Oracle instance started
+
+Total User Global Area    4275781632 bytes
+
+Fixed Size                     2235208 bytes
+Variable Size                905970872 bytes
+Database Buffers            3355443200 bytes
+Redo Buffers                  12132352 bytes
+
+
+
+
+************************************
+
+RMAN> restore controlfile from  '/backup/rman/NGAB01PR/control/cf_autobackupc-2035458358-20140524-03';
+
+Starting restore at 25-MAY-14
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=129 device type=DISK
+
+channel ORA_DISK_1: restoring control file
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-03002: failure of restore command at 05/25/2014 04:18:10
+ORA-19870: error while restoring backup piece /backup/rman/NGAB01PR/control/cf_autobackupc-2035458358-20140524-03
+ORA-19504: failed to create file "+DATA/ngab01qc/controlfile/control_01.ctl"
+ORA-17502: ksfdcre:3 Failed to create file +DATA/ngab01qc/controlfile/control_01.ctl
+ORA-15001: diskgroup "DATA" does not exist or is not mounted
+ORA-15055: unable to connect to ASM instance
+ORA-12545: Connect failed because target host or object does not exist
+**********************************************************************
+ASMCMD> cd NGAB01QC/
+ASMCMD> ls
+DATAFILE/
+ONLINELOG/
+ASMCMD> cd ..
+
+ASMCMD> mkdir CONTROLFILE
+ASMCMD> ls
+CONTROLFILE/
+DATAFILE/
+ONLINELOG/
+ASMCMD> pwd
++data/NGAB01QC
+ASMCMD> cd CONTROLFILE/
+ASMCMD> pwd
++data/NGAB01QC/CONTROLFILE
+==================================================================
+
+RMAN> restore controlfile from  '/backup/rman/NGAB01PR/control/cf_autobackupc-2035458358-20140524-03';
+
+Starting restore at 25-MAY-14
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=257 device type=DISK
+
+channel ORA_DISK_1: restoring control file
+channel ORA_DISK_1: restore complete, elapsed time: 00:00:03
+output file name=+DATA/ngab01dv/controlfile/control_01.ctl
+Finished restore at 25-MAY-14
+
+RMAN> alter database mount
+2> ;
+
+database mounted
+released channel: ORA_DISK_1
+
+RMAN> catalog backuppiece '/backup/rman/NGAB01PR/level_0/db_hot_848448049_76498_1_20140525';
+
+cataloged backup piece
+backup piece handle=/backup/rman/NGAB01PR/level_0/db_hot_848448049_76498_1_20140525 RECID=75929 STAMP=848467700
+
+RMAN> catalog backuppiece '/backup/rman/NGAB01PR/level_0/db_hot_848448051_76499_1_20140525';
+
+cataloged backup piece
+backup piece handle=/backup/rman/NGAB01PR/level_0/db_hot_848448051_76499_1_20140525 RECID=75930 STAMP=848467719
+
+RMAN> catalog backuppiece '/backup/rman/NGAB01PR/level_0/db_hot_848448057_76500_1_20140525';
+
+cataloged backup piece
+backup piece handle=/backup/rman/NGAB01PR/level_0/db_hot_848448057_76500_1_20140525 RECID=75931 STAMP=848467730
+
+RMAN> catalog backuppiece '/backup/rman/NGAB01PR/level_0/db_hot_848448062_76501_1_20140525';
+
+cataloged backup piece
+backup piece handle=/backup/rman/NGAB01PR/level_0/db_hot_848448062_76501_1_20140525 RECID=75932 STAMP=848467742
+
+
+
+RMAN> list backup of archivelog all;
+
+
+List of Backup Sets
+===================
+
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75790   2.10G      DISK        00:06:41     19-MAY-14
+        BP Key: 75791   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T000057
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847929666_76360_1_20140519
+
+  List of Archived Logs in backup set 75790
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753027  9965256050898 18-MAY-14 9965256053210 18-MAY-14
+  1    753028  9965256053210 18-MAY-14 9965256054966 18-MAY-14
+  1    753029  9965256054966 18-MAY-14 9965256056794 18-MAY-14
+  1    753030  9965256056794 18-MAY-14 9965256058454 18-MAY-14
+  1    753031  9965256058454 18-MAY-14 9965256059904 18-MAY-14
+  1    753032  9965256059904 18-MAY-14 9965256062047 18-MAY-14
+  1    753033  9965256062047 18-MAY-14 9965256063369 18-MAY-14
+  1    753034  9965256063369 18-MAY-14 9965256065257 18-MAY-14
+  1    753035  9965256065257 18-MAY-14 9965256066789 18-MAY-14
+  1    753036  9965256066789 18-MAY-14 9965256068720 18-MAY-14
+  1    753037  9965256068720 18-MAY-14 9965256070231 18-MAY-14
+  1    753038  9965256070231 18-MAY-14 9965256072087 18-MAY-14
+  1    753039  9965256072087 18-MAY-14 9965256073543 18-MAY-14
+  2    625565  9965256053249 18-MAY-14 9965256058476 18-MAY-14
+  2    625566  9965256058476 18-MAY-14 9965256063381 18-MAY-14
+  2    625567  9965256063381 18-MAY-14 9965256068773 18-MAY-14
+  2    625568  9965256068773 18-MAY-14 9965256073568 18-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75791   4.19G      DISK        00:10:05     19-MAY-14
+        BP Key: 75792   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T000057
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847929664_76359_1_20140519
+
+  List of Archived Logs in backup set 75791
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753014  9965253940770 18-MAY-14 9965254790076 18-MAY-14
+  1    753015  9965254790076 18-MAY-14 9965254799708 18-MAY-14
+  1    753016  9965254799708 18-MAY-14 9965254811646 18-MAY-14
+  1    753017  9965254811646 18-MAY-14 9965254925342 18-MAY-14
+  1    753018  9965254925342 18-MAY-14 9965255059181 18-MAY-14
+  1    753019  9965255059181 18-MAY-14 9965255188684 18-MAY-14
+  1    753020  9965255188684 18-MAY-14 9965255317626 18-MAY-14
+  1    753021  9965255317626 18-MAY-14 9965255447491 18-MAY-14
+  1    753022  9965255447491 18-MAY-14 9965255579779 18-MAY-14
+  1    753023  9965255579779 18-MAY-14 9965255666296 18-MAY-14
+  1    753024  9965255666296 18-MAY-14 9965255668248 18-MAY-14
+  1    753025  9965255668248 18-MAY-14 9965256048729 18-MAY-14
+  1    753026  9965256048729 18-MAY-14 9965256050898 18-MAY-14
+  2    625560  9965253940760 18-MAY-14 9965254800243 18-MAY-14
+  2    625561  9965254800243 18-MAY-14 9965255063289 18-MAY-14
+  2    625562  9965255063289 18-MAY-14 9965255457859 18-MAY-14
+  2    625563  9965255457859 18-MAY-14 9965255668283 18-MAY-14
+  2    625564  9965255668283 18-MAY-14 9965256053249 18-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75792   1.40G      DISK        00:05:12     19-MAY-14
+        BP Key: 75793   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T000057
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847930073_76361_1_20140519
+
+  List of Archived Logs in backup set 75792
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753040  9965256073543 18-MAY-14 9965256075267 18-MAY-14
+  1    753041  9965256075267 18-MAY-14 9965256077091 18-MAY-14
+  1    753042  9965256077091 18-MAY-14 9965256079235 18-MAY-14
+  1    753043  9965256079235 18-MAY-14 9965256081306 18-MAY-14
+  1    753044  9965256081306 18-MAY-14 9965256083226 18-MAY-14
+  1    753045  9965256083226 18-MAY-14 9965256085054 18-MAY-14
+  1    753046  9965256085054 18-MAY-14 9965256086540 18-MAY-14
+  1    753047  9965256086540 18-MAY-14 9965256088478 18-MAY-14
+  1    753048  9965256088478 18-MAY-14 9965256089945 18-MAY-14
+  1    753049  9965256089945 18-MAY-14 9965256091224 18-MAY-14
+  1    753050  9965256091224 18-MAY-14 9965256093525 18-MAY-14
+  1    753051  9965256093525 18-MAY-14 9965256094805 18-MAY-14
+  1    753052  9965256094805 18-MAY-14 9965256096181 18-MAY-14
+  2    625569  9965256073568 18-MAY-14 9965256079319 18-MAY-14
+  2    625570  9965256079319 18-MAY-14 9965256085175 18-MAY-14
+  2    625571  9965256085175 18-MAY-14 9965256090012 18-MAY-14
+  2    625572  9965256090012 18-MAY-14 9965256094838 18-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75793   1.19G      DISK        00:04:46     19-MAY-14
+        BP Key: 75794   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T000057
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847930270_76362_1_20140519
+
+  List of Archived Logs in backup set 75793
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753053  9965256096181 18-MAY-14 9965256098013 18-MAY-14
+  1    753054  9965256098013 18-MAY-14 9965256099432 18-MAY-14
+  1    753055  9965256099432 18-MAY-14 9965256100505 18-MAY-14
+  1    753056  9965256100505 18-MAY-14 9965256102526 18-MAY-14
+  1    753057  9965256102526 18-MAY-14 9965256104800 18-MAY-14
+  1    753058  9965256104800 18-MAY-14 9965256106258 18-MAY-14
+  1    753059  9965256106258 18-MAY-14 9965256107421 18-MAY-14
+  1    753060  9965256107421 18-MAY-14 9965256109608 18-MAY-14
+  1    753061  9965256109608 18-MAY-14 9965256111203 18-MAY-14
+  1    753062  9965256111203 18-MAY-14 9965256112642 18-MAY-14
+  1    753063  9965256112642 18-MAY-14 9965256113739 18-MAY-14
+  1    753064  9965256113739 18-MAY-14 9965256115921 18-MAY-14
+  1    753065  9965256115921 18-MAY-14 9965256117293 18-MAY-14
+  2    625573  9965256094838 18-MAY-14 9965256099460 18-MAY-14
+  2    625574  9965256099460 18-MAY-14 9965256104830 18-MAY-14
+  2    625575  9965256104830 18-MAY-14 9965256109637 18-MAY-14
+  2    625576  9965256109637 18-MAY-14 9965256113770 18-MAY-14
+  2    625577  9965256113770 18-MAY-14 9965256119041 18-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75794   2.60G      DISK        00:06:52     19-MAY-14
+        BP Key: 75795   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T000057
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847930388_76363_1_20140519
+
+  List of Archived Logs in backup set 75794
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753066  9965256117293 18-MAY-14 9965256118974 18-MAY-14
+  1    753067  9965256118974 18-MAY-14 9965256120252 18-MAY-14
+  1    753068  9965256120252 18-MAY-14 9965256121331 18-MAY-14
+  1    753069  9965256121331 18-MAY-14 9965256249726 18-MAY-14
+  1    753070  9965256249726 18-MAY-14 9965256252920 18-MAY-14
+  1    753071  9965256252920 18-MAY-14 9965256272321 18-MAY-14
+  1    753072  9965256272321 18-MAY-14 9965256473436 18-MAY-14
+  1    753073  9965256473436 18-MAY-14 9965256478625 18-MAY-14
+  1    753074  9965256478625 18-MAY-14 9965256553996 18-MAY-14
+  1    753075  9965256553996 18-MAY-14 9965256769912 18-MAY-14
+  1    753076  9965256769912 18-MAY-14 9965256821163 18-MAY-14
+  1    753077  9965256821163 18-MAY-14 9965257409357 19-MAY-14
+  1    753078  9965257409357 19-MAY-14 9965257411230 19-MAY-14
+  2    625578  9965256119041 18-MAY-14 9965256249771 18-MAY-14
+  2    625579  9965256249771 18-MAY-14 9965256473514 18-MAY-14
+  2    625580  9965256473514 18-MAY-14 9965256772873 18-MAY-14
+  2    625581  9965256772873 18-MAY-14 9965257396310 19-MAY-14
+  2    625582  9965257396310 19-MAY-14 9965257396490 19-MAY-14
+  2    625583  9965257396490 19-MAY-14 9965257401243 19-MAY-14
+  2    625584  9965257401243 19-MAY-14 9965257411261 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75800   26.74M     DISK        00:00:05     19-MAY-14
+        BP Key: 75801   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T060037
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847951238_76367_1_20140519
+
+  List of Archived Logs in backup set 75800
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    625585  9965257411261 19-MAY-14 9965257751026 19-MAY-14
+  2    625586  9965257751026 19-MAY-14 9965257751986 19-MAY-14
+  2    625587  9965257751986 19-MAY-14 9965257752407 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75801   1.76M      DISK        00:00:01     19-MAY-14
+        BP Key: 75802   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T060037
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847951245_76368_1_20140519
+
+  List of Archived Logs in backup set 75801
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753080  9965257752402 19-MAY-14 9965257759008 19-MAY-14
+  2    625588  9965257752407 19-MAY-14 9965257759003 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75802   83.21M     DISK        00:00:12     19-MAY-14
+        BP Key: 75803   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T060037
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847951238_76366_1_20140519
+
+  List of Archived Logs in backup set 75802
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753079  9965257411230 19-MAY-14 9965257752402 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75804   13.74M     DISK        00:00:04     19-MAY-14
+        BP Key: 75805   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T120045
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847972845_76371_1_20140519
+
+  List of Archived Logs in backup set 75804
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753081  9965257759008 19-MAY-14 9965258373567 19-MAY-14
+  2    625590  9965258366539 19-MAY-14 9965258373368 19-MAY-14
+  2    625591  9965258373368 19-MAY-14 9965258373429 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75805   580.00K    DISK        00:00:02     19-MAY-14
+        BP Key: 75806   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T120045
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847972852_76372_1_20140519
+
+  List of Archived Logs in backup set 75805
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753082  9965258373567 19-MAY-14 9965258375081 19-MAY-14
+  2    625592  9965258373429 19-MAY-14 9965258375157 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75806   72.31M     DISK        00:00:11     19-MAY-14
+        BP Key: 75807   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T120045
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847972845_76370_1_20140519
+
+  List of Archived Logs in backup set 75806
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    625589  9965257759003 19-MAY-14 9965258366539 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75808   3.47G      DISK        00:07:49     19-MAY-14
+        BP Key: 75809   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T180056
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847994459_76375_1_20140519
+
+  List of Archived Logs in backup set 75808
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753090  9965260949325 19-MAY-14 9965261020080 19-MAY-14
+  1    753091  9965261020080 19-MAY-14 9965261089835 19-MAY-14
+  1    753092  9965261089835 19-MAY-14 9965261158712 19-MAY-14
+  1    753093  9965261158712 19-MAY-14 9965261225814 19-MAY-14
+  1    753094  9965261225814 19-MAY-14 9965261295777 19-MAY-14
+  1    753095  9965261295777 19-MAY-14 9965261366718 19-MAY-14
+  1    753096  9965261366718 19-MAY-14 9965261435943 19-MAY-14
+  1    753097  9965261435943 19-MAY-14 9965261505613 19-MAY-14
+  1    753098  9965261505613 19-MAY-14 9965261575097 19-MAY-14
+  1    753099  9965261575097 19-MAY-14 9965261644127 19-MAY-14
+  1    753100  9965261644127 19-MAY-14 9965261715584 19-MAY-14
+  1    753101  9965261715584 19-MAY-14 9965261784415 19-MAY-14
+  1    753102  9965261784415 19-MAY-14 9965261857244 19-MAY-14
+  2    625602  9965261021429 19-MAY-14 9965261226251 19-MAY-14
+  2    625603  9965261226251 19-MAY-14 9965261436286 19-MAY-14
+  2    625604  9965261436286 19-MAY-14 9965261644405 19-MAY-14
+  2    625605  9965261644405 19-MAY-14 9965261857587 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75809   3.47G      DISK        00:07:51     19-MAY-14
+        BP Key: 75810   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T180056
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847994458_76374_1_20140519
+
+  List of Archived Logs in backup set 75809
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753083  9965258375081 19-MAY-14 9965258626121 19-MAY-14
+  1    753084  9965258626121 19-MAY-14 9965259683090 19-MAY-14
+  1    753085  9965259683090 19-MAY-14 9965260672745 19-MAY-14
+  1    753086  9965260672745 19-MAY-14 9965260739088 19-MAY-14
+  1    753087  9965260739088 19-MAY-14 9965260809649 19-MAY-14
+  1    753088  9965260809649 19-MAY-14 9965260879261 19-MAY-14
+  1    753089  9965260879261 19-MAY-14 9965260949325 19-MAY-14
+  2    625593  9965258375157 19-MAY-14 9965258555038 19-MAY-14
+  2    625594  9965258555038 19-MAY-14 9965258625630 19-MAY-14
+  2    625595  9965258625630 19-MAY-14 9965258910984 19-MAY-14
+  2    625596  9965258910984 19-MAY-14 9965259111332 19-MAY-14
+  2    625597  9965259111332 19-MAY-14 9965259681718 19-MAY-14
+  2    625598  9965259681718 19-MAY-14 9965260237246 19-MAY-14
+  2    625599  9965260237246 19-MAY-14 9965260304093 19-MAY-14
+  2    625600  9965260304093 19-MAY-14 9965260810808 19-MAY-14
+  2    625601  9965260810808 19-MAY-14 9965261021429 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75810   3.23G      DISK        00:07:20     19-MAY-14
+        BP Key: 75811   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T180056
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847994935_76377_1_20140519
+
+  List of Archived Logs in backup set 75810
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753116  9965262776841 19-MAY-14 9965262859431 19-MAY-14
+  1    753117  9965262859431 19-MAY-14 9965262932013 19-MAY-14
+  1    753118  9965262932013 19-MAY-14 9965263002746 19-MAY-14
+  1    753119  9965263002746 19-MAY-14 9965263075050 19-MAY-14
+  1    753120  9965263075050 19-MAY-14 9965263144100 19-MAY-14
+  1    753121  9965263144100 19-MAY-14 9965263213747 19-MAY-14
+  1    753122  9965263213747 19-MAY-14 9965263282913 19-MAY-14
+  1    753123  9965263282913 19-MAY-14 9965263351319 19-MAY-14
+  1    753124  9965263351319 19-MAY-14 9965263421729 19-MAY-14
+  1    753125  9965263421729 19-MAY-14 9965263490820 19-MAY-14
+  1    753126  9965263490820 19-MAY-14 9965263561425 19-MAY-14
+  1    753127  9965263561425 19-MAY-14 9965263630647 19-MAY-14
+  1    753128  9965263630647 19-MAY-14 9965263657139 19-MAY-14
+  2    625610  9965262706853 19-MAY-14 9965262932888 19-MAY-14
+  2    625611  9965262932888 19-MAY-14 9965263144564 19-MAY-14
+  2    625612  9965263144564 19-MAY-14 9965263351899 19-MAY-14
+  2    625613  9965263351899 19-MAY-14 9965263561845 19-MAY-14
+  2    625614  9965263561845 19-MAY-14 9965263651157 19-MAY-14
+  2    625615  9965263651157 19-MAY-14 9965263651553 19-MAY-14
+  2    625616  9965263651553 19-MAY-14 9965263652980 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75811   26.36M     DISK        00:00:05     19-MAY-14
+        BP Key: 75812   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T180056
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847995381_76378_1_20140519
+
+  List of Archived Logs in backup set 75811
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753129  9965263657139 19-MAY-14 9965263667432 19-MAY-14
+  2    625617  9965263652980 19-MAY-14 9965263663928 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75812   3.46G      DISK        00:07:49     19-MAY-14
+        BP Key: 75813   Status: AVAILABLE  Compressed: YES  Tag: TAG20140519T180056
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch847994934_76376_1_20140519
+
+  List of Archived Logs in backup set 75812
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753103  9965261857244 19-MAY-14 9965261928339 19-MAY-14
+  1    753104  9965261928339 19-MAY-14 9965262006164 19-MAY-14
+  1    753105  9965262006164 19-MAY-14 9965262074707 19-MAY-14
+  1    753106  9965262074707 19-MAY-14 9965262148810 19-MAY-14
+  1    753107  9965262148810 19-MAY-14 9965262219004 19-MAY-14
+  1    753108  9965262219004 19-MAY-14 9965262288982 19-MAY-14
+  1    753109  9965262288982 19-MAY-14 9965262358557 19-MAY-14
+  1    753110  9965262358557 19-MAY-14 9965262426307 19-MAY-14
+  1    753111  9965262426307 19-MAY-14 9965262495567 19-MAY-14
+  1    753112  9965262495567 19-MAY-14 9965262565865 19-MAY-14
+  1    753113  9965262565865 19-MAY-14 9965262636263 19-MAY-14
+  1    753114  9965262636263 19-MAY-14 9965262705602 19-MAY-14
+  1    753115  9965262705602 19-MAY-14 9965262776841 19-MAY-14
+  2    625606  9965261857587 19-MAY-14 9965262074828 19-MAY-14
+  2    625607  9965262074828 19-MAY-14 9965262289079 19-MAY-14
+  2    625608  9965262289079 19-MAY-14 9965262495657 19-MAY-14
+  2    625609  9965262495657 19-MAY-14 9965262706853 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75814   978.12M    DISK        00:02:28     20-MAY-14
+        BP Key: 75815   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T000059
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848016061_76385_1_20140520
+
+  List of Archived Logs in backup set 75814
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753135  9965264355983 19-MAY-14 9965264800972 19-MAY-14
+  1    753136  9965264800972 19-MAY-14 9965264861314 19-MAY-14
+  1    753137  9965264861314 19-MAY-14 9965264902912 19-MAY-14
+  1    753138  9965264902912 19-MAY-14 9965265455110 20-MAY-14
+  1    753139  9965265455110 20-MAY-14 9965265482502 20-MAY-14
+  2    625620  9965264356588 19-MAY-14 9965264903319 19-MAY-14
+  2    625621  9965264903319 19-MAY-14 9965265454538 20-MAY-14
+  2    625622  9965265454538 20-MAY-14 9965265455073 20-MAY-14
+  2    625623  9965265455073 20-MAY-14 9965265455352 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75815   675.00K    DISK        00:00:04     20-MAY-14
+        BP Key: 75816   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T000059
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848016217_76386_1_20140520
+
+  List of Archived Logs in backup set 75815
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    625624  9965265455352 20-MAY-14 9965265482493 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75816   1.32G      DISK        00:03:18     20-MAY-14
+        BP Key: 75817   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T000059
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848016060_76384_1_20140520
+
+  List of Archived Logs in backup set 75816
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753130  9965263667432 19-MAY-14 9965263744704 19-MAY-14
+  1    753131  9965263744704 19-MAY-14 9965263815002 19-MAY-14
+  1    753132  9965263815002 19-MAY-14 9965263890028 19-MAY-14
+  1    753133  9965263890028 19-MAY-14 9965264037743 19-MAY-14
+  1    753134  9965264037743 19-MAY-14 9965264355983 19-MAY-14
+  2    625618  9965263663928 19-MAY-14 9965263815294 19-MAY-14
+  2    625619  9965263815294 19-MAY-14 9965264356588 19-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75823   58.43M     DISK        00:00:09     20-MAY-14
+        BP Key: 75824   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T060036
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848037637_76389_1_20140520
+
+  List of Archived Logs in backup set 75823
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    625625  9965265482493 20-MAY-14 9965265749706 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75824   52.07M     DISK        00:00:09     20-MAY-14
+        BP Key: 75825   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T060036
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848037637_76390_1_20140520
+
+  List of Archived Logs in backup set 75824
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753140  9965265482502 20-MAY-14 9965265749755 20-MAY-14
+  2    625626  9965265749706 20-MAY-14 9965265749719 20-MAY-14
+  2    625627  9965265749719 20-MAY-14 9965265749735 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75825   1.74M      DISK        00:00:01     20-MAY-14
+        BP Key: 75826   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T060036
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848037652_76391_1_20140520
+
+  List of Archived Logs in backup set 75825
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753141  9965265749755 20-MAY-14 9965265753199 20-MAY-14
+  2    625628  9965265749735 20-MAY-14 9965265753528 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75827   27.44M     DISK        00:00:05     20-MAY-14
+        BP Key: 75828   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T120034
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848059234_76394_1_20140520
+
+  List of Archived Logs in backup set 75827
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    625629  9965265753528 20-MAY-14 9965266249324 20-MAY-14
+  2    625630  9965266249324 20-MAY-14 9965266249370 20-MAY-14
+  2    625631  9965266249370 20-MAY-14 9965266249517 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75828   49.00K     DISK        00:00:01     20-MAY-14
+        BP Key: 75829   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T120034
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848059241_76395_1_20140520
+
+  List of Archived Logs in backup set 75828
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753143  9965266249544 20-MAY-14 9965266255858 20-MAY-14
+  2    625632  9965266249517 20-MAY-14 9965266256191 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75829   77.72M     DISK        00:00:11     20-MAY-14
+        BP Key: 75830   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T120034
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848059234_76393_1_20140520
+
+  List of Archived Logs in backup set 75829
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753142  9965265753199 20-MAY-14 9965266249544 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75831   3.55G      DISK        00:07:55     20-MAY-14
+        BP Key: 75832   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T180046
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848080848_76397_1_20140520
+
+  List of Archived Logs in backup set 75831
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753144  9965266255858 20-MAY-14 9965266447616 20-MAY-14
+  1    753145  9965266447616 20-MAY-14 9965266509601 20-MAY-14
+  1    753146  9965266509601 20-MAY-14 9965266701645 20-MAY-14
+  1    753147  9965266701645 20-MAY-14 9965266784895 20-MAY-14
+  1    753148  9965266784895 20-MAY-14 9965266872178 20-MAY-14
+  1    753149  9965266872178 20-MAY-14 9965266961952 20-MAY-14
+  1    753150  9965266961952 20-MAY-14 9965267046616 20-MAY-14
+  1    753151  9965267046616 20-MAY-14 9965267130896 20-MAY-14
+  1    753152  9965267130896 20-MAY-14 9965267215810 20-MAY-14
+  1    753153  9965267215810 20-MAY-14 9965267300531 20-MAY-14
+  1    753154  9965267300531 20-MAY-14 9965267386273 20-MAY-14
+  1    753155  9965267386273 20-MAY-14 9965267470603 20-MAY-14
+  1    753156  9965267470603 20-MAY-14 9965267554353 20-MAY-14
+  1    753157  9965267554353 20-MAY-14 9965267708509 20-MAY-14
+  2    625633  9965266256191 20-MAY-14 9965266702179 20-MAY-14
+  2    625634  9965266702179 20-MAY-14 9965266962085 20-MAY-14
+  2    625635  9965266962085 20-MAY-14 9965267217779 20-MAY-14
+  2    625636  9965267217779 20-MAY-14 9965267472355 20-MAY-14
+  2    625637  9965267472355 20-MAY-14 9965267947868 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75832   3.50G      DISK        00:08:06     20-MAY-14
+        BP Key: 75833   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T180046
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848080848_76398_1_20140520
+
+  List of Archived Logs in backup set 75832
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753158  9965267708509 20-MAY-14 9965267947801 20-MAY-14
+  1    753159  9965267947801 20-MAY-14 9965268042898 20-MAY-14
+  1    753160  9965268042898 20-MAY-14 9965268140461 20-MAY-14
+  1    753161  9965268140461 20-MAY-14 9965268187532 20-MAY-14
+  1    753162  9965268187532 20-MAY-14 9965268234490 20-MAY-14
+  1    753163  9965268234490 20-MAY-14 9965268286334 20-MAY-14
+  1    753164  9965268286334 20-MAY-14 9965268332069 20-MAY-14
+  1    753165  9965268332069 20-MAY-14 9965268390726 20-MAY-14
+  1    753166  9965268390726 20-MAY-14 9965268450923 20-MAY-14
+  1    753167  9965268450923 20-MAY-14 9965268507046 20-MAY-14
+  1    753168  9965268507046 20-MAY-14 9965268567200 20-MAY-14
+  1    753169  9965268567200 20-MAY-14 9965268631779 20-MAY-14
+  1    753170  9965268631779 20-MAY-14 9965268695187 20-MAY-14
+  1    753171  9965268695187 20-MAY-14 9965268759181 20-MAY-14
+  2    625638  9965267947868 20-MAY-14 9965268187723 20-MAY-14
+  2    625639  9965268187723 20-MAY-14 9965268332380 20-MAY-14
+  2    625640  9965268332380 20-MAY-14 9965268507127 20-MAY-14
+  2    625641  9965268507127 20-MAY-14 9965268695377 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75833   3.68G      DISK        00:08:15     20-MAY-14
+        BP Key: 75834   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T180046
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848081335_76400_1_20140520
+
+  List of Archived Logs in backup set 75833
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753186  9965269870277 20-MAY-14 9965269935878 20-MAY-14
+  1    753187  9965269935878 20-MAY-14 9965270001036 20-MAY-14
+  1    753188  9965270001036 20-MAY-14 9965270064587 20-MAY-14
+  1    753189  9965270064587 20-MAY-14 9965270135092 20-MAY-14
+  1    753190  9965270135092 20-MAY-14 9965270198004 20-MAY-14
+  1    753191  9965270198004 20-MAY-14 9965270263428 20-MAY-14
+  1    753192  9965270263428 20-MAY-14 9965270328632 20-MAY-14
+  1    753193  9965270328632 20-MAY-14 9965270390902 20-MAY-14
+  1    753194  9965270390902 20-MAY-14 9965270454097 20-MAY-14
+  1    753195  9965270454097 20-MAY-14 9965270521310 20-MAY-14
+  1    753196  9965270521310 20-MAY-14 9965270586947 20-MAY-14
+  1    753197  9965270586947 20-MAY-14 9965270653448 20-MAY-14
+  1    753198  9965270653448 20-MAY-14 9965270718547 20-MAY-14
+  1    753199  9965270718547 20-MAY-14 9965270781360 20-MAY-14
+  2    625647  9965269870862 20-MAY-14 9965270064996 20-MAY-14
+  2    625648  9965270064996 20-MAY-14 9965270263723 20-MAY-14
+  2    625649  9965270263723 20-MAY-14 9965270454369 20-MAY-14
+  2    625650  9965270454369 20-MAY-14 9965270653544 20-MAY-14
+  2    625651  9965270653544 20-MAY-14 9965270846641 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75834   3.74G      DISK        00:08:20     20-MAY-14
+        BP Key: 75835   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T180046
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848081333_76399_1_20140520
+
+  List of Archived Logs in backup set 75834
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753172  9965268759181 20-MAY-14 9965268830926 20-MAY-14
+  1    753173  9965268830926 20-MAY-14 9965268894525 20-MAY-14
+  1    753174  9965268894525 20-MAY-14 9965268958492 20-MAY-14
+  1    753175  9965268958492 20-MAY-14 9965269022965 20-MAY-14
+  1    753176  9965269022965 20-MAY-14 9965269084469 20-MAY-14
+  1    753177  9965269084469 20-MAY-14 9965269148684 20-MAY-14
+  1    753178  9965269148684 20-MAY-14 9965269233362 20-MAY-14
+  1    753179  9965269233362 20-MAY-14 9965269474144 20-MAY-14
+  1    753180  9965269474144 20-MAY-14 9965269539376 20-MAY-14
+  1    753181  9965269539376 20-MAY-14 9965269608202 20-MAY-14
+  1    753182  9965269608202 20-MAY-14 9965269673450 20-MAY-14
+  1    753183  9965269673450 20-MAY-14 9965269739351 20-MAY-14
+  1    753184  9965269739351 20-MAY-14 9965269804645 20-MAY-14
+  1    753185  9965269804645 20-MAY-14 9965269870277 20-MAY-14
+  2    625642  9965268695377 20-MAY-14 9965268894625 20-MAY-14
+  2    625643  9965268894625 20-MAY-14 9965269084962 20-MAY-14
+  2    625644  9965269084962 20-MAY-14 9965269474640 20-MAY-14
+  2    625645  9965269474640 20-MAY-14 9965269673689 20-MAY-14
+  2    625646  9965269673689 20-MAY-14 9965269870862 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75835   2.63G      DISK        00:05:50     20-MAY-14
+        BP Key: 75836   Status: AVAILABLE  Compressed: YES  Tag: TAG20140520T180046
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848081831_76401_1_20140520
+
+  List of Archived Logs in backup set 75835
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753200  9965270781360 20-MAY-14 9965270845729 20-MAY-14
+  1    753201  9965270845729 20-MAY-14 9965270910996 20-MAY-14
+  1    753202  9965270910996 20-MAY-14 9965270975836 20-MAY-14
+  1    753203  9965270975836 20-MAY-14 9965271041036 20-MAY-14
+  1    753204  9965271041036 20-MAY-14 9965271107758 20-MAY-14
+  1    753205  9965271107758 20-MAY-14 9965271172884 20-MAY-14
+  1    753206  9965271172884 20-MAY-14 9965271238776 20-MAY-14
+  1    753207  9965271238776 20-MAY-14 9965271314596 20-MAY-14
+  1    753208  9965271314596 20-MAY-14 9965271406568 20-MAY-14
+  1    753209  9965271406568 20-MAY-14 9965271605079 20-MAY-14
+  1    753210  9965271605079 20-MAY-14 9965271622718 20-MAY-14
+  1    753211  9965271622718 20-MAY-14 9965271634211 20-MAY-14
+  2    625652  9965270846641 20-MAY-14 9965271041857 20-MAY-14
+  2    625653  9965271041857 20-MAY-14 9965271239648 20-MAY-14
+  2    625654  9965271239648 20-MAY-14 9965271605835 20-MAY-14
+  2    625655  9965271605835 20-MAY-14 9965271620331 20-MAY-14
+  2    625656  9965271620331 20-MAY-14 9965271620954 20-MAY-14
+  2    625657  9965271620954 20-MAY-14 9965271624332 20-MAY-14
+  2    625658  9965271624332 20-MAY-14 9965271632977 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75837   815.28M    DISK        00:02:04     21-MAY-14
+        BP Key: 75838   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T000119
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848102481_76408_1_20140521
+
+  List of Archived Logs in backup set 75837
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753216  9965272008596 20-MAY-14 9965272248939 20-MAY-14
+  1    753217  9965272248939 20-MAY-14 9965272311148 20-MAY-14
+  1    753218  9965272311148 20-MAY-14 9965272463564 21-MAY-14
+  2    625661  9965272251869 20-MAY-14 9965272462560 21-MAY-14
+  2    625662  9965272462560 21-MAY-14 9965272462716 21-MAY-14
+  2    625663  9965272462716 21-MAY-14 9965272463128 21-MAY-14
+  2    625664  9965272463128 21-MAY-14 9965272473478 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75838   1.45M      DISK        00:00:03     21-MAY-14
+        BP Key: 75839   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T000119
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848102607_76409_1_20140521
+
+  List of Archived Logs in backup set 75838
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753219  9965272463564 21-MAY-14 9965272473418 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75839   1.10G      DISK        00:02:50     21-MAY-14
+        BP Key: 75840   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T000119
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848102480_76407_1_20140521
+
+  List of Archived Logs in backup set 75839
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753212  9965271634211 20-MAY-14 9965271804876 20-MAY-14
+  1    753213  9965271804876 20-MAY-14 9965271989986 20-MAY-14
+  1    753214  9965271989986 20-MAY-14 9965272006639 20-MAY-14
+  1    753215  9965272006639 20-MAY-14 9965272008596 20-MAY-14
+  2    625659  9965271632977 20-MAY-14 9965271990050 20-MAY-14
+  2    625660  9965271990050 20-MAY-14 9965272251869 20-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75845   34.90M     DISK        00:00:07     21-MAY-14
+        BP Key: 75846   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T060035
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848124035_76413_1_20140521
+
+  List of Archived Logs in backup set 75845
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    625665  9965272473478 21-MAY-14 9965272743413 21-MAY-14
+  2    625666  9965272743413 21-MAY-14 9965272744301 21-MAY-14
+  2    625667  9965272744301 21-MAY-14 9965272744806 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75846   1.14M      DISK        00:00:01     21-MAY-14
+        BP Key: 75847   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T060035
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848124042_76414_1_20140521
+
+  List of Archived Logs in backup set 75846
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753221  9965272744789 21-MAY-14 9965272745923 21-MAY-14
+  2    625668  9965272744806 21-MAY-14 9965272746122 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75847   98.17M     DISK        00:00:14     21-MAY-14
+        BP Key: 75848   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T060035
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848124035_76412_1_20140521
+
+  List of Archived Logs in backup set 75847
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753220  9965272473418 21-MAY-14 9965272744789 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75849   1.46G      DISK        00:03:17     21-MAY-14
+        BP Key: 75850   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T120041
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848145642_76417_1_20140521
+
+  List of Archived Logs in backup set 75849
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753228  9965273165819 21-MAY-14 9965274175928 21-MAY-14
+  1    753229  9965274175928 21-MAY-14 9965274243026 21-MAY-14
+  1    753230  9965274243026 21-MAY-14 9965274321791 21-MAY-14
+  1    753231  9965274321791 21-MAY-14 9965274404586 21-MAY-14
+  1    753232  9965274404586 21-MAY-14 9965274478498 21-MAY-14
+  1    753233  9965274478498 21-MAY-14 9965274510792 21-MAY-14
+  2    625671  9965273165909 21-MAY-14 9965274322205 21-MAY-14
+  2    625672  9965274322205 21-MAY-14 9965274508325 21-MAY-14
+  2    625673  9965274508325 21-MAY-14 9965274509507 21-MAY-14
+  2    625674  9965274509507 21-MAY-14 9965274510188 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75850   27.56M     DISK        00:00:05     21-MAY-14
+        BP Key: 75851   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T120041
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848145847_76418_1_20140521
+
+  List of Archived Logs in backup set 75850
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753234  9965274510792 21-MAY-14 9965274533448 21-MAY-14
+  2    625675  9965274510188 21-MAY-14 9965274533212 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75851   1.54G      DISK        00:03:30     21-MAY-14
+        BP Key: 75852   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T120041
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848145642_76416_1_20140521
+
+  List of Archived Logs in backup set 75851
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753222  9965272745923 21-MAY-14 9965272849320 21-MAY-14
+  1    753223  9965272849320 21-MAY-14 9965272909101 21-MAY-14
+  1    753224  9965272909101 21-MAY-14 9965272969493 21-MAY-14
+  1    753225  9965272969493 21-MAY-14 9965273029918 21-MAY-14
+  1    753226  9965273029918 21-MAY-14 9965273090639 21-MAY-14
+  1    753227  9965273090639 21-MAY-14 9965273165819 21-MAY-14
+  2    625669  9965272746122 21-MAY-14 9965272969886 21-MAY-14
+  2    625670  9965272969886 21-MAY-14 9965273165909 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75853   3.57G      DISK        00:08:04     21-MAY-14
+        BP Key: 75854   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848167244_76421_1_20140521
+
+  List of Archived Logs in backup set 75853
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753248  9965276003526 21-MAY-14 9965276088101 21-MAY-14
+  1    753249  9965276088101 21-MAY-14 9965276179254 21-MAY-14
+  1    753250  9965276179254 21-MAY-14 9965276218694 21-MAY-14
+  1    753251  9965276218694 21-MAY-14 9965276258005 21-MAY-14
+  1    753252  9965276258005 21-MAY-14 9965276326572 21-MAY-14
+  1    753253  9965276326572 21-MAY-14 9965276378754 21-MAY-14
+  1    753254  9965276378754 21-MAY-14 9965276434846 21-MAY-14
+  1    753255  9965276434846 21-MAY-14 9965276494253 21-MAY-14
+  1    753256  9965276494253 21-MAY-14 9965276945339 21-MAY-14
+  1    753257  9965276945339 21-MAY-14 9965277378144 21-MAY-14
+  2    625682  9965275683637 21-MAY-14 9965276180663 21-MAY-14
+  2    625683  9965276180663 21-MAY-14 9965276326938 21-MAY-14
+  2    625684  9965276326938 21-MAY-14 9965276496233 21-MAY-14
+  2    625685  9965276496233 21-MAY-14 9965276608405 21-MAY-14
+  2    625686  9965276608405 21-MAY-14 9965276941074 21-MAY-14
+  2    625687  9965276941074 21-MAY-14 9965277098932 21-MAY-14
+  2    625688  9965277098932 21-MAY-14 9965277207023 21-MAY-14
+  2    625689  9965277207023 21-MAY-14 9965277375868 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75854   3.95G      DISK        00:08:46     21-MAY-14
+        BP Key: 75855   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848167243_76420_1_20140521
+
+  List of Archived Logs in backup set 75854
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753235  9965274533448 21-MAY-14 9965274617632 21-MAY-14
+  1    753236  9965274617632 21-MAY-14 9965274695535 21-MAY-14
+  1    753237  9965274695535 21-MAY-14 9965274774686 21-MAY-14
+  1    753238  9965274774686 21-MAY-14 9965274910606 21-MAY-14
+  1    753239  9965274910606 21-MAY-14 9965275019376 21-MAY-14
+  1    753240  9965275019376 21-MAY-14 9965275089116 21-MAY-14
+  1    753241  9965275089116 21-MAY-14 9965275158992 21-MAY-14
+  1    753242  9965275158992 21-MAY-14 9965275231550 21-MAY-14
+  1    753243  9965275231550 21-MAY-14 9965275303713 21-MAY-14
+  1    753244  9965275303713 21-MAY-14 9965275376317 21-MAY-14
+  1    753245  9965275376317 21-MAY-14 9965275444830 21-MAY-14
+  1    753246  9965275444830 21-MAY-14 9965275515708 21-MAY-14
+  1    753247  9965275515708 21-MAY-14 9965276003526 21-MAY-14
+  2    625676  9965274533212 21-MAY-14 9965274695907 21-MAY-14
+  2    625677  9965274695907 21-MAY-14 9965275020007 21-MAY-14
+  2    625678  9965275020007 21-MAY-14 9965275232334 21-MAY-14
+  2    625679  9965275232334 21-MAY-14 9965275445388 21-MAY-14
+  2    625680  9965275445388 21-MAY-14 9965275594550 21-MAY-14
+  2    625681  9965275594550 21-MAY-14 9965275683637 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75855   3.91G      DISK        00:08:52     21-MAY-14
+        BP Key: 75856   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848167730_76422_1_20140521
+
+  List of Archived Logs in backup set 75855
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753258  9965277378144 21-MAY-14 9965277845985 21-MAY-14
+  1    753259  9965277845985 21-MAY-14 9965278723576 21-MAY-14
+  1    753260  9965278723576 21-MAY-14 9965279257639 21-MAY-14
+  1    753261  9965279257639 21-MAY-14 9965279639618 21-MAY-14
+  1    753262  9965279639618 21-MAY-14 9965279945213 21-MAY-14
+  2    625690  9965277375868 21-MAY-14 9965277552147 21-MAY-14
+  2    625691  9965277552147 21-MAY-14 9965277705888 21-MAY-14
+  2    625692  9965277705888 21-MAY-14 9965277845358 21-MAY-14
+  2    625693  9965277845358 21-MAY-14 9965278055705 21-MAY-14
+  2    625694  9965278055705 21-MAY-14 9965278573598 21-MAY-14
+  2    625695  9965278573598 21-MAY-14 9965278722918 21-MAY-14
+  2    625696  9965278722918 21-MAY-14 9965278792559 21-MAY-14
+  2    625697  9965278792559 21-MAY-14 9965278897056 21-MAY-14
+  2    625698  9965278897056 21-MAY-14 9965279256234 21-MAY-14
+  2    625699  9965279256234 21-MAY-14 9965279438260 21-MAY-14
+  2    625700  9965279438260 21-MAY-14 9965279538815 21-MAY-14
+  2    625701  9965279538815 21-MAY-14 9965279638137 21-MAY-14
+  2    625702  9965279638137 21-MAY-14 9965279731616 21-MAY-14
+  2    625703  9965279731616 21-MAY-14 9965279833908 21-MAY-14
+  2    625704  9965279833908 21-MAY-14 9965279944690 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75856   3.99G      DISK        00:08:53     21-MAY-14
+        BP Key: 75857   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848167776_76423_1_20140521
+
+  List of Archived Logs in backup set 75856
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753263  9965279945213 21-MAY-14 9965280287668 21-MAY-14
+  1    753264  9965280287668 21-MAY-14 9965280509827 21-MAY-14
+  1    753265  9965280509827 21-MAY-14 9965280731595 21-MAY-14
+  1    753266  9965280731595 21-MAY-14 9965280951042 21-MAY-14
+  1    753267  9965280951042 21-MAY-14 9965281181651 21-MAY-14
+  2    625705  9965279944690 21-MAY-14 9965280059506 21-MAY-14
+  2    625706  9965280059506 21-MAY-14 9965280188306 21-MAY-14
+  2    625707  9965280188306 21-MAY-14 9965280285890 21-MAY-14
+  2    625708  9965280285890 21-MAY-14 9965280357610 21-MAY-14
+  2    625709  9965280357610 21-MAY-14 9965280428363 21-MAY-14
+  2    625710  9965280428363 21-MAY-14 9965280509024 21-MAY-14
+  2    625711  9965280509024 21-MAY-14 9965280582039 21-MAY-14
+  2    625712  9965280582039 21-MAY-14 9965280654709 21-MAY-14
+  2    625713  9965280654709 21-MAY-14 9965280730732 21-MAY-14
+  2    625714  9965280730732 21-MAY-14 9965280802175 21-MAY-14
+  2    625715  9965280802175 21-MAY-14 9965280872593 21-MAY-14
+  2    625716  9965280872593 21-MAY-14 9965280950958 21-MAY-14
+  2    625717  9965280950958 21-MAY-14 9965281034642 21-MAY-14
+  2    625718  9965281034642 21-MAY-14 9965281106028 21-MAY-14
+  2    625719  9965281106028 21-MAY-14 9965281179804 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75857   3.77G      DISK        00:08:22     21-MAY-14
+        BP Key: 75858   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848168272_76424_1_20140521
+
+  List of Archived Logs in backup set 75857
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753268  9965281181651 21-MAY-14 9965281427690 21-MAY-14
+  1    753269  9965281427690 21-MAY-14 9965281714319 21-MAY-14
+  1    753270  9965281714319 21-MAY-14 9965281945362 21-MAY-14
+  1    753271  9965281945362 21-MAY-14 9965282158018 21-MAY-14
+  1    753272  9965282158018 21-MAY-14 9965282371910 21-MAY-14
+  2    625720  9965281179804 21-MAY-14 9965281256205 21-MAY-14
+  2    625721  9965281256205 21-MAY-14 9965281328601 21-MAY-14
+  2    625722  9965281328601 21-MAY-14 9965281426956 21-MAY-14
+  2    625723  9965281426956 21-MAY-14 9965281497862 21-MAY-14
+  2    625724  9965281497862 21-MAY-14 9965281576788 21-MAY-14
+  2    625725  9965281576788 21-MAY-14 9965281713825 21-MAY-14
+  2    625726  9965281713825 21-MAY-14 9965281798893 21-MAY-14
+  2    625727  9965281798893 21-MAY-14 9965281874587 21-MAY-14
+  2    625728  9965281874587 21-MAY-14 9965281944929 21-MAY-14
+  2    625729  9965281944929 21-MAY-14 9965282016936 21-MAY-14
+  2    625730  9965282016936 21-MAY-14 9965282086416 21-MAY-14
+  2    625731  9965282086416 21-MAY-14 9965282157432 21-MAY-14
+  2    625732  9965282157432 21-MAY-14 9965282232734 21-MAY-14
+  2    625733  9965282232734 21-MAY-14 9965282301707 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75858   3.95G      DISK        00:08:43     21-MAY-14
+        BP Key: 75859   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848168317_76425_1_20140521
+
+  List of Archived Logs in backup set 75858
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753273  9965282371910 21-MAY-14 9965282582396 21-MAY-14
+  1    753274  9965282582396 21-MAY-14 9965282790683 21-MAY-14
+  1    753275  9965282790683 21-MAY-14 9965283000067 21-MAY-14
+  1    753276  9965283000067 21-MAY-14 9965283212756 21-MAY-14
+  1    753277  9965283212756 21-MAY-14 9965283423940 21-MAY-14
+  2    625734  9965282301707 21-MAY-14 9965282371400 21-MAY-14
+  2    625735  9965282371400 21-MAY-14 9965282440344 21-MAY-14
+  2    625736  9965282440344 21-MAY-14 9965282511343 21-MAY-14
+  2    625737  9965282511343 21-MAY-14 9965282581926 21-MAY-14
+  2    625738  9965282581926 21-MAY-14 9965282652667 21-MAY-14
+  2    625739  9965282652667 21-MAY-14 9965282720485 21-MAY-14
+  2    625740  9965282720485 21-MAY-14 9965282790477 21-MAY-14
+  2    625741  9965282790477 21-MAY-14 9965282860747 21-MAY-14
+  2    625742  9965282860747 21-MAY-14 9965282929290 21-MAY-14
+  2    625743  9965282929290 21-MAY-14 9965282999962 21-MAY-14
+  2    625744  9965282999962 21-MAY-14 9965283068803 21-MAY-14
+  2    625745  9965283068803 21-MAY-14 9965283139196 21-MAY-14
+  2    625746  9965283139196 21-MAY-14 9965283211963 21-MAY-14
+  2    625747  9965283211963 21-MAY-14 9965283285473 21-MAY-14
+  2    625748  9965283285473 21-MAY-14 9965283354221 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75859   2.87G      DISK        00:06:22     21-MAY-14
+        BP Key: 75860   Status: AVAILABLE  Compressed: YES  Tag: TAG20140521T180038
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848168783_76426_1_20140521
+
+  List of Archived Logs in backup set 75859
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753278  9965283423940 21-MAY-14 9965283634553 21-MAY-14
+  1    753279  9965283634553 21-MAY-14 9965283846810 21-MAY-14
+  1    753280  9965283846810 21-MAY-14 9965284060994 21-MAY-14
+  1    753281  9965284060994 21-MAY-14 9965284215417 21-MAY-14
+  1    753282  9965284215417 21-MAY-14 9965284215957 21-MAY-14
+  2    625749  9965283354221 21-MAY-14 9965283423365 21-MAY-14
+  2    625750  9965283423365 21-MAY-14 9965283493003 21-MAY-14
+  2    625751  9965283493003 21-MAY-14 9965283564442 21-MAY-14
+  2    625752  9965283564442 21-MAY-14 9965283633889 21-MAY-14
+  2    625753  9965283633889 21-MAY-14 9965283703404 21-MAY-14
+  2    625754  9965283703404 21-MAY-14 9965283776658 21-MAY-14
+  2    625755  9965283776658 21-MAY-14 9965283846214 21-MAY-14
+  2    625756  9965283846214 21-MAY-14 9965283921147 21-MAY-14
+  2    625757  9965283921147 21-MAY-14 9965283992521 21-MAY-14
+  2    625758  9965283992521 21-MAY-14 9965284060757 21-MAY-14
+  2    625759  9965284060757 21-MAY-14 9965284178693 21-MAY-14
+  2    625760  9965284178693 21-MAY-14 9965284214675 21-MAY-14
+  2    625761  9965284214675 21-MAY-14 9965284214998 21-MAY-14
+  2    625762  9965284214998 21-MAY-14 9965284215654 21-MAY-14
+  2    625763  9965284215654 21-MAY-14 9965284216406 21-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75861   160.08M    DISK        00:00:41     22-MAY-14
+        BP Key: 75862   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T000113
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848188874_76433_1_20140522
+
+  List of Archived Logs in backup set 75861
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753285  9965284456903 21-MAY-14 9965284655045 22-MAY-14
+  2    625765  9965284652357 22-MAY-14 9965284653371 22-MAY-14
+  2    625766  9965284653371 22-MAY-14 9965284654406 22-MAY-14
+  2    625767  9965284654406 22-MAY-14 9965284833159 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75862   1.05M      DISK        00:00:04     22-MAY-14
+        BP Key: 75863   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T000113
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848188920_76434_1_20140522
+
+  List of Archived Logs in backup set 75862
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753286  9965284655045 22-MAY-14 9965284833156 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75863   649.14M    DISK        00:01:35     22-MAY-14
+        BP Key: 75864   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T000113
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848188874_76432_1_20140522
+
+  List of Archived Logs in backup set 75863
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753283  9965284215957 21-MAY-14 9965284404068 21-MAY-14
+  1    753284  9965284404068 21-MAY-14 9965284456903 21-MAY-14
+  2    625764  9965284216406 21-MAY-14 9965284652357 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75870   2.68G      DISK        00:06:00     22-MAY-14
+        BP Key: 75871   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T060044
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848210446_76438_1_20140522
+
+  List of Archived Logs in backup set 75870
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753297  9965288932305 22-MAY-14 9965289069441 22-MAY-14
+  1    753298  9965289069441 22-MAY-14 9965289168073 22-MAY-14
+  1    753299  9965289168073 22-MAY-14 9965289253607 22-MAY-14
+  1    753300  9965289253607 22-MAY-14 9965289353427 22-MAY-14
+  1    753301  9965289353427 22-MAY-14 9965289460288 22-MAY-14
+  1    753302  9965289460288 22-MAY-14 9965289536852 22-MAY-14
+  1    753303  9965289536852 22-MAY-14 9965289622931 22-MAY-14
+  1    753304  9965289622931 22-MAY-14 9965289713206 22-MAY-14
+  1    753305  9965289713206 22-MAY-14 9965289870726 22-MAY-14
+  1    753306  9965289870726 22-MAY-14 9965289984356 22-MAY-14
+  2    625771  9965288313926 22-MAY-14 9965289169160 22-MAY-14
+  2    625772  9965289169160 22-MAY-14 9965289460512 22-MAY-14
+  2    625773  9965289460512 22-MAY-14 9965289713516 22-MAY-14
+  2    625774  9965289713516 22-MAY-14 9965290058646 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75871   2.69G      DISK        00:06:04     22-MAY-14
+        BP Key: 75872   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T060044
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848210446_76437_1_20140522
+
+  List of Archived Logs in backup set 75871
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753287  9965284833156 22-MAY-14 9965286255380 22-MAY-14
+  1    753288  9965286255380 22-MAY-14 9965286991800 22-MAY-14
+  1    753289  9965286991800 22-MAY-14 9965287246263 22-MAY-14
+  1    753290  9965287246263 22-MAY-14 9965287805202 22-MAY-14
+  1    753291  9965287805202 22-MAY-14 9965287935235 22-MAY-14
+  1    753292  9965287935235 22-MAY-14 9965288023081 22-MAY-14
+  1    753293  9965288023081 22-MAY-14 9965288117848 22-MAY-14
+  1    753294  9965288117848 22-MAY-14 9965288215022 22-MAY-14
+  1    753295  9965288215022 22-MAY-14 9965288313751 22-MAY-14
+  1    753296  9965288313751 22-MAY-14 9965288932305 22-MAY-14
+  2    625768  9965284833159 22-MAY-14 9965287246593 22-MAY-14
+  2    625769  9965287246593 22-MAY-14 9965288023168 22-MAY-14
+  2    625770  9965288023168 22-MAY-14 9965288313926 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75872   2.52G      DISK        00:05:41     22-MAY-14
+        BP Key: 75873   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T060044
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848210811_76439_1_20140522
+
+  List of Archived Logs in backup set 75872
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753307  9965289984356 22-MAY-14 9965290058483 22-MAY-14
+  1    753308  9965290058483 22-MAY-14 9965290136093 22-MAY-14
+  1    753309  9965290136093 22-MAY-14 9965290207936 22-MAY-14
+  1    753310  9965290207936 22-MAY-14 9965290291355 22-MAY-14
+  1    753311  9965290291355 22-MAY-14 9965290359542 22-MAY-14
+  1    753312  9965290359542 22-MAY-14 9965290440155 22-MAY-14
+  1    753313  9965290440155 22-MAY-14 9965290523528 22-MAY-14
+  1    753314  9965290523528 22-MAY-14 9965290612615 22-MAY-14
+  1    753315  9965290612615 22-MAY-14 9965290698225 22-MAY-14
+  1    753316  9965290698225 22-MAY-14 9965290724374 22-MAY-14
+  1    753317  9965290724374 22-MAY-14 9965290735481 22-MAY-14
+  2    625775  9965290058646 22-MAY-14 9965290292103 22-MAY-14
+  2    625776  9965290292103 22-MAY-14 9965290523993 22-MAY-14
+  2    625777  9965290523993 22-MAY-14 9965290721191 22-MAY-14
+  2    625778  9965290721191 22-MAY-14 9965290722140 22-MAY-14
+  2    625779  9965290722140 22-MAY-14 9965290723513 22-MAY-14
+  2    625780  9965290723513 22-MAY-14 9965290737199 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75874   3.62G      DISK        00:08:45     22-MAY-14
+        BP Key: 75875   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T120109
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848232072_76442_1_20140522
+
+  List of Archived Logs in backup set 75874
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753331  9965292758536 22-MAY-14 9965293080462 22-MAY-14
+  1    753332  9965293080462 22-MAY-14 9965293158879 22-MAY-14
+  1    753333  9965293158879 22-MAY-14 9965293245610 22-MAY-14
+  1    753334  9965293245610 22-MAY-14 9965293337105 22-MAY-14
+  1    753335  9965293337105 22-MAY-14 9965293417461 22-MAY-14
+  1    753336  9965293417461 22-MAY-14 9965293491320 22-MAY-14
+  1    753337  9965293491320 22-MAY-14 9965294015351 22-MAY-14
+  1    753338  9965294015351 22-MAY-14 9965294599901 22-MAY-14
+  2    625787  9965292758495 22-MAY-14 9965292931829 22-MAY-14
+  2    625788  9965292931829 22-MAY-14 9965293246169 22-MAY-14
+  2    625789  9965293246169 22-MAY-14 9965293492375 22-MAY-14
+  2    625790  9965293492375 22-MAY-14 9965293698674 22-MAY-14
+  2    625791  9965293698674 22-MAY-14 9965294014188 22-MAY-14
+  2    625792  9965294014188 22-MAY-14 9965294181051 22-MAY-14
+  2    625793  9965294181051 22-MAY-14 9965294350604 22-MAY-14
+  2    625794  9965294350604 22-MAY-14 9965294599232 22-MAY-14
+  2    625795  9965294599232 22-MAY-14 9965294754127 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75875   3.98G      DISK        00:09:13     22-MAY-14
+        BP Key: 75876   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T120109
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848232072_76441_1_20140522
+
+  List of Archived Logs in backup set 75875
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753318  9965290735481 22-MAY-14 9965290811353 22-MAY-14
+  1    753319  9965290811353 22-MAY-14 9965290894438 22-MAY-14
+  1    753320  9965290894438 22-MAY-14 9965290968220 22-MAY-14
+  1    753321  9965290968220 22-MAY-14 9965291032770 22-MAY-14
+  1    753322  9965291032770 22-MAY-14 9965291103362 22-MAY-14
+  1    753323  9965291103362 22-MAY-14 9965291180810 22-MAY-14
+  1    753324  9965291180810 22-MAY-14 9965291267226 22-MAY-14
+  1    753325  9965291267226 22-MAY-14 9965291332868 22-MAY-14
+  1    753326  9965291332868 22-MAY-14 9965291402385 22-MAY-14
+  1    753327  9965291402385 22-MAY-14 9965291484524 22-MAY-14
+  1    753328  9965291484524 22-MAY-14 9965291549779 22-MAY-14
+  1    753329  9965291549779 22-MAY-14 9965291740696 22-MAY-14
+  1    753330  9965291740696 22-MAY-14 9965292758536 22-MAY-14
+  2    625781  9965290737199 22-MAY-14 9965290968439 22-MAY-14
+  2    625782  9965290968439 22-MAY-14 9965291181164 22-MAY-14
+  2    625783  9965291181164 22-MAY-14 9965291402569 22-MAY-14
+  2    625784  9965291402569 22-MAY-14 9965291741317 22-MAY-14
+  2    625785  9965291741317 22-MAY-14 9965292237930 22-MAY-14
+  2    625786  9965292237930 22-MAY-14 9965292758495 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75876   3.30G      DISK        00:07:44     22-MAY-14
+        BP Key: 75877   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T120109
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848232627_76444_1_20140522
+
+  List of Archived Logs in backup set 75876
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753344  9965296304275 22-MAY-14 9965296610414 22-MAY-14
+  1    753345  9965296610414 22-MAY-14 9965296931093 22-MAY-14
+  1    753346  9965296931093 22-MAY-14 9965297188974 22-MAY-14
+  1    753347  9965297188974 22-MAY-14 9965297524773 22-MAY-14
+  1    753348  9965297524773 22-MAY-14 9965297644864 22-MAY-14
+  2    625810  9965296251409 22-MAY-14 9965296381654 22-MAY-14
+  2    625811  9965296381654 22-MAY-14 9965296481864 22-MAY-14
+  2    625812  9965296481864 22-MAY-14 9965296610087 22-MAY-14
+  2    625813  9965296610087 22-MAY-14 9965296799088 22-MAY-14
+  2    625814  9965296799088 22-MAY-14 9965296862654 22-MAY-14
+  2    625815  9965296862654 22-MAY-14 9965296929197 22-MAY-14
+  2    625816  9965296929197 22-MAY-14 9965297021955 22-MAY-14
+  2    625817  9965297021955 22-MAY-14 9965297105406 22-MAY-14
+  2    625818  9965297105406 22-MAY-14 9965297187544 22-MAY-14
+  2    625819  9965297187544 22-MAY-14 9965297277093 22-MAY-14
+  2    625820  9965297277093 22-MAY-14 9965297392144 22-MAY-14
+  2    625821  9965297392144 22-MAY-14 9965297522033 22-MAY-14
+  2    625822  9965297522033 22-MAY-14 9965297595733 22-MAY-14
+  2    625823  9965297595733 22-MAY-14 9965297630216 22-MAY-14
+  2    625824  9965297630216 22-MAY-14 9965297644042 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75877   54.97M     DISK        00:00:09     22-MAY-14
+        BP Key: 75878   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T120109
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848233096_76445_1_20140522
+
+  List of Archived Logs in backup set 75877
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753349  9965297644864 22-MAY-14 9965297668136 22-MAY-14
+  2    625825  9965297644042 22-MAY-14 9965297676730 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75878   3.68G      DISK        00:08:35     22-MAY-14
+        BP Key: 75879   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T120109
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848232608_76443_1_20140522
+
+  List of Archived Logs in backup set 75878
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753339  9965294599901 22-MAY-14 9965294990791 22-MAY-14
+  1    753340  9965294990791 22-MAY-14 9965295316780 22-MAY-14
+  1    753341  9965295316780 22-MAY-14 9965295662248 22-MAY-14
+  1    753342  9965295662248 22-MAY-14 9965295992927 22-MAY-14
+  1    753343  9965295992927 22-MAY-14 9965296304275 22-MAY-14
+  2    625796  9965294754127 22-MAY-14 9965294878152 22-MAY-14
+  2    625797  9965294878152 22-MAY-14 9965294984661 22-MAY-14
+  2    625798  9965294984661 22-MAY-14 9965295110209 22-MAY-14
+  2    625799  9965295110209 22-MAY-14 9965295217796 22-MAY-14
+  2    625800  9965295217796 22-MAY-14 9965295314226 22-MAY-14
+  2    625801  9965295314226 22-MAY-14 9965295439151 22-MAY-14
+  2    625802  9965295439151 22-MAY-14 9965295544345 22-MAY-14
+  2    625803  9965295544345 22-MAY-14 9965295660165 22-MAY-14
+  2    625804  9965295660165 22-MAY-14 9965295798196 22-MAY-14
+  2    625805  9965295798196 22-MAY-14 9965295896702 22-MAY-14
+  2    625806  9965295896702 22-MAY-14 9965295991179 22-MAY-14
+  2    625807  9965295991179 22-MAY-14 9965296084776 22-MAY-14
+  2    625808  9965296084776 22-MAY-14 9965296162284 22-MAY-14
+  2    625809  9965296162284 22-MAY-14 9965296251409 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75880   3.53G      DISK        00:08:06     22-MAY-14
+        BP Key: 75881   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848253679_76448_1_20140522
+
+  List of Archived Logs in backup set 75880
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753355  9965299495757 22-MAY-14 9965299815019 22-MAY-14
+  1    753356  9965299815019 22-MAY-14 9965300099875 22-MAY-14
+  1    753357  9965300099875 22-MAY-14 9965300340376 22-MAY-14
+  1    753358  9965300340376 22-MAY-14 9965300760814 22-MAY-14
+  1    753359  9965300760814 22-MAY-14 9965300998104 22-MAY-14
+  2    625840  9965299495738 22-MAY-14 9965299635532 22-MAY-14
+  2    625841  9965299635532 22-MAY-14 9965299748390 22-MAY-14
+  2    625842  9965299748390 22-MAY-14 9965299814842 22-MAY-14
+  2    625843  9965299814842 22-MAY-14 9965299865209 22-MAY-14
+  2    625844  9965299865209 22-MAY-14 9965300048705 22-MAY-14
+  2    625845  9965300048705 22-MAY-14 9965300097789 22-MAY-14
+  2    625846  9965300097789 22-MAY-14 9965300150040 22-MAY-14
+  2    625847  9965300150040 22-MAY-14 9965300274693 22-MAY-14
+  2    625848  9965300274693 22-MAY-14 9965300339230 22-MAY-14
+  2    625849  9965300339230 22-MAY-14 9965300453973 22-MAY-14
+  2    625850  9965300453973 22-MAY-14 9965300579325 22-MAY-14
+  2    625851  9965300579325 22-MAY-14 9965300759859 22-MAY-14
+  2    625852  9965300759859 22-MAY-14 9965300826875 22-MAY-14
+  2    625853  9965300826875 22-MAY-14 9965300897974 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75881   3.66G      DISK        00:08:24     22-MAY-14
+        BP Key: 75882   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848253679_76447_1_20140522
+
+  List of Archived Logs in backup set 75881
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753350  9965297668136 22-MAY-14 9965298059955 22-MAY-14
+  1    753351  9965298059955 22-MAY-14 9965298334876 22-MAY-14
+  1    753352  9965298334876 22-MAY-14 9965298577727 22-MAY-14
+  1    753353  9965298577727 22-MAY-14 9965298949352 22-MAY-14
+  1    753354  9965298949352 22-MAY-14 9965299495757 22-MAY-14
+  2    625826  9965297676730 22-MAY-14 9965297966608 22-MAY-14
+  2    625827  9965297966608 22-MAY-14 9965298058801 22-MAY-14
+  2    625828  9965298058801 22-MAY-14 9965298115109 22-MAY-14
+  2    625829  9965298115109 22-MAY-14 9965298246129 22-MAY-14
+  2    625830  9965298246129 22-MAY-14 9965298333355 22-MAY-14
+  2    625831  9965298333355 22-MAY-14 9965298405443 22-MAY-14
+  2    625832  9965298405443 22-MAY-14 9965298486203 22-MAY-14
+  2    625833  9965298486203 22-MAY-14 9965298576175 22-MAY-14
+  2    625834  9965298576175 22-MAY-14 9965298668657 22-MAY-14
+  2    625835  9965298668657 22-MAY-14 9965298830921 22-MAY-14
+  2    625836  9965298830921 22-MAY-14 9965298948632 22-MAY-14
+  2    625837  9965298948632 22-MAY-14 9965299095639 22-MAY-14
+  2    625838  9965299095639 22-MAY-14 9965299150583 22-MAY-14
+  2    625839  9965299150583 22-MAY-14 9965299495738 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75882   3.60G      DISK        00:08:09     22-MAY-14
+        BP Key: 75883   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848254175_76449_1_20140522
+
+  List of Archived Logs in backup set 75882
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753360  9965300998104 22-MAY-14 9965301325429 22-MAY-14
+  1    753361  9965301325429 22-MAY-14 9965301580381 22-MAY-14
+  1    753362  9965301580381 22-MAY-14 9965301874012 22-MAY-14
+  1    753363  9965301874012 22-MAY-14 9965302093919 22-MAY-14
+  2    625854  9965300897974 22-MAY-14 9965300997289 22-MAY-14
+  2    625855  9965300997289 22-MAY-14 9965301091573 22-MAY-14
+  2    625856  9965301091573 22-MAY-14 9965301242540 22-MAY-14
+  2    625857  9965301242540 22-MAY-14 9965301324510 22-MAY-14
+  2    625858  9965301324510 22-MAY-14 9965301403202 22-MAY-14
+  2    625859  9965301403202 22-MAY-14 9965301486061 22-MAY-14
+  2    625860  9965301486061 22-MAY-14 9965301578996 22-MAY-14
+  2    625861  9965301578996 22-MAY-14 9965301668625 22-MAY-14
+  2    625862  9965301668625 22-MAY-14 9965301780495 22-MAY-14
+  2    625863  9965301780495 22-MAY-14 9965301870134 22-MAY-14
+  2    625864  9965301870134 22-MAY-14 9965301954708 22-MAY-14
+  2    625865  9965301954708 22-MAY-14 9965302022695 22-MAY-14
+  2    625866  9965302022695 22-MAY-14 9965302092551 22-MAY-14
+  2    625867  9965302092551 22-MAY-14 9965302290270 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75883   3.60G      DISK        00:08:08     22-MAY-14
+        BP Key: 75884   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848254191_76450_1_20140522
+
+  List of Archived Logs in backup set 75883
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753364  9965302093919 22-MAY-14 9965302430010 22-MAY-14
+  1    753365  9965302430010 22-MAY-14 9965302796328 22-MAY-14
+  1    753366  9965302796328 22-MAY-14 9965303056028 22-MAY-14
+  1    753367  9965303056028 22-MAY-14 9965303270054 22-MAY-14
+  1    753368  9965303270054 22-MAY-14 9965303488653 22-MAY-14
+  2    625868  9965302290270 22-MAY-14 9965302358512 22-MAY-14
+  2    625869  9965302358512 22-MAY-14 9965302428817 22-MAY-14
+  2    625870  9965302428817 22-MAY-14 9965302516738 22-MAY-14
+  2    625871  9965302516738 22-MAY-14 9965302702620 22-MAY-14
+  2    625872  9965302702620 22-MAY-14 9965302796014 22-MAY-14
+  2    625873  9965302796014 22-MAY-14 9965302873222 22-MAY-14
+  2    625874  9965302873222 22-MAY-14 9965302976198 22-MAY-14
+  2    625875  9965302976198 22-MAY-14 9965303055709 22-MAY-14
+  2    625876  9965303055709 22-MAY-14 9965303123823 22-MAY-14
+  2    625877  9965303123823 22-MAY-14 9965303198904 22-MAY-14
+  2    625878  9965303198904 22-MAY-14 9965303269819 22-MAY-14
+  2    625879  9965303269819 22-MAY-14 9965303340576 22-MAY-14
+  2    625880  9965303340576 22-MAY-14 9965303413018 22-MAY-14
+  2    625881  9965303413018 22-MAY-14 9965303488648 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75884   3.57G      DISK        00:08:04     22-MAY-14
+        BP Key: 75885   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848254667_76451_1_20140522
+
+  List of Archived Logs in backup set 75884
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753369  9965303488653 22-MAY-14 9965303767977 22-MAY-14
+  1    753370  9965303767977 22-MAY-14 9965303983944 22-MAY-14
+  1    753371  9965303983944 22-MAY-14 9965304195808 22-MAY-14
+  1    753372  9965304195808 22-MAY-14 9965304408691 22-MAY-14
+  1    753373  9965304408691 22-MAY-14 9965304628853 22-MAY-14
+  2    625882  9965303488648 22-MAY-14 9965303560975 22-MAY-14
+  2    625883  9965303560975 22-MAY-14 9965303696490 22-MAY-14
+  2    625884  9965303696490 22-MAY-14 9965303767029 22-MAY-14
+  2    625885  9965303767029 22-MAY-14 9965303836261 22-MAY-14
+  2    625886  9965303836261 22-MAY-14 9965303910091 22-MAY-14
+  2    625887  9965303910091 22-MAY-14 9965303982875 22-MAY-14
+  2    625888  9965303982875 22-MAY-14 9965304054025 22-MAY-14
+  2    625889  9965304054025 22-MAY-14 9965304124482 22-MAY-14
+  2    625890  9965304124482 22-MAY-14 9965304195247 22-MAY-14
+  2    625891  9965304195247 22-MAY-14 9965304266200 22-MAY-14
+  2    625892  9965304266200 22-MAY-14 9965304336807 22-MAY-14
+  2    625893  9965304336807 22-MAY-14 9965304408122 22-MAY-14
+  2    625894  9965304408122 22-MAY-14 9965304481159 22-MAY-14
+  2    625895  9965304481159 22-MAY-14 9965304550916 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75885   3.56G      DISK        00:08:07     22-MAY-14
+        BP Key: 75886   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848254683_76452_1_20140522
+
+  List of Archived Logs in backup set 75885
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753374  9965304628853 22-MAY-14 9965304847296 22-MAY-14
+  1    753375  9965304847296 22-MAY-14 9965305066015 22-MAY-14
+  1    753376  9965305066015 22-MAY-14 9965305283128 22-MAY-14
+  1    753377  9965305283128 22-MAY-14 9965305498142 22-MAY-14
+  2    625896  9965304550916 22-MAY-14 9965304628561 22-MAY-14
+  2    625897  9965304628561 22-MAY-14 9965304698660 22-MAY-14
+  2    625898  9965304698660 22-MAY-14 9965304772637 22-MAY-14
+  2    625899  9965304772637 22-MAY-14 9965304846976 22-MAY-14
+  2    625900  9965304846976 22-MAY-14 9965304918971 22-MAY-14
+  2    625901  9965304918971 22-MAY-14 9965304991633 22-MAY-14
+  2    625902  9965304991633 22-MAY-14 9965305065769 22-MAY-14
+  2    625903  9965305065769 22-MAY-14 9965305137190 22-MAY-14
+  2    625904  9965305137190 22-MAY-14 9965305207078 22-MAY-14
+  2    625905  9965305207078 22-MAY-14 9965305281969 22-MAY-14
+  2    625906  9965305281969 22-MAY-14 9965305351739 22-MAY-14
+  2    625907  9965305351739 22-MAY-14 9965305420682 22-MAY-14
+  2    625908  9965305420682 22-MAY-14 9965305497660 22-MAY-14
+  2    625909  9965305497660 22-MAY-14 9965305567027 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75886   2.28G      DISK        00:05:11     22-MAY-14
+        BP Key: 75887   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848255175_76454_1_20140522
+
+  List of Archived Logs in backup set 75886
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753383  9965306570000 22-MAY-14 9965306810916 22-MAY-14
+  1    753384  9965306810916 22-MAY-14 9965307029974 22-MAY-14
+  1    753385  9965307029974 22-MAY-14 9965307197704 22-MAY-14
+  1    753386  9965307197704 22-MAY-14 9965307215916 22-MAY-14
+  2    625924  9965306569208 22-MAY-14 9965306644575 22-MAY-14
+  2    625925  9965306644575 22-MAY-14 9965306736703 22-MAY-14
+  2    625926  9965306736703 22-MAY-14 9965306810367 22-MAY-14
+  2    625927  9965306810367 22-MAY-14 9965306887890 22-MAY-14
+  2    625928  9965306887890 22-MAY-14 9965306958179 22-MAY-14
+  2    625929  9965306958179 22-MAY-14 9965307029359 22-MAY-14
+  2    625930  9965307029359 22-MAY-14 9965307099230 22-MAY-14
+  2    625931  9965307099230 22-MAY-14 9965307170857 22-MAY-14
+  2    625932  9965307170857 22-MAY-14 9965307197417 22-MAY-14
+  2    625933  9965307197417 22-MAY-14 9965307200561 22-MAY-14
+  2    625934  9965307200561 22-MAY-14 9965307203916 22-MAY-14
+  2    625935  9965307203916 22-MAY-14 9965307216674 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75887   3.65G      DISK        00:08:10     22-MAY-14
+        BP Key: 75888   Status: AVAILABLE  Compressed: YES  Tag: TAG20140522T180115
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848255159_76453_1_20140522
+
+  List of Archived Logs in backup set 75887
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753378  9965305498142 22-MAY-14 9965305713294 22-MAY-14
+  1    753379  9965305713294 22-MAY-14 9965305932585 22-MAY-14
+  1    753380  9965305932585 22-MAY-14 9965306144443 22-MAY-14
+  1    753381  9965306144443 22-MAY-14 9965306356208 22-MAY-14
+  1    753382  9965306356208 22-MAY-14 9965306570000 22-MAY-14
+  2    625910  9965305567027 22-MAY-14 9965305638714 22-MAY-14
+  2    625911  9965305638714 22-MAY-14 9965305712794 22-MAY-14
+  2    625912  9965305712794 22-MAY-14 9965305785695 22-MAY-14
+  2    625913  9965305785695 22-MAY-14 9965305857581 22-MAY-14
+  2    625914  9965305857581 22-MAY-14 9965305932259 22-MAY-14
+  2    625915  9965305932259 22-MAY-14 9965306003408 22-MAY-14
+  2    625916  9965306003408 22-MAY-14 9965306072916 22-MAY-14
+  2    625917  9965306072916 22-MAY-14 9965306144341 22-MAY-14
+  2    625918  9965306144341 22-MAY-14 9965306214132 22-MAY-14
+  2    625919  9965306214132 22-MAY-14 9965306284811 22-MAY-14
+  2    625920  9965306284811 22-MAY-14 9965306355474 22-MAY-14
+  2    625921  9965306355474 22-MAY-14 9965306425988 22-MAY-14
+  2    625922  9965306425988 22-MAY-14 9965306496872 22-MAY-14
+  2    625923  9965306496872 22-MAY-14 9965306569208 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75889   1.94G      DISK        00:04:51     23-MAY-14
+        BP Key: 75890   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T000124
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848275286_76461_1_20140523
+
+  List of Archived Logs in backup set 75889
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753390  9965307794008 22-MAY-14 9965308290005 22-MAY-14
+  1    753391  9965308290005 22-MAY-14 9965309237632 22-MAY-14
+  1    753392  9965309237632 22-MAY-14 9965309469329 23-MAY-14
+  2    625944  9965307793659 22-MAY-14 9965307865458 22-MAY-14
+  2    625945  9965307865458 22-MAY-14 9965308230953 22-MAY-14
+  2    625946  9965308230953 22-MAY-14 9965308289999 22-MAY-14
+  2    625947  9965308289999 22-MAY-14 9965308331899 22-MAY-14
+  2    625948  9965308331899 22-MAY-14 9965309147122 22-MAY-14
+  2    625949  9965309147122 22-MAY-14 9965309237238 22-MAY-14
+  2    625950  9965309237238 22-MAY-14 9965309464084 23-MAY-14
+  2    625951  9965309464084 23-MAY-14 9965309465671 23-MAY-14
+  2    625952  9965309465671 23-MAY-14 9965309468042 23-MAY-14
+  2    625953  9965309468042 23-MAY-14 9965309621208 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75890   2.79M      DISK        00:00:04     23-MAY-14
+        BP Key: 75891   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T000124
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848275582_76462_1_20140523
+
+  List of Archived Logs in backup set 75890
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753393  9965309469329 23-MAY-14 9965309615300 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75891   2.11G      DISK        00:05:18     23-MAY-14
+        BP Key: 75892   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T000124
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848275286_76460_1_20140523
+
+  List of Archived Logs in backup set 75891
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753387  9965307215916 22-MAY-14 9965307359486 22-MAY-14
+  1    753388  9965307359486 22-MAY-14 9965307578949 22-MAY-14
+  1    753389  9965307578949 22-MAY-14 9965307794008 22-MAY-14
+  2    625936  9965307216674 22-MAY-14 9965307287535 22-MAY-14
+  2    625937  9965307287535 22-MAY-14 9965307358807 22-MAY-14
+  2    625938  9965307358807 22-MAY-14 9965307433666 22-MAY-14
+  2    625939  9965307433666 22-MAY-14 9965307505802 22-MAY-14
+  2    625940  9965307505802 22-MAY-14 9965307578574 22-MAY-14
+  2    625941  9965307578574 22-MAY-14 9965307649488 22-MAY-14
+  2    625942  9965307649488 22-MAY-14 9965307721711 22-MAY-14
+  2    625943  9965307721711 22-MAY-14 9965307793659 22-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75897   2.52G      DISK        00:05:44     23-MAY-14
+        BP Key: 75898   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T060040
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848296842_76466_1_20140523
+
+  List of Archived Logs in backup set 75897
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753398  9965310887840 23-MAY-14 9965311069476 23-MAY-14
+  1    753399  9965311069476 23-MAY-14 9965311405907 23-MAY-14
+  1    753400  9965311405907 23-MAY-14 9965311704475 23-MAY-14
+  2    625964  9965310825386 23-MAY-14 9965310886482 23-MAY-14
+  2    625965  9965310886482 23-MAY-14 9965310946610 23-MAY-14
+  2    625966  9965310946610 23-MAY-14 9965311006780 23-MAY-14
+  2    625967  9965311006780 23-MAY-14 9965311069224 23-MAY-14
+  2    625968  9965311069224 23-MAY-14 9965311132698 23-MAY-14
+  2    625969  9965311132698 23-MAY-14 9965311218214 23-MAY-14
+  2    625970  9965311218214 23-MAY-14 9965311405725 23-MAY-14
+  2    625971  9965311405725 23-MAY-14 9965311469504 23-MAY-14
+  2    625972  9965311469504 23-MAY-14 9965311531849 23-MAY-14
+  2    625973  9965311531849 23-MAY-14 9965311704038 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75898   2.52G      DISK        00:05:53     23-MAY-14
+        BP Key: 75899   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T060040
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848296841_76465_1_20140523
+
+  List of Archived Logs in backup set 75898
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753394  9965309615300 23-MAY-14 9965310244472 23-MAY-14
+  1    753395  9965310244472 23-MAY-14 9965310523618 23-MAY-14
+  1    753396  9965310523618 23-MAY-14 9965310707260 23-MAY-14
+  1    753397  9965310707260 23-MAY-14 9965310887840 23-MAY-14
+  2    625954  9965309621208 23-MAY-14 9965309903209 23-MAY-14
+  2    625955  9965309903209 23-MAY-14 9965310244431 23-MAY-14
+  2    625956  9965310244431 23-MAY-14 9965310397567 23-MAY-14
+  2    625957  9965310397567 23-MAY-14 9965310462561 23-MAY-14
+  2    625958  9965310462561 23-MAY-14 9965310523484 23-MAY-14
+  2    625959  9965310523484 23-MAY-14 9965310583211 23-MAY-14
+  2    625960  9965310583211 23-MAY-14 9965310647717 23-MAY-14
+  2    625961  9965310647717 23-MAY-14 9965310707008 23-MAY-14
+  2    625962  9965310707008 23-MAY-14 9965310765107 23-MAY-14
+  2    625963  9965310765107 23-MAY-14 9965310825386 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75899   2.00G      DISK        00:04:26     23-MAY-14
+        BP Key: 75900   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T060040
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848297187_76467_1_20140523
+
+  List of Archived Logs in backup set 75899
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753401  9965311704475 23-MAY-14 9965311895995 23-MAY-14
+  1    753402  9965311895995 23-MAY-14 9965312084494 23-MAY-14
+  1    753403  9965312084494 23-MAY-14 9965312307273 23-MAY-14
+  1    753404  9965312307273 23-MAY-14 9965312307470 23-MAY-14
+  2    625974  9965311704038 23-MAY-14 9965311770000 23-MAY-14
+  2    625975  9965311770000 23-MAY-14 9965311835656 23-MAY-14
+  2    625976  9965311835656 23-MAY-14 9965311895584 23-MAY-14
+  2    625977  9965311895584 23-MAY-14 9965311964428 23-MAY-14
+  2    625978  9965311964428 23-MAY-14 9965312023414 23-MAY-14
+  2    625979  9965312023414 23-MAY-14 9965312083995 23-MAY-14
+  2    625980  9965312083995 23-MAY-14 9965312145781 23-MAY-14
+  2    625981  9965312145781 23-MAY-14 9965312307161 23-MAY-14
+  2    625982  9965312307161 23-MAY-14 9965312307216 23-MAY-14
+  2    625983  9965312307216 23-MAY-14 9965312307288 23-MAY-14
+  2    625984  9965312307288 23-MAY-14 9965312307466 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75901   3.17G      DISK        00:07:17     23-MAY-14
+        BP Key: 75902   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T120047
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848318450_76470_1_20140523
+
+  List of Archived Logs in backup set 75901
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753409  9965313609641 23-MAY-14 9965313854835 23-MAY-14
+  1    753410  9965313854835 23-MAY-14 9965314066816 23-MAY-14
+  1    753411  9965314066816 23-MAY-14 9965314275465 23-MAY-14
+  1    753412  9965314275465 23-MAY-14 9965314494203 23-MAY-14
+  1    753413  9965314494203 23-MAY-14 9965314706063 23-MAY-14
+  2    625998  9965313690111 23-MAY-14 9965313785794 23-MAY-14
+  2    625999  9965313785794 23-MAY-14 9965313854387 23-MAY-14
+  2    626000  9965313854387 23-MAY-14 9965313923713 23-MAY-14
+  2    626001  9965313923713 23-MAY-14 9965313994090 23-MAY-14
+  2    626002  9965313994090 23-MAY-14 9965314066638 23-MAY-14
+  2    626003  9965314066638 23-MAY-14 9965314136872 23-MAY-14
+  2    626004  9965314136872 23-MAY-14 9965314205262 23-MAY-14
+  2    626005  9965314205262 23-MAY-14 9965314275016 23-MAY-14
+  2    626006  9965314275016 23-MAY-14 9965314343573 23-MAY-14
+  2    626007  9965314343573 23-MAY-14 9965314424366 23-MAY-14
+  2    626008  9965314424366 23-MAY-14 9965314493912 23-MAY-14
+  2    626009  9965314493912 23-MAY-14 9965314563139 23-MAY-14
+  2    626010  9965314563139 23-MAY-14 9965314635270 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75902   3.39G      DISK        00:07:43     23-MAY-14
+        BP Key: 75903   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T120047
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848318449_76469_1_20140523
+
+  List of Archived Logs in backup set 75902
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753405  9965312307470 23-MAY-14 9965312992971 23-MAY-14
+  1    753406  9965312992971 23-MAY-14 9965313193207 23-MAY-14
+  1    753407  9965313193207 23-MAY-14 9965313393353 23-MAY-14
+  1    753408  9965313393353 23-MAY-14 9965313609641 23-MAY-14
+  2    625985  9965312307466 23-MAY-14 9965312801685 23-MAY-14
+  2    625986  9965312801685 23-MAY-14 9965312925519 23-MAY-14
+  2    625987  9965312925519 23-MAY-14 9965312992201 23-MAY-14
+  2    625988  9965312992201 23-MAY-14 9965313059369 23-MAY-14
+  2    625989  9965313059369 23-MAY-14 9965313124822 23-MAY-14
+  2    625990  9965313124822 23-MAY-14 9965313192611 23-MAY-14
+  2    625991  9965313192611 23-MAY-14 9965313259303 23-MAY-14
+  2    625992  9965313259303 23-MAY-14 9965313326573 23-MAY-14
+  2    625993  9965313326573 23-MAY-14 9965313393106 23-MAY-14
+  2    625994  9965313393106 23-MAY-14 9965313471527 23-MAY-14
+  2    625995  9965313471527 23-MAY-14 9965313542201 23-MAY-14
+  2    625996  9965313542201 23-MAY-14 9965313609524 23-MAY-14
+  2    625997  9965313609524 23-MAY-14 9965313690111 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75903   2.54G      DISK        00:06:36     23-MAY-14
+        BP Key: 75904   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T120047
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848318895_76471_1_20140523
+
+  List of Archived Logs in backup set 75903
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753414  9965314706063 23-MAY-14 9965315058834 23-MAY-14
+  1    753415  9965315058834 23-MAY-14 9965315298476 23-MAY-14
+  1    753416  9965315298476 23-MAY-14 9965315535771 23-MAY-14
+  1    753417  9965315535771 23-MAY-14 9965316208252 23-MAY-14
+  1    753418  9965316208252 23-MAY-14 9965316219938 23-MAY-14
+  2    626011  9965314635270 23-MAY-14 9965314705748 23-MAY-14
+  2    626012  9965314705748 23-MAY-14 9965314872423 23-MAY-14
+  2    626013  9965314872423 23-MAY-14 9965314974061 23-MAY-14
+  2    626014  9965314974061 23-MAY-14 9965315058082 23-MAY-14
+  2    626015  9965315058082 23-MAY-14 9965315139139 23-MAY-14
+  2    626016  9965315139139 23-MAY-14 9965315219477 23-MAY-14
+  2    626017  9965315219477 23-MAY-14 9965315297945 23-MAY-14
+  2    626018  9965315297945 23-MAY-14 9965315375226 23-MAY-14
+  2    626019  9965315375226 23-MAY-14 9965315452103 23-MAY-14
+  2    626020  9965315452103 23-MAY-14 9965315535701 23-MAY-14
+  2    626021  9965315535701 23-MAY-14 9965316207819 23-MAY-14
+  2    626022  9965316207819 23-MAY-14 9965316207861 23-MAY-14
+  2    626023  9965316207861 23-MAY-14 9965316208024 23-MAY-14
+  2    626024  9965316208024 23-MAY-14 9965316220099 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75905   1.82G      DISK        00:04:10     23-MAY-14
+        BP Key: 75906   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T180235
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848340156_76474_1_20140523
+
+  List of Archived Logs in backup set 75905
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753422  9965316704426 23-MAY-14 9965317320662 23-MAY-14
+  1    753423  9965317320662 23-MAY-14 9965317977419 23-MAY-14
+  1    753424  9965317977419 23-MAY-14 9965318104582 23-MAY-14
+  2    626033  9965316701434 23-MAY-14 9965316769928 23-MAY-14
+  2    626034  9965316769928 23-MAY-14 9965316824996 23-MAY-14
+  2    626035  9965316824996 23-MAY-14 9965317319863 23-MAY-14
+  2    626036  9965317319863 23-MAY-14 9965317376311 23-MAY-14
+  2    626037  9965317376311 23-MAY-14 9965317500546 23-MAY-14
+  2    626038  9965317500546 23-MAY-14 9965318093840 23-MAY-14
+  2    626039  9965318093840 23-MAY-14 9965318093918 23-MAY-14
+  2    626040  9965318093918 23-MAY-14 9965318104576 23-MAY-14
+  2    626041  9965318104576 23-MAY-14 9965318106901 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75906   1.41M      DISK        00:00:01     23-MAY-14
+        BP Key: 75907   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T180235
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848340411_76475_1_20140523
+
+  List of Archived Logs in backup set 75906
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753425  9965318104582 23-MAY-14 9965318106695 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75907   2.15G      DISK        00:05:05     23-MAY-14
+        BP Key: 75908   Status: AVAILABLE  Compressed: YES  Tag: TAG20140523T180235
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848340156_76473_1_20140523
+
+  List of Archived Logs in backup set 75907
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753419  9965316219938 23-MAY-14 9965316397802 23-MAY-14
+  1    753420  9965316397802 23-MAY-14 9965316502008 23-MAY-14
+  1    753421  9965316502008 23-MAY-14 9965316704426 23-MAY-14
+  2    626025  9965316220099 23-MAY-14 9965316377671 23-MAY-14
+  2    626026  9965316377671 23-MAY-14 9965316397727 23-MAY-14
+  2    626027  9965316397727 23-MAY-14 9965316425323 23-MAY-14
+  2    626028  9965316425323 23-MAY-14 9965316445385 23-MAY-14
+  2    626029  9965316445385 23-MAY-14 9965316501126 23-MAY-14
+  2    626030  9965316501126 23-MAY-14 9965316554046 23-MAY-14
+  2    626031  9965316554046 23-MAY-14 9965316600193 23-MAY-14
+  2    626032  9965316600193 23-MAY-14 9965316701434 23-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75909   175.15M    DISK        00:01:04     24-MAY-14
+        BP Key: 75910   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T000253
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848361776_76482_1_20140524
+
+  List of Archived Logs in backup set 75909
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753428  9965318512881 23-MAY-14 9965318798430 24-MAY-14
+  2    626043  9965318790951 24-MAY-14 9965318791754 24-MAY-14
+  2    626044  9965318791754 24-MAY-14 9965318798319 24-MAY-14
+  2    626045  9965318798319 24-MAY-14 9965318813132 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75910   2.12M      DISK        00:00:16     24-MAY-14
+        BP Key: 75911   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T000253
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848361842_76483_1_20140524
+
+  List of Archived Logs in backup set 75910
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753429  9965318798430 24-MAY-14 9965318813127 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75911   602.46M    DISK        00:01:49     24-MAY-14
+        BP Key: 75912   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T000253
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848361776_76481_1_20140524
+
+  List of Archived Logs in backup set 75911
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753426  9965318106695 23-MAY-14 9965318450357 23-MAY-14
+  1    753427  9965318450357 23-MAY-14 9965318512881 23-MAY-14
+  2    626042  9965318106901 23-MAY-14 9965318790951 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75917   782.17M    DISK        00:01:54     24-MAY-14
+        BP Key: 75918   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T060059
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848383260_76487_1_20140524
+
+  List of Archived Logs in backup set 75917
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753434  9965319851910 24-MAY-14 9965320167445 24-MAY-14
+  1    753435  9965320167445 24-MAY-14 9965320394099 24-MAY-14
+  1    753436  9965320394099 24-MAY-14 9965320526583 24-MAY-14
+  1    753437  9965320526583 24-MAY-14 9965320686433 24-MAY-14
+  2    626047  9965319555846 24-MAY-14 9965320397930 24-MAY-14
+  2    626048  9965320397930 24-MAY-14 9965320681190 24-MAY-14
+  2    626049  9965320681190 24-MAY-14 9965320682310 24-MAY-14
+  2    626050  9965320682310 24-MAY-14 9965320686078 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75918   1.52M      DISK        00:00:04     24-MAY-14
+        BP Key: 75919   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T060059
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848383375_76488_1_20140524
+
+  List of Archived Logs in backup set 75918
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753438  9965320686433 24-MAY-14 9965320690329 24-MAY-14
+  2    626051  9965320686078 24-MAY-14 9965320690551 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75919   1.07G      DISK        00:02:27     24-MAY-14
+        BP Key: 75920   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T060059
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848383260_76486_1_20140524
+
+  List of Archived Logs in backup set 75919
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753430  9965318813127 24-MAY-14 9965319142783 24-MAY-14
+  1    753431  9965319142783 24-MAY-14 9965319392142 24-MAY-14
+  1    753432  9965319392142 24-MAY-14 9965319552796 24-MAY-14
+  1    753433  9965319552796 24-MAY-14 9965319851910 24-MAY-14
+  2    626046  9965318813132 24-MAY-14 9965319555846 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75921   2.24G      DISK        00:05:45     24-MAY-14
+        BP Key: 75922   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T120034
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848404835_76491_1_20140524
+
+  List of Archived Logs in backup set 75921
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753452  9965321897062 24-MAY-14 9965322070820 24-MAY-14
+  1    753453  9965322070820 24-MAY-14 9965322268223 24-MAY-14
+  1    753454  9965322268223 24-MAY-14 9965322552479 24-MAY-14
+  1    753455  9965322552479 24-MAY-14 9965322700166 24-MAY-14
+  1    753456  9965322700166 24-MAY-14 9965322894536 24-MAY-14
+  1    753457  9965322894536 24-MAY-14 9965322982764 24-MAY-14
+  1    753458  9965322982764 24-MAY-14 9965323084345 24-MAY-14
+  1    753459  9965323084345 24-MAY-14 9965323164866 24-MAY-14
+  1    753460  9965323164866 24-MAY-14 9965323274977 24-MAY-14
+  1    753461  9965323274977 24-MAY-14 9965323363975 24-MAY-14
+  1    753462  9965323363975 24-MAY-14 9965323454913 24-MAY-14
+  1    753463  9965323454913 24-MAY-14 9965323572286 24-MAY-14
+  2    626056  9965321813221 24-MAY-14 9965322268390 24-MAY-14
+  2    626057  9965322268390 24-MAY-14 9965322895219 24-MAY-14
+  2    626058  9965322895219 24-MAY-14 9965323164873 24-MAY-14
+  2    626059  9965323164873 24-MAY-14 9965323455683 24-MAY-14
+  2    626060  9965323455683 24-MAY-14 9965323570751 24-MAY-14
+  2    626061  9965323570751 24-MAY-14 9965323571738 24-MAY-14
+  2    626062  9965323571738 24-MAY-14 9965323572278 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75922   24.00K     DISK        00:00:00     24-MAY-14
+        BP Key: 75923   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T120034
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848405181_76492_1_20140524
+
+  List of Archived Logs in backup set 75922
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753464  9965323572286 24-MAY-14 9965323578435 24-MAY-14
+  2    626063  9965323572278 24-MAY-14 9965323578530 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75923   3.18G      DISK        00:07:02     24-MAY-14
+        BP Key: 75924   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T120034
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848404835_76490_1_20140524
+
+  List of Archived Logs in backup set 75923
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753439  9965320690329 24-MAY-14 9965320785899 24-MAY-14
+  1    753440  9965320785899 24-MAY-14 9965320871432 24-MAY-14
+  1    753441  9965320871432 24-MAY-14 9965320963076 24-MAY-14
+  1    753442  9965320963076 24-MAY-14 9965321089888 24-MAY-14
+  1    753443  9965321089888 24-MAY-14 9965321211759 24-MAY-14
+  1    753444  9965321211759 24-MAY-14 9965321296135 24-MAY-14
+  1    753445  9965321296135 24-MAY-14 9965321381535 24-MAY-14
+  1    753446  9965321381535 24-MAY-14 9965321467127 24-MAY-14
+  1    753447  9965321467127 24-MAY-14 9965321552924 24-MAY-14
+  1    753448  9965321552924 24-MAY-14 9965321640502 24-MAY-14
+  1    753449  9965321640502 24-MAY-14 9965321725887 24-MAY-14
+  1    753450  9965321725887 24-MAY-14 9965321811804 24-MAY-14
+  1    753451  9965321811804 24-MAY-14 9965321897062 24-MAY-14
+  2    626052  9965320690551 24-MAY-14 9965320964919 24-MAY-14
+  2    626053  9965320964919 24-MAY-14 9965321297649 24-MAY-14
+  2    626054  9965321297649 24-MAY-14 9965321554229 24-MAY-14
+  2    626055  9965321554229 24-MAY-14 9965321813221 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75925   799.00K    DISK        00:00:01     24-MAY-14
+        BP Key: 75926   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T180031
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848426432_76495_1_20140524
+
+  List of Archived Logs in backup set 75925
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753466  9965323732867 24-MAY-14 9965323732964 24-MAY-14
+  2    626065  9965323732168 24-MAY-14 9965323732564 24-MAY-14
+  2    626066  9965323732564 24-MAY-14 9965323732875 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75926   25.00K     DISK        00:00:00     24-MAY-14
+        BP Key: 75927   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T180031
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848426433_76496_1_20140524
+
+  List of Archived Logs in backup set 75926
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  2    626067  9965323732875 24-MAY-14 9965323733258 24-MAY-14
+
+BS Key  Size       Device Type Elapsed Time Completion Time
+------- ---------- ----------- ------------ ---------------
+75927   31.31M     DISK        00:00:05     24-MAY-14
+        BP Key: 75928   Status: AVAILABLE  Compressed: YES  Tag: TAG20140524T180031
+        Piece Name: /backup/rman/NGAB01PR/archbackup/arch848426432_76494_1_20140524
+
+  List of Archived Logs in backup set 75927
+  Thrd Seq     Low SCN    Low Time  Next SCN   Next Time
+  ---- ------- ---------- --------- ---------- ---------
+  1    753465  9965323578435 24-MAY-14 9965323732867 24-MAY-14
+  2    626064  9965323578530 24-MAY-14 9965323732168 24-MAY-14
+
+RMAN>
+
+
+
+
